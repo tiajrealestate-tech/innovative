@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: #f6f7f9;
+  color: #111827;
+}
+
+/* Nicer default focus rings for inputs/buttons */
+input:focus,
+select:focus,
+textarea:focus,
+button:focus-visible {
+  outline: none;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
+  .print-full {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
