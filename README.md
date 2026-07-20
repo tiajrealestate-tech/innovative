@@ -6,6 +6,22 @@ This is version 1: a working prototype meant to be used on real inspections.
 
 ---
 
+## ▶️ Test it — the easy way (one click)
+
+Click this button. It walks you through putting the app online (no coding):
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Ftiajrealestate-tech%2Finnovative&env=ANTHROPIC_API_KEY%2CDEEPGRAM_API_KEY%2CAPP_PASSWORD&envDescription=Your%20Claude%20key%2C%20Deepgram%20key%2C%20and%20any%20password%20to%20open%20the%20app)
+
+When it asks for the three values:
+
+- `ANTHROPIC_API_KEY` — your Claude key (see **Step 1** below). **Required.**
+- `APP_PASSWORD` — make up any password. **Required.**
+- `DEEPGRAM_API_KEY` — for turning audio into text (see **Step 2**). You can leave this blank for now and add it later.
+
+**Fastest possible test (only needs the Claude key):** after it deploys, open the URL, enter your password, and on the upload page click **"Or paste a transcript."** Type a few findings like you'd say them out loud, hit **Create report**, and you'll see the whole review-and-export flow. To test real **audio** uploads, add the Deepgram key and turn on Blob storage (**Step 2** and **Step 5** below).
+
+---
+
 ## What it does (the workflow)
 
 1. **Upload** an iPhone voice memo (`.m4a`, or `.mp3` / `.wav` / `.aac`), and optionally type in the property address, date, client, and agent.
