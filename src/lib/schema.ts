@@ -38,7 +38,9 @@ export interface Finding {
   // --- what it is ---
   severity: SeverityKey | string;
   recommendation_type: string;
-  /** Polished, buyer-friendly report language. */
+  /** Short Spectora-style deficiency headline, e.g. "Downspouts Drain Too Close to Property". */
+  title: string;
+  /** Polished, buyer-friendly report narrative (his voice). */
   comment: string;
 
   // --- provenance / future-proofing ---
@@ -102,6 +104,7 @@ export const CLAUDE_OUTPUT_SCHEMA = {
             enum: ["safety_major", "recommendation", "maintenance"],
           },
           recommendation_type: { type: "string" },
+          title: { type: "string" },
           comment: { type: "string" },
           location_tags: { type: "array", items: { type: "string" } },
           source_text: { type: ["string", "null"] },
@@ -113,6 +116,7 @@ export const CLAUDE_OUTPUT_SCHEMA = {
           "component",
           "severity",
           "recommendation_type",
+          "title",
           "comment",
           "location_tags",
           "source_text",
@@ -161,6 +165,7 @@ export function blankFinding(order_index: number): Finding {
     component: null,
     severity: "recommendation",
     recommendation_type: "Recommend a qualified contractor evaluate and repair",
+    title: "",
     comment: "",
     location_tags: [],
     source_text: null,

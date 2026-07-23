@@ -308,6 +308,13 @@ function FindingEditor({
       </div>
 
       <input
+        value={finding.title}
+        onChange={(e) => onChange({ title: e.target.value })}
+        placeholder="Finding title (short headline)"
+        className="w-full text-sm font-medium rounded-lg border border-gray-300 px-3 py-2 mb-2"
+      />
+
+      <input
         list="recommendation-types"
         value={finding.recommendation_type}
         onChange={(e) => onChange({ recommendation_type: e.target.value })}
@@ -370,7 +377,7 @@ function EntryTab({ report }: { report: InspectionReport }) {
               const sev = SEVERITY_BY_KEY[f.severity as SeverityKey];
               return (
                 <div key={f.id} className="p-4">
-                  <div className="flex flex-wrap items-center gap-2 mb-2 text-xs">
+                  <div className="flex flex-wrap items-center gap-2 mb-1 text-xs">
                     {f.subsection && (
                       <span className="text-gray-500">
                         {f.subsection}
@@ -386,13 +393,26 @@ function EntryTab({ report }: { report: InspectionReport }) {
                       {f.recommendation_type}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-800 leading-relaxed">{f.comment}</p>
-                  <button
-                    onClick={() => copy(f.comment, f.id)}
-                    className="mt-2 text-xs rounded-md border border-gray-300 hover:bg-gray-50 px-2.5 py-1"
-                  >
-                    {copied === f.id ? "Copied ✓" : "Copy comment"}
-                  </button>
+                  {f.title && (
+                    <p className="text-sm font-semibold text-gray-900">{f.title}</p>
+                  )}
+                  <p className="text-sm text-gray-800 leading-relaxed mt-0.5">
+                    {f.comment}
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      onClick={() => copy(f.title, f.id + ":t")}
+                      className="text-xs rounded-md border border-gray-300 hover:bg-gray-50 px-2.5 py-1"
+                    >
+                      {copied === f.id + ":t" ? "Copied ✓" : "Copy title"}
+                    </button>
+                    <button
+                      onClick={() => copy(f.comment, f.id + ":c")}
+                      className="text-xs rounded-md border border-gray-300 hover:bg-gray-50 px-2.5 py-1"
+                    >
+                      {copied === f.id + ":c" ? "Copied ✓" : "Copy comment"}
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -481,18 +501,18 @@ function PunchTab({
                     >
                       <div className="flex items-center gap-2 flex-wrap">
                         <span
-                          className="text-xs font-semibold"
+                          className="text-xs font-semibold uppercase tracking-wide"
                           style={{ color: sev?.color }}
                         >
                           {severityLabel(f.severity)}
                         </span>
-                        {f.component && (
-                          <span className="text-xs text-gray-500">
-                            {f.component}
+                        {f.title && (
+                          <span className="text-sm font-semibold text-gray-900">
+                            {f.title}
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-800">{f.comment}</p>
+                      <p className="text-sm text-gray-700 mt-0.5">{f.comment}</p>
                     </div>
                   );
                 })}
