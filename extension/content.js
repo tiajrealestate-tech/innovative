@@ -104,19 +104,26 @@
       .filter((l) => l.length > 0);
   }
 
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // Always re-query the DOM fresh — after a check, Spectora re-renders the list
+  // and any node references we held become stale.
+  function findFresh(line) {
+    return matchRecord(defectRecords(), line);
+  }
+
   function preview(text, log) {
     clearHighlights();
-    const records = defectRecords();
     const wanted = parseLines(text);
-    if (!records.length) {
-      log("No defect cards found. Open an item's **Defects** tab first.");
+    if (!defectRecords().length) {
+      log("No defect cards found. Open an item's Defects tab first.");
       return;
     }
     let hit = 0;
     const misses = [];
     let firstMatch = null;
     for (const line of wanted) {
-      const m = matchRecord(records, line);
+      const m = findFresh(line);
       if (m) {
         highlight(m.rec, m.cb.checked ? "#16a34a" : "#2a56d4");
         if (!firstMatch) firstMatch = m.rec;
@@ -132,27 +139,42 @@
     );
   }
 
-  function applyChecks(text, log) {
-    const records = defectRecords();
+  // Check each defect one at a time, re-scanning fresh and pausing after each
+  // click so Spectora's re-render finishes before we look for the next one.
+  async function applyChecks(text, log) {
+    clearHighlights();
     const wanted = parseLines(text);
     let checked = 0;
+    let already = 0;
     const misses = [];
+    log("Working…");
     for (const line of wanted) {
-      const m = matchRecord(records, line);
+      let m = findFresh(line);
+      if (!m) {
+        await sleep(450); // list may still be re-rendering; try once more
+        m = findFresh(line);
+      }
       if (!m) {
         misses.push(line);
         continue;
       }
-      if (!m.cb.checked) {
-        m.cb.click(); // toggles + fires the events Vue listens for
-        checked++;
+      if (m.cb.checked) {
+        already++;
         highlight(m.rec, "#16a34a");
+        continue;
       }
+      m.cb.click(); // toggles + fires the events Vue listens for
+      checked++;
+      await sleep(400); // let the card expand / list settle
+      const again = findFresh(line); // fresh node for the highlight
+      if (again) highlight(again.rec, "#16a34a");
     }
     log(
-      `Checked ${checked} defect${checked === 1 ? "" : "s"}.` +
+      `Checked ${checked} defect${checked === 1 ? "" : "s"}` +
+        (already ? `, ${already} already checked` : "") +
+        "." +
         (misses.length ? `\nNot found here: ${misses.join(", ")}` : "") +
-        `\n\nEyeball them — if any box is wrong, just click it to undo.`
+        `\n\nEyeball them — if a box is wrong, click it to undo.`
     );
   }
 
