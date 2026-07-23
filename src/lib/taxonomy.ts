@@ -40,6 +40,7 @@ export const TAXONOMY: TaxonomySection[] = [
       "Walkways, Patios & Driveways",
       "Eaves, Soffits & Fascia",
       "Vegetation, Grading, Drainage & Retaining Walls",
+      "Exterior General",
     ],
   },
   {
@@ -57,6 +58,7 @@ export const TAXONOMY: TaxonomySection[] = [
       "Distribution Systems",
       "Normal Operating Controls",
       "Flues & Vents",
+      "HVAC General",
     ],
   },
   {
@@ -71,6 +73,7 @@ export const TAXONOMY: TaxonomySection[] = [
       "Drain, Waste, & Vent Systems",
       "Hot Water Systems, Controls, Flues & Vents",
       "Fuel Storage & Distribution",
+      "Plumbing General",
     ],
   },
   {
@@ -82,6 +85,7 @@ export const TAXONOMY: TaxonomySection[] = [
       "Lighting Fixtures, Switches & Receptacles",
       "GFCI & AFCI",
       "Smoke & CO Detectors",
+      "Electrical General",
     ],
   },
   {
@@ -93,11 +97,10 @@ export const TAXONOMY: TaxonomySection[] = [
     subsections: [
       "Doors",
       "Windows",
-      "Floors",
-      "Walls",
-      "Ceilings",
+      "Floors, Walls, Ceilings",
       "Stairs, Steps, Stoops, Stairways & Ramps",
       "Switches, Fixtures & Receptacles",
+      "Presence of Smoke and CO Detectors",
     ],
   },
   {
@@ -113,15 +116,20 @@ export const TAXONOMY: TaxonomySection[] = [
     section: "Bathrooms",
     subsections: [
       "Sinks, Tubs & Showers",
-      "Cabinetry",
-      "Ceiling, Walls & Floor",
+      "Bathroom Toilets",
+      "Cabinetry, Ceiling, Walls & Floor",
       "Bathroom Exhaust Fan / Window",
       "GFCI & Electric in Bathroom",
     ],
   },
   {
     section: "Laundry",
-    subsections: ["Laundry Room", "Ventilation", "Plumbing & Hookups"],
+    subsections: [
+      "Clothes Washer",
+      "Dryer",
+      "Ventilation",
+      "Plumbing & Hookups",
+    ],
   },
   {
     section: "Kitchen",
