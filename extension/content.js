@@ -18,6 +18,8 @@
   if (window.__spectoraScannerLoaded) return;
   window.__spectoraScannerLoaded = true;
 
+  const VERSION = "0.2.2";
+
   const KNOWN_SECTIONS = [
     "Inspection Details", "Roof", "Exterior",
     "Basement, Foundation, Crawlspace & Structure", "Heating", "Cooling",
@@ -106,6 +108,18 @@
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+  // Poll a condition until true or timeout — robust against slow re-renders.
+  async function waitFor(pred, timeout = 3000, step = 120) {
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeout) {
+      try {
+        if (pred()) return true;
+      } catch (e) {}
+      await sleep(step);
+    }
+    return false;
+  }
+
   // Always re-query the DOM fresh — after a check, Spectora re-renders the list
   // and any node references we held become stale.
   function findFresh(line) {
@@ -147,15 +161,17 @@
     let checked = 0;
     let already = 0;
     const misses = [];
-    log("Working…");
-    for (const line of wanted) {
+    for (let i = 0; i < wanted.length; i++) {
+      const line = wanted[i];
+      log(`Working… ${i + 1}/${wanted.length}: ${line}`);
+
+      // Find it, waiting patiently in case the list is still re-rendering.
       let m = findFresh(line);
       if (!m) {
-        await sleep(450); // list may still be re-rendering; try once more
-        m = findFresh(line);
+        await waitFor(() => !!(m = findFresh(line)), 2500);
       }
       if (!m) {
-        misses.push(line);
+        misses.push(line + " (not found)");
         continue;
       }
       if (m.cb.checked) {
@@ -163,17 +179,25 @@
         highlight(m.rec, "#16a34a");
         continue;
       }
+
       m.cb.click(); // toggles + fires the events Vue listens for
-      checked++;
-      await sleep(400); // let the card expand / list settle
-      const again = findFresh(line); // fresh node for the highlight
-      if (again) highlight(again.rec, "#16a34a");
+      // Wait until Spectora actually reflects the checked state on a fresh node.
+      const ok = await waitFor(() => {
+        const f = findFresh(line);
+        return !!(f && f.cb.checked);
+      }, 3500);
+      if (ok) {
+        checked++;
+        const f = findFresh(line);
+        if (f) highlight(f.rec, "#16a34a");
+      } else {
+        misses.push(line + " (click didn't stick)");
+      }
+      await sleep(250);
     }
     log(
-      `Checked ${checked} defect${checked === 1 ? "" : "s"}` +
-        (already ? `, ${already} already checked` : "") +
-        "." +
-        (misses.length ? `\nNot found here: ${misses.join(", ")}` : "") +
+      `Checked ${checked}${already ? `, ${already} already` : ""} of ${wanted.length}.` +
+        (misses.length ? `\nProblem: ${misses.join(", ")}` : "") +
         `\n\nEyeball them — if a box is wrong, click it to undo.`
     );
   }
@@ -218,7 +242,7 @@
       fontWeight: "600", display: "flex", justifyContent: "space-between", alignItems: "center",
     });
     header.innerHTML =
-      "<span>Spectora Autofill v0.2</span>" +
+      "<span>Spectora Autofill v" + VERSION + "</span>" +
       '<span id="sa-close" style="cursor:pointer;font-size:16px;">×</span>';
 
     const body = document.createElement("div");
