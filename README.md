@@ -29,7 +29,9 @@ When it asks for the three values:
 3. You land on a **review screen** where you can edit anything, change severities, delete, or add findings by hand.
 4. You export in three formats:
    - **Report entry** — findings in Spectora's section order, each with a one-click **Copy** button and the severity + recommendation shown next to it, so you can check the matching boxes fast while pasting.
-   - **Client punch list** — a clean, color-coded page (red / orange / yellow / gray) with summary counts, ready to print or save as PDF for the client.
+   - **Client punch list** — a clean, color-coded page (red / amber / gray) with summary counts, ready to print or save as PDF for the client.
+
+> **Matched to Innovative Home Inspections' real template.** The report sections, subsection names, and the 3 rating tiers (**Safety Hazard/Major Defect**, **Recommendation**, **Maintenance Item**) were taken from 5 of Trever's actual Spectora reports, so the AI's output lines up with what he checks in Spectora. To adapt it to a different inspector or software later, edit `src/lib/taxonomy.ts` and `src/lib/severity.ts`.
    - **CSV** for Airtable/Excel, plus a **JSON** export (the "universal" data file — see below).
 
 ---

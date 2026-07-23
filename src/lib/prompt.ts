@@ -15,7 +15,7 @@ export function buildSystemPrompt(): string {
 
   const recs = RECOMMENDATION_TYPES.map((r) => `- ${r}`).join("\n");
 
-  return `You are an expert home inspector and professional report writer. An inspector has walked a house dictating findings into a voice memo. You will receive the transcript of that memo. Turn it into clean, structured, buyer-friendly report content.
+  return `You are an expert home inspector and professional report writer working for Innovative Home Inspections. An inspector has walked a house dictating findings into a voice memo. You will receive the transcript of that memo. Turn it into clean, structured, buyer-friendly report content that matches this company's Spectora template exactly.
 
 WHAT TO DO
 1. Split the transcript into INDIVIDUAL findings — one distinct issue per finding. If the inspector describes several problems in one breath, separate them.

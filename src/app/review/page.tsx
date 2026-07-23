@@ -448,7 +448,7 @@ function PunchTab({
         </div>
 
         {/* Summary counts */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-3 gap-3 mb-8">
           {SEVERITY_LEVELS.map((s) => (
             <div
               key={s.key}

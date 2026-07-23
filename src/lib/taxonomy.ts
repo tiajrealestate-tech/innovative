@@ -1,104 +1,156 @@
 // -----------------------------------------------------------------------------
-// Report taxonomy — the sections and subsections a home inspection report is
-// organized into. This mirrors a standard InterNACHI-style structure, which is
-// close to Spectora's default template, but it is deliberately a plain data
-// file so it can be swapped or extended per software / per inspector later.
+// Report taxonomy — matched to Innovative Home Inspections' actual Spectora
+// template. Section order and names are taken verbatim from Trever's Table of
+// Contents; the subsection ("item") names are the real ones pulled from 80
+// findings across 5 of his reports, plus a few common items for coverage.
 //
 // STRUCTURE (matches the data model):
-//   section     -> the top-level system or area   (e.g. "Interior")
-//   subsection  -> the room or sub-area            (e.g. "Kitchen")
-//   component   -> the specific item               (e.g. "Electrical")  (free text)
+//   section     -> the top-level Spectora section  (e.g. "Electrical")
+//   subsection  -> the Spectora item               (e.g. "Lighting Fixtures, Switches & Receptacles")
+//   component   -> the specific thing              (e.g. "kitchen GFCI outlet")  (free text)
 //
-// The order of SECTION_ORDER controls the order findings are displayed in the
-// outputs (so they line up with how Spectora lists sections top-to-bottom).
+// SECTION_ORDER controls output ordering so it lines up top-to-bottom with how
+// Spectora lists his sections. To adapt this app to a DIFFERENT inspector or a
+// different software later, this one file is what you swap.
 // -----------------------------------------------------------------------------
 
 export interface TaxonomySection {
   section: string;
-  /** Typical subsections / rooms. The AI may use others; this is guidance. */
+  /** Typical subsections / items. The AI may use others; this is guidance. */
   subsections: string[];
 }
 
 export const TAXONOMY: TaxonomySection[] = [
   {
     section: "Roof",
-    subsections: ["Coverings", "Flashing", "Gutters & Downspouts", "Skylights", "Chimney"],
+    subsections: [
+      "Coverings",
+      "Roof Drainage Systems",
+      "Flashings",
+      "Skylights, Chimneys & Other Roof Penetrations",
+    ],
   },
   {
     section: "Exterior",
     subsections: [
-      "Siding & Trim",
-      "Doors & Windows",
-      "Decks, Porches & Balconies",
-      "Walkways & Driveway",
-      "Grading & Drainage",
-      "Vegetation & Retaining Walls",
+      "Siding, Flashing & Trim",
+      "Exterior Windows",
+      "Exterior Doors",
+      "Decks, Balconies, Porches & Steps",
+      "Walkways, Patios & Driveways",
+      "Eaves, Soffits & Fascia",
+      "Vegetation, Grading, Drainage & Retaining Walls",
     ],
   },
   {
-    section: "Structure & Foundation",
-    subsections: ["Foundation", "Crawlspace", "Framing", "Basement"],
-  },
-  {
-    section: "Garage",
-    subsections: ["Garage Door & Opener", "Firewall / Ceiling", "Floor", "Occupant Door"],
-  },
-  {
-    section: "Electrical",
+    section: "Basement, Foundation, Crawlspace & Structure",
     subsections: [
-      "Service & Meter",
-      "Main Panel",
-      "Sub Panel",
-      "Branch Wiring",
-      "Outlets & Switches",
-      "GFCI / AFCI",
-      "Smoke & CO Detectors",
-    ],
-  },
-  {
-    section: "Plumbing",
-    subsections: [
-      "Water Supply",
-      "Drain, Waste & Vent",
-      "Water Heater",
-      "Fixtures & Faucets",
-      "Fuel Systems",
+      "Basements & Crawlspaces",
+      "Foundation",
+      "Structural Components",
     ],
   },
   {
     section: "Heating",
-    subsections: ["Furnace / Heat Source", "Distribution", "Flue & Venting", "Thermostat"],
-  },
-  {
-    section: "Cooling",
-    subsections: ["Air Conditioning / Heat Pump", "Distribution", "Condensate"],
-  },
-  {
-    section: "Interior",
     subsections: [
-      "Living Room",
-      "Bedrooms",
-      "Hallways & Stairs",
-      "Walls, Ceilings & Floors",
-      "Doors & Windows",
-      "Fireplace",
+      "Equipment",
+      "Distribution Systems",
+      "Normal Operating Controls",
+      "Flues & Vents",
     ],
   },
   {
-    section: "Kitchen",
-    subsections: ["Cabinets & Countertops", "Sink & Plumbing", "Electrical", "Built-in Appliances", "Ventilation"],
+    section: "Cooling",
+    subsections: ["Cooling Equipment", "Distribution System"],
   },
   {
-    section: "Bathrooms",
-    subsections: ["Master Bathroom", "Full Bathroom", "Half Bathroom", "Fixtures & Plumbing", "Ventilation"],
+    section: "Plumbing",
+    subsections: [
+      "Main Water Shut-off Device",
+      "Water Supply, Distribution Systems & Fixtures",
+      "Drain, Waste, & Vent Systems",
+      "Hot Water Systems, Controls, Flues & Vents",
+      "Fuel Storage & Distribution",
+    ],
   },
   {
-    section: "Laundry",
-    subsections: ["Washer / Dryer Hookups", "Ventilation", "Plumbing"],
+    section: "Electrical",
+    subsections: [
+      "Service & Grounding",
+      "Main & Subpanels, Service & Grounding, Main Overcurrent Device",
+      "Branch Wiring Circuits, Breakers & Fuses",
+      "Lighting Fixtures, Switches & Receptacles",
+      "GFCI & AFCI",
+      "Smoke & CO Detectors",
+    ],
+  },
+  {
+    section: "Fireplace",
+    subsections: ["Cleanout Doors & Frames", "Fireplace", "Chimney"],
+  },
+  {
+    section: "Doors, Windows & Interior",
+    subsections: [
+      "Doors",
+      "Windows",
+      "Floors",
+      "Walls",
+      "Ceilings",
+      "Stairs, Steps, Stoops, Stairways & Ramps",
+      "Switches, Fixtures & Receptacles",
+    ],
   },
   {
     section: "Attic, Insulation & Ventilation",
-    subsections: ["Attic Access", "Insulation", "Ventilation", "Exhaust Fans"],
+    subsections: [
+      "Structural Components & Observations in Attic",
+      "Insulation",
+      "Ventilation",
+      "Exhaust Systems",
+    ],
+  },
+  {
+    section: "Bathrooms",
+    subsections: [
+      "Sinks, Tubs & Showers",
+      "Cabinetry",
+      "Ceiling, Walls & Floor",
+      "Bathroom Exhaust Fan / Window",
+      "GFCI & Electric in Bathroom",
+    ],
+  },
+  {
+    section: "Laundry",
+    subsections: ["Laundry Room", "Ventilation", "Plumbing & Hookups"],
+  },
+  {
+    section: "Kitchen",
+    subsections: [
+      "Kitchen Sink",
+      "Cabinets & Countertops",
+      "Garbage Disposal",
+      "Range/Oven/Cooktop",
+      "Dishwasher",
+      "Refrigerator",
+      "Ventilation",
+    ],
+  },
+  {
+    section: "Garage",
+    subsections: [
+      "Garage Door & Opener",
+      "Occupant Door (From garage to inside of home)",
+      "Ceiling & Firewall",
+      "Floor",
+    ],
+  },
+  {
+    section: "General Overview",
+    subsections: ["General"],
+  },
+  {
+    section: "Radon Results",
+    subsections: ["Results"],
   },
 ];
 
@@ -114,7 +166,7 @@ export function sectionOrderIndex(section: string): number {
 
 /**
  * A compact text version of the taxonomy for the AI prompt. Keeps the model
- * anchored to these section names so its output lines up with the report.
+ * anchored to these exact section/item names so its output matches the report.
  */
 export function taxonomyForPrompt(): string {
   return TAXONOMY.map(

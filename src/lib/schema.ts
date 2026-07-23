@@ -99,7 +99,7 @@ export const CLAUDE_OUTPUT_SCHEMA = {
           component: { type: ["string", "null"] },
           severity: {
             type: "string",
-            enum: ["safety_hazard", "major_defect", "minor_defect", "maintenance"],
+            enum: ["safety_major", "recommendation", "maintenance"],
           },
           recommendation_type: { type: "string" },
           comment: { type: "string" },
@@ -156,11 +156,11 @@ export function blankFinding(order_index: number): Finding {
   return {
     id: newId(),
     order_index,
-    section: "Interior",
+    section: "Doors, Windows & Interior",
     subsection: null,
     component: null,
-    severity: "minor_defect",
-    recommendation_type: "Correct as needed",
+    severity: "recommendation",
+    recommendation_type: "Recommend a qualified contractor evaluate and repair",
     comment: "",
     location_tags: [],
     source_text: null,

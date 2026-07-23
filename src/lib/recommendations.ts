@@ -1,22 +1,24 @@
 // -----------------------------------------------------------------------------
-// Recommendation types.
-// A curated list of the standard "what should the buyer do" phrases inspectors
-// use. The AI is told to pick the closest match, but the field is free text so
-// it (and the inspector) can write anything. Kept in one place for reuse in the
-// review dropdown and for future mapping into inspection software.
+// Recommendation types — phrased to match how Trever actually writes them in
+// his reports ("Recommend a qualified plumber evaluate and install.",
+// "Recommend monitoring.", "Recommend sealing and patching.", etc.).
+//
+// The AI picks the closest match, but the field is free text so it (and the
+// inspector) can write anything. Kept in one place for the review dropdown and
+// for future mapping into inspection software.
 // -----------------------------------------------------------------------------
 
 export const RECOMMENDATION_TYPES: string[] = [
-  "Recommend licensed electrician evaluate and repair",
-  "Recommend licensed plumber evaluate and repair",
-  "Recommend qualified HVAC contractor evaluate and repair",
-  "Recommend licensed roofing contractor evaluate and repair",
-  "Recommend qualified structural engineer evaluate",
-  "Recommend qualified contractor evaluate and repair",
-  "Recommend further evaluation by a specialist",
-  "Repair or replace",
-  "Monitor",
-  "Routine maintenance / servicing recommended",
+  "Recommend a qualified electrician evaluate and repair",
+  "Recommend a qualified plumber evaluate and repair",
+  "Recommend a qualified HVAC contractor evaluate and repair",
+  "Recommend a qualified roofing contractor evaluate and repair",
+  "Recommend a qualified contractor evaluate and repair",
+  "Recommend a structural engineer evaluate",
+  "Recommend further evaluation by a qualified specialist",
+  "Recommend sealing and patching",
+  "Recommend servicing / routine maintenance",
+  "Recommend installing",
+  "Recommend monitoring",
   "Correct as needed",
-  "Informational — no action required",
 ];

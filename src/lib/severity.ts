@@ -1,16 +1,14 @@
 // -----------------------------------------------------------------------------
-// Severity levels.
-// These are intentionally defined in ONE place so a future version can remap
-// them to whatever labels a given inspection software uses. The `key` never
-// changes (it is the stable machine value in the data model); the `label` is
-// what a human sees and can be re-skinned per software later.
+// Rating tiers — matched to Innovative Home Inspections' actual Spectora
+// template (pulled from 5 of Trever's real reports). His template uses THREE
+// rating tiers, so the AI's output and the review dropdowns line up 1:1 with
+// what he checks in Spectora.
+//
+// The `key` never changes (it is the stable machine value in the data model);
+// the `label` is what a human sees and what maps to a Spectora rating badge.
 // -----------------------------------------------------------------------------
 
-export type SeverityKey =
-  | "safety_hazard"
-  | "major_defect"
-  | "minor_defect"
-  | "maintenance";
+export type SeverityKey = "safety_major" | "recommendation" | "maintenance";
 
 export interface SeverityLevel {
   key: SeverityKey;
@@ -27,40 +25,31 @@ export interface SeverityLevel {
 
 export const SEVERITY_LEVELS: SeverityLevel[] = [
   {
-    key: "safety_hazard",
-    label: "Safety Hazard",
+    key: "safety_major",
+    label: "Safety Hazard/Major Defect",
     description:
-      "An immediate risk to health or safety (electrical shock, fire, fall, gas, etc.). Should be addressed right away.",
+      "An immediate safety risk (electrical shock, fire, fall, gas) OR a significant/costly defect that materially affects the property. This is the highest tier.",
     badge: "bg-red-100 text-red-800 border border-red-200",
     color: "#dc2626",
     weight: 0,
   },
   {
-    key: "major_defect",
-    label: "Major Defect",
+    key: "recommendation",
+    label: "Recommendation",
     description:
-      "A significant deficiency that is costly to correct or materially affects the property. Recommend correction.",
-    badge: "bg-orange-100 text-orange-800 border border-orange-200",
-    color: "#ea580c",
+      "A deficiency that should be repaired, replaced, or corrected, but is not an immediate safety hazard. Most defects fall here.",
+    badge: "bg-amber-100 text-amber-800 border border-amber-200",
+    color: "#d97706",
     weight: 1,
-  },
-  {
-    key: "minor_defect",
-    label: "Minor Defect",
-    description:
-      "A smaller deficiency that should be corrected but is not urgent or costly.",
-    badge: "bg-yellow-100 text-yellow-800 border border-yellow-200",
-    color: "#ca8a04",
-    weight: 2,
   },
   {
     key: "maintenance",
     label: "Maintenance Item",
     description:
-      "Routine upkeep, monitoring, or a minor recommendation. Informational.",
+      "Routine upkeep, servicing, monitoring, or a minor informational note. The lowest tier.",
     badge: "bg-gray-100 text-gray-700 border border-gray-200",
     color: "#6b7280",
-    weight: 3,
+    weight: 2,
   },
 ];
 
