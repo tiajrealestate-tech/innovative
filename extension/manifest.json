@@ -6,8 +6,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://reports.spectora.com/*",
-        "https://app.spectora.com/*"
+        "https://*.spectora.com/*"
       ],
       "js": ["content.js"],
       "run_at": "document_idle",

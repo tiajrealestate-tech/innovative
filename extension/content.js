@@ -275,17 +275,13 @@
     return b;
   }
 
-  // ---- boot: wait for the Vue editor to render, then show the panel --------
+  // ---- boot: keep the panel present whenever the editor is on screen -------
+  // Spectora is a single-page app; navigating between items re-renders the DOM
+  // and can remove our panel. Poll and re-add it whenever it's missing.
 
-  let tries = 0;
-  const timer = setInterval(() => {
-    tries++;
-    if (isEditorFrame()) {
-      clearInterval(timer);
+  setInterval(() => {
+    if (isEditorFrame() && !document.getElementById("spectora-scanner-panel")) {
       buildPanel();
-    } else if (tries > 40) {
-      // ~20s; if this is the top frame with nothing, stop quietly.
-      clearInterval(timer);
     }
-  }, 500);
+  }, 1000);
 })();
