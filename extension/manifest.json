@@ -1,14 +1,16 @@
 {
   "manifest_version": 3,
   "name": "Spectora Autofill (beta)",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Reads inspection findings and helps build the Spectora report. v0.1 is a READ-ONLY scanner that only reports the page structure.",
   "content_scripts": [
     {
       "matches": [
         "https://*.spectora.com/*"
       ],
-      "js": ["content.js"],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle",
       "all_frames": true
     }

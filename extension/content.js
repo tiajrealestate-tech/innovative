@@ -1,14 +1,17 @@
 /* ==========================================================================
- * Spectora Autofill — v0.1 (READ-ONLY SCANNER)
+ * Spectora Autofill — v0.2
  * --------------------------------------------------------------------------
- * This version changes NOTHING in the report. It only looks at the live page
- * and produces a structured description of it (sections, items, tabs, and the
- * defect checkboxes it can see). Trever/Tiaj run it once on a real report and
- * send the output back, so the real auto-checker can be built against the
- * exact structure instead of guessing.
+ * Two tools, in one panel that appears on the Spectora report editor:
  *
- * It injects a small panel only in the frame that actually contains the report
- * editor (the one with checkboxes), so there's just one panel.
+ *  1) CHECK DEFECTS (the real feature, first version):
+ *     Paste a list of defect titles (one per line). "Preview" highlights the
+ *     matching defects in the CURRENT item without changing anything.
+ *     "Check matched" then ticks their boxes for you.
+ *
+ *  2) SCAN (debug): reports the page structure as JSON (read-only).
+ *
+ * This version acts only on the item you're currently viewing. Full
+ * section→item navigation comes next once checking is confirmed reliable.
  * ========================================================================== */
 
 (function () {
@@ -28,7 +31,6 @@
 
   function isEditorFrame() {
     if (document.querySelector('input[type="checkbox"]')) return true;
-    // fall back: any leaf element whose text is a tab name
     return leafByText(TAB_NAMES).length > 0;
   }
 
@@ -36,12 +38,15 @@
     return (el.textContent || "").replace(/\s+/g, " ").trim();
   }
 
+  function norm(s) {
+    return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  }
+
   function leafByText(names) {
     const set = names.map((n) => n.toLowerCase());
     const out = [];
-    const all = document.querySelectorAll("body *");
-    for (const el of all) {
-      if (el.children.length !== 0) continue; // leaf only
+    for (const el of document.querySelectorAll("body *")) {
+      if (el.children.length !== 0) continue;
       const t = trimText(el).toLowerCase();
       if (t && set.includes(t)) out.push(el);
       if (out.length > 60) break;
@@ -49,112 +54,127 @@
     return out;
   }
 
-  function exactLeaf(name) {
-    const target = name.toLowerCase();
-    const all = document.querySelectorAll("body *");
-    for (const el of all) {
-      if (el.children.length !== 0) continue;
-      if (trimText(el).toLowerCase() === target) return el;
+  // ---- reading the defect cards in the current item -----------------------
+
+  // Each defect is a `.comment.record` card containing a checkbox. The visible
+  // title is the header text before the "Edit Photos / Edit this comment" UI.
+  function defectRecords() {
+    const recs = [];
+    for (const rec of document.querySelectorAll(".comment.record")) {
+      const cb = rec.querySelector('input[type="checkbox"]');
+      if (!cb) continue;
+      const header = rec.querySelector(".card-header") || rec;
+      let title = trimText(header)
+        .replace(/\s*Edit\s+Photos.*$/i, "")
+        .replace(/\s*Edit this comment.*$/i, "")
+        .trim();
+      recs.push({ rec, cb, title });
     }
-    return null;
+    return recs;
   }
 
-  function dataVAttrs(el) {
-    return [...el.attributes]
-      .map((a) => a.name)
-      .filter((n) => n.startsWith("data-v-"));
+  // Match a pasted title to a defect record (exact-normalized, then prefix).
+  function matchRecord(records, wanted) {
+    const w = norm(wanted);
+    let best = records.find((r) => norm(r.title) === w);
+    if (best) return best;
+    best = records.find((r) => norm(r.title).startsWith(w) && w.length > 3);
+    if (best) return best;
+    return records.find((r) => norm(r.title).includes(w) && w.length > 4) || null;
   }
 
-  function shortPath(el, depth = 4) {
-    const parts = [];
-    let node = el;
-    for (let i = 0; i < depth && node && node.nodeType === 1; i++) {
-      let seg = node.tagName.toLowerCase();
-      if (node.id) seg += "#" + node.id;
-      const cls = (node.getAttribute("class") || "").trim();
-      if (cls) seg += "." + cls.split(/\s+/).slice(0, 3).join(".");
-      const dv = dataVAttrs(node);
-      if (dv.length) seg += "[" + dv.join(",") + "]";
-      const role = node.getAttribute("role");
-      if (role) seg += "{role=" + role + "}";
-      parts.unshift(seg);
-      node = node.parentElement;
+  let highlighted = [];
+  function clearHighlights() {
+    for (const el of highlighted) {
+      el.style.outline = "";
+      el.style.outlineOffset = "";
     }
-    return parts.join(" > ");
+    highlighted = [];
+  }
+  function highlight(el, color) {
+    el.style.outline = "3px solid " + color;
+    el.style.outlineOffset = "2px";
+    highlighted.push(el);
   }
 
-  // Nearest human-readable label for a checkbox: climb until the text is a
-  // sensible length (a defect title / option label).
-  function rowText(cb) {
-    // explicit <label for=..> or wrapping label
-    if (cb.id) {
-      const lbl = document.querySelector('label[for="' + cb.id + '"]');
-      if (lbl) return trimText(lbl).slice(0, 160);
-    }
-    const wrap = cb.closest("label");
-    if (wrap) return trimText(wrap).slice(0, 160);
-    let node = cb.parentElement;
-    for (let i = 0; i < 6 && node; i++) {
-      const t = trimText(node);
-      if (t.length >= 3 && t.length <= 160) return t;
-      node = node.parentElement;
-    }
-    return trimText(cb.parentElement).slice(0, 160);
+  function parseLines(text) {
+    return text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
   }
 
-  function clickableAncestor(el) {
-    return (
-      el.closest('a,button,[role="button"],li,[role="tab"],[role="menuitem"]') ||
-      el.parentElement ||
-      el
+  function preview(text, log) {
+    clearHighlights();
+    const records = defectRecords();
+    const wanted = parseLines(text);
+    if (!records.length) {
+      log("No defect cards found. Open an item's **Defects** tab first.");
+      return;
+    }
+    let hit = 0;
+    const misses = [];
+    let firstMatch = null;
+    for (const line of wanted) {
+      const m = matchRecord(records, line);
+      if (m) {
+        highlight(m.rec, m.cb.checked ? "#16a34a" : "#2a56d4");
+        if (!firstMatch) firstMatch = m.rec;
+        hit++;
+      } else {
+        misses.push(line);
+      }
+    }
+    if (firstMatch) firstMatch.scrollIntoView({ behavior: "smooth", block: "center" });
+    log(
+      `Found ${hit} of ${wanted.length}. Blue = will be checked, green = already checked.` +
+        (misses.length ? `\nNot found here: ${misses.join(", ")}` : "")
     );
   }
 
-  // ---- the scan ------------------------------------------------------------
+  function applyChecks(text, log) {
+    const records = defectRecords();
+    const wanted = parseLines(text);
+    let checked = 0;
+    const misses = [];
+    for (const line of wanted) {
+      const m = matchRecord(records, line);
+      if (!m) {
+        misses.push(line);
+        continue;
+      }
+      if (!m.cb.checked) {
+        m.cb.click(); // toggles + fires the events Vue listens for
+        checked++;
+        highlight(m.rec, "#16a34a");
+      }
+    }
+    log(
+      `Checked ${checked} defect${checked === 1 ? "" : "s"}.` +
+        (misses.length ? `\nNot found here: ${misses.join(", ")}` : "") +
+        `\n\nEyeball them — if any box is wrong, just click it to undo.`
+    );
+  }
+
+  // ---- scan (debug) -------------------------------------------------------
 
   function scan() {
-    const out = {
-      url: location.href,
-      isTopFrame: window.top === window,
-      when: new Date().toISOString(),
-    };
-
-    const allCbs = document.querySelectorAll('input[type="checkbox"]');
-    out.totalCheckboxes = allCbs.length;
-    out.checkboxes = [...allCbs].slice(0, 120).map((cb) => ({
-      checked: cb.checked,
-      id: cb.id || null,
-      name: cb.name || null,
-      text: rowText(cb),
-      path: shortPath(cb, 4),
+    const out = { url: location.href, when: new Date().toISOString() };
+    const cbs = document.querySelectorAll('input[type="checkbox"]');
+    out.totalCheckboxes = cbs.length;
+    out.defects = defectRecords().map((r) => ({
+      title: r.title,
+      checked: r.cb.checked,
     }));
-
-    out.tabs = leafByText(TAB_NAMES).map((el) => ({
-      text: trimText(el),
-      classes: el.getAttribute("class") || "",
-      parentClasses: el.parentElement
-        ? el.parentElement.getAttribute("class") || ""
-        : "",
-      ariaSelected: el.getAttribute("aria-selected"),
-      path: shortPath(el, 4),
-    }));
-
-    out.sectionNav = KNOWN_SECTIONS.map((name) => {
-      const el = exactLeaf(name);
-      if (!el) return null;
-      const clk = clickableAncestor(el);
-      return {
-        name,
-        textPath: shortPath(el, 3),
-        clickablePath: shortPath(clk, 3),
-        clickableTag: clk.tagName.toLowerCase(),
-      };
-    }).filter(Boolean);
-
+    out.sections = KNOWN_SECTIONS.filter((n) =>
+      [...document.querySelectorAll("li, span")].some(
+        (el) => el.children.length === 0 && trimText(el) === n
+      )
+    );
     return out;
   }
 
-  // ---- panel UI ------------------------------------------------------------
+  // ---- panel UI -----------------------------------------------------------
 
   function buildPanel() {
     if (document.getElementById("spectora-scanner-panel")) return;
@@ -162,123 +182,106 @@
     const panel = document.createElement("div");
     panel.id = "spectora-scanner-panel";
     Object.assign(panel.style, {
-      position: "fixed",
-      bottom: "16px",
-      right: "16px",
-      zIndex: "2147483647",
-      width: "360px",
-      maxHeight: "70vh",
-      background: "#ffffff",
-      border: "1px solid #d0d5dd",
-      borderRadius: "12px",
+      position: "fixed", bottom: "16px", right: "16px", zIndex: "2147483647",
+      width: "370px", maxHeight: "80vh", background: "#fff",
+      border: "1px solid #d0d5dd", borderRadius: "12px",
       boxShadow: "0 8px 30px rgba(0,0,0,0.18)",
       font: "13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif",
-      color: "#111827",
-      display: "flex",
-      flexDirection: "column",
-      overflow: "hidden",
+      color: "#111827", display: "flex", flexDirection: "column", overflow: "hidden",
     });
 
     const header = document.createElement("div");
     Object.assign(header.style, {
-      padding: "10px 12px",
-      background: "#2a56d4",
-      color: "#fff",
-      fontWeight: "600",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
+      padding: "10px 12px", background: "#2a56d4", color: "#fff",
+      fontWeight: "600", display: "flex", justifyContent: "space-between", alignItems: "center",
     });
     header.innerHTML =
-      '<span>Spectora Autofill — scanner v0.1</span>' +
-      '<span id="spectora-scanner-close" style="cursor:pointer;font-size:16px;">×</span>';
+      "<span>Spectora Autofill v0.2</span>" +
+      '<span id="sa-close" style="cursor:pointer;font-size:16px;">×</span>';
 
     const body = document.createElement("div");
     Object.assign(body.style, { padding: "12px", overflow: "auto" });
 
-    const note = document.createElement("div");
-    note.style.marginBottom = "8px";
-    note.style.color = "#6b7280";
-    note.textContent =
-      "Read-only. This changes nothing in your report. Open a section's Defects tab, click Scan, then Copy and send it back.";
-
-    const scanBtn = mkBtn("Scan this report", "#2a56d4", "#fff");
-    const copyBtn = mkBtn("Copy result", "#fff", "#111827");
-    copyBtn.style.border = "1px solid #d0d5dd";
-    copyBtn.style.marginLeft = "8px";
-
+    body.appendChild(
+      mkLabel("Defect titles to check in THIS item (one per line):")
+    );
     const ta = document.createElement("textarea");
     Object.assign(ta.style, {
-      width: "100%",
-      height: "220px",
-      marginTop: "10px",
-      fontFamily: "monospace",
-      fontSize: "11px",
-      border: "1px solid #d0d5dd",
-      borderRadius: "8px",
-      padding: "8px",
-      boxSizing: "border-box",
+      width: "100%", height: "120px", fontFamily: "monospace", fontSize: "12px",
+      border: "1px solid #d0d5dd", borderRadius: "8px", padding: "8px",
+      boxSizing: "border-box", marginBottom: "8px",
     });
-    ta.readOnly = true;
-    ta.placeholder = "Scan results will appear here…";
-
-    const btnRow = document.createElement("div");
-    btnRow.appendChild(scanBtn);
-    btnRow.appendChild(copyBtn);
-
-    body.appendChild(note);
-    body.appendChild(btnRow);
+    ta.value = "Shingles Missing\nPonding";
     body.appendChild(ta);
+
+    const row = document.createElement("div");
+    const previewBtn = mkBtn("Preview", "#fff", "#111827");
+    previewBtn.style.border = "1px solid #d0d5dd";
+    const checkBtn = mkBtn("Check matched", "#2a56d4", "#fff");
+    checkBtn.style.marginLeft = "8px";
+    row.appendChild(previewBtn);
+    row.appendChild(checkBtn);
+    body.appendChild(row);
+
+    const logEl = document.createElement("pre");
+    Object.assign(logEl.style, {
+      whiteSpace: "pre-wrap", background: "#f6f7f9", border: "1px solid #eee",
+      borderRadius: "8px", padding: "8px", marginTop: "8px", fontSize: "12px",
+      minHeight: "40px",
+    });
+    body.appendChild(logEl);
+    const log = (m) => (logEl.textContent = m);
+
+    // debug scan (collapsed link)
+    const scanWrap = document.createElement("div");
+    scanWrap.style.marginTop = "10px";
+    const scanBtn = mkBtn("Scan structure (debug)", "#fff", "#6b7280");
+    scanBtn.style.border = "1px solid #e5e7eb";
+    scanBtn.style.fontSize = "12px";
+    const scanOut = document.createElement("textarea");
+    Object.assign(scanOut.style, {
+      width: "100%", height: "0px", fontFamily: "monospace", fontSize: "11px",
+      border: "1px solid #d0d5dd", borderRadius: "8px", padding: "0", marginTop: "6px",
+      boxSizing: "border-box", overflow: "hidden",
+    });
+    scanOut.readOnly = true;
+    scanWrap.appendChild(scanBtn);
+    scanWrap.appendChild(scanOut);
+    body.appendChild(scanWrap);
+
     panel.appendChild(header);
     panel.appendChild(body);
     document.body.appendChild(panel);
 
-    header.querySelector("#spectora-scanner-close").onclick = () =>
-      panel.remove();
-
+    header.querySelector("#sa-close").onclick = () => panel.remove();
+    previewBtn.onclick = () => preview(ta.value, log);
+    checkBtn.onclick = () => applyChecks(ta.value, log);
     scanBtn.onclick = () => {
-      try {
-        ta.value = JSON.stringify(scan(), null, 2);
-      } catch (e) {
-        ta.value = "Scan error: " + (e && e.message);
-      }
-    };
-    copyBtn.onclick = () => {
-      ta.select();
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(ta.value);
-        } else {
-          document.execCommand("copy");
-        }
-        copyBtn.textContent = "Copied ✓";
-      } catch (e) {
-        document.execCommand("copy");
-        copyBtn.textContent = "Copied ✓";
-      }
-      setTimeout(() => (copyBtn.textContent = "Copy result"), 1500);
+      scanOut.value = JSON.stringify(scan(), null, 2);
+      scanOut.style.height = "160px";
+      scanOut.style.padding = "8px";
+      scanOut.select();
     };
   }
 
+  function mkLabel(t) {
+    const d = document.createElement("div");
+    d.textContent = t;
+    d.style.fontWeight = "600";
+    d.style.marginBottom = "6px";
+    return d;
+  }
   function mkBtn(label, bg, fg) {
     const b = document.createElement("button");
     b.textContent = label;
     Object.assign(b.style, {
-      background: bg,
-      color: fg,
-      border: "none",
-      borderRadius: "8px",
-      padding: "8px 12px",
-      fontWeight: "600",
-      cursor: "pointer",
+      background: bg, color: fg, border: "none", borderRadius: "8px",
+      padding: "8px 12px", fontWeight: "600", cursor: "pointer",
     });
     return b;
   }
 
-  // ---- boot: keep the panel present whenever the editor is on screen -------
-  // Spectora is a single-page app; navigating between items re-renders the DOM
-  // and can remove our panel. Poll and re-add it whenever it's missing.
-
+  // ---- boot ---------------------------------------------------------------
   setInterval(() => {
     if (isEditorFrame() && !document.getElementById("spectora-scanner-panel")) {
       buildPanel();
