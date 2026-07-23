@@ -126,6 +126,23 @@
     return matchRecord(defectRecords(), line);
   }
 
+  // A card is "expanded" when it contains an editable comment area. Only one
+  // can be open at a time, and while open the other defect cards are hidden —
+  // so we must collapse it (click its gray header) before finding the next one.
+  function expandedRecord() {
+    for (const rec of document.querySelectorAll(".comment.record")) {
+      if (rec.querySelector('textarea, [contenteditable="true"]')) return rec;
+    }
+    return null;
+  }
+  function collapseOpen() {
+    const rec = expandedRecord();
+    if (!rec) return false;
+    const hdr = rec.querySelector(".card-header") || rec;
+    hdr.click(); // clicking the gray header collapses it (does not uncheck)
+    return true;
+  }
+
   function preview(text, log) {
     clearHighlights();
     const wanted = parseLines(text);
@@ -161,39 +178,39 @@
     let checked = 0;
     let already = 0;
     const misses = [];
+
+    // Make sure nothing is expanded before we start (all cards visible).
+    if (collapseOpen()) await waitFor(() => defectRecords().length > 1, 2000);
+
     for (let i = 0; i < wanted.length; i++) {
       const line = wanted[i];
       log(`Working… ${i + 1}/${wanted.length}: ${line}`);
 
-      // Find it, waiting patiently in case the list is still re-rendering.
+      // Any open card hides its siblings — collapse it first so we can search.
+      if (collapseOpen()) await waitFor(() => defectRecords().length > 1, 2000);
+
       let m = findFresh(line);
-      if (!m) {
-        await waitFor(() => !!(m = findFresh(line)), 2500);
-      }
+      if (!m) await waitFor(() => !!(m = findFresh(line)), 2500);
       if (!m) {
         misses.push(line + " (not found)");
         continue;
       }
       if (m.cb.checked) {
         already++;
-        highlight(m.rec, "#16a34a");
         continue;
       }
 
-      m.cb.click(); // toggles + fires the events Vue listens for
-      // Wait until Spectora actually reflects the checked state on a fresh node.
+      m.cb.click(); // checks the defect (Spectora then expands the card)
       const ok = await waitFor(() => {
         const f = findFresh(line);
         return !!(f && f.cb.checked);
       }, 3500);
-      if (ok) {
-        checked++;
-        const f = findFresh(line);
-        if (f) highlight(f.rec, "#16a34a");
-      } else {
-        misses.push(line + " (click didn't stick)");
-      }
-      await sleep(250);
+      if (ok) checked++;
+      else misses.push(line + " (click didn't stick)");
+
+      // Collapse the card Spectora just expanded, so the next one is findable.
+      if (collapseOpen()) await waitFor(() => defectRecords().length > 1, 2500);
+      await sleep(200);
     }
     log(
       `Checked ${checked}${already ? `, ${already} already` : ""} of ${wanted.length}.` +
