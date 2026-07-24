@@ -241,19 +241,21 @@
 
   async function selectSection(name) {
     if (!clickByText(name)) return false;
-    await sleep(600);
+    await sleep(1000); // let the section's item list render
     return true;
   }
   async function selectItem(name) {
-    if (!(await waitFor(() => existsByText(name), 3000))) return false;
+    // After switching sections the item list can take a moment to appear.
+    if (!(await waitFor(() => existsByText(name), 7000))) return false;
     clickByText(name);
-    await sleep(600);
+    await sleep(900); // let the item's tabs/content render
     return true;
   }
   async function openTab(name) {
-    if (!clickByText(name)) return false;
-    await waitFor(() => tabActive(name), 2500);
-    await sleep(400);
+    if (!(await waitFor(() => existsByText(name), 4000))) return false;
+    clickByText(name);
+    await waitFor(() => tabActive(name), 4000);
+    await sleep(500);
     return true;
   }
 
