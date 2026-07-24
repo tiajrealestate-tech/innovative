@@ -25,7 +25,7 @@ import {
 } from "@/lib/grouping";
 import { downloadCsv, downloadJson } from "@/lib/csv";
 
-type Tab = "review" | "entry" | "punch";
+type Tab = "review" | "entry" | "punch" | "spectora";
 
 export default function ReviewPage() {
   const [report, setReport] = useState<InspectionReport | null>(null);
@@ -161,6 +161,9 @@ export default function ReviewPage() {
             <TabButton active={tab === "punch"} onClick={() => setTab("punch")}>
               Client punch list
             </TabButton>
+            <TabButton active={tab === "spectora"} onClick={() => setTab("spectora")}>
+              Spectora autofill
+            </TabButton>
           </div>
         </div>
       </header>
@@ -176,8 +179,171 @@ export default function ReviewPage() {
         )}
         {tab === "entry" && <EntryTab report={report} />}
         {tab === "punch" && <PunchTab report={report} counts={counts} />}
+        {tab === "spectora" && <SpectoraTab report={report} />}
       </div>
     </main>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Spectora autofill tab — maps findings to real checkboxes, then gives you the
+// pasteable build list for the browser extension.
+// -----------------------------------------------------------------------------
+
+interface MappedRow {
+  finding_id: string;
+  section: string;
+  item: string;
+  tab: string;
+  box_label: string | null;
+  confidence: number;
+  reason: string;
+  needs_review: boolean;
+}
+
+function SpectoraTab({ report }: { report: InspectionReport }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [rows, setRows] = useState<MappedRow[] | null>(null);
+  const [lines, setLines] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const titleById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const f of report.findings) m.set(f.id, f.title || f.comment.slice(0, 60));
+    return m;
+  }, [report.findings]);
+
+  async function run() {
+    setLoading(true);
+    setError(null);
+    setCopied(false);
+    try {
+      const res = await fetch("/api/map", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ report }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Mapping failed.");
+      setRows(data.mapped as MappedRow[]);
+      setLines(data.lines as string);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function copyLines() {
+    try {
+      await navigator.clipboard.writeText(lines);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const matched = rows?.filter((r) => r.box_label) || [];
+  const review = rows?.filter((r) => r.needs_review) || [];
+
+  return (
+    <div>
+      <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <h2 className="font-semibold">Build the Spectora report</h2>
+        <p className="text-sm text-gray-600 mt-1">
+          This matches each finding to the exact pre-written checkbox in your Spectora
+          template. Copy the list, open your report in Spectora, and paste it into the{" "}
+          <span className="font-medium">Spectora Autofill</span> extension&rsquo;s &ldquo;Build
+          report&rdquo; box.
+        </p>
+        <button
+          onClick={run}
+          disabled={loading}
+          className="mt-4 rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white text-sm font-medium px-5 py-2.5"
+        >
+          {loading ? "Matching…" : rows ? "Re-run matching" : "Match findings to checkboxes"}
+        </button>
+        {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
+      </div>
+
+      {rows && (
+        <>
+          <div className="mt-5 rounded-xl border border-gray-200 bg-white p-5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm">
+                Build list — {matched.length} of {rows.length} matched
+              </h3>
+              <button
+                onClick={copyLines}
+                disabled={!lines}
+                className="text-sm rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 px-3 py-1.5"
+              >
+                {copied ? "Copied ✓" : "Copy list"}
+              </button>
+            </div>
+            <textarea
+              readOnly
+              value={lines}
+              className="mt-3 w-full h-40 font-mono text-xs border border-gray-300 rounded-lg p-3"
+            />
+          </div>
+
+          {review.length > 0 && (
+            <div className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-5">
+              <h3 className="font-semibold text-sm text-amber-900">
+                {review.length} need your eyes — no confident checkbox match
+              </h3>
+              <p className="text-xs text-amber-800 mt-1">
+                These findings didn&rsquo;t line up with a pre-written box (or the match was
+                weak). Handle them by hand in Spectora, or tell me the right box and I&rsquo;ll
+                teach the mapping.
+              </p>
+              <ul className="mt-3 space-y-2">
+                {review.map((r) => (
+                  <li key={r.finding_id} className="text-sm">
+                    <span className="font-medium">{titleById.get(r.finding_id)}</span>
+                    <span className="text-gray-500">
+                      {" "}
+                      — {r.section} › {r.item}
+                      {r.box_label
+                        ? ` → “${r.box_label}” (low confidence)`
+                        : " → no match"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="mt-5 rounded-xl border border-gray-200 bg-white p-5">
+            <h3 className="font-semibold text-sm">All matches</h3>
+            <ul className="mt-3 space-y-2">
+              {rows.map((r) => (
+                <li key={r.finding_id} className="text-sm flex items-start gap-2">
+                  <span
+                    className={`mt-0.5 inline-block w-2 h-2 rounded-full ${
+                      r.box_label && !r.needs_review
+                        ? "bg-green-500"
+                        : r.box_label
+                        ? "bg-amber-400"
+                        : "bg-gray-300"
+                    }`}
+                  />
+                  <span>
+                    <span className="font-medium">{titleById.get(r.finding_id)}</span>{" "}
+                    <span className="text-gray-500">
+                      → {r.box_label ? `${r.item} › ${r.box_label}` : "no match"}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
