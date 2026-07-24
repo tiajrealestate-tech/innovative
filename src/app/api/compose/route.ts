@@ -1,0 +1,63 @@
+import { NextRequest, NextResponse } from "next/server";
+import Anthropic from "@anthropic-ai/sdk";
+import { InspectionReport } from "@/lib/schema";
+import {
+  buildComposeSystemPrompt,
+  buildComposeUserPrompt,
+  COMPOSE_OUTPUT_SCHEMA,
+  ComposedReport,
+  groupForCompose,
+} from "@/lib/compose";
+
+export const runtime = "nodejs";
+export const maxDuration = 60; // seconds
+
+// POST { report } -> ComposedReport  (Trever's 2026 report voice)
+export async function POST(req: NextRequest) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json(
+      { error: "ANTHROPIC_API_KEY is not configured on the server." },
+      { status: 500 }
+    );
+  }
+
+  let report: InspectionReport | null = null;
+  try {
+    const body = await req.json();
+    report = body?.report ?? null;
+  } catch {
+    // fall through
+  }
+  if (!report || !Array.isArray(report.findings) || !report.findings.length) {
+    return NextResponse.json({ error: "No findings to write up." }, { status: 400 });
+  }
+
+  const groups = groupForCompose(report);
+
+  try {
+    const anthropic = new Anthropic({ apiKey });
+    const message = await anthropic.messages.create({
+      model: "claude-opus-4-8",
+      max_tokens: 12000,
+      system: buildComposeSystemPrompt(),
+      messages: [{ role: "user", content: buildComposeUserPrompt(groups) }],
+      output_config: {
+        format: { type: "json_schema", schema: COMPOSE_OUTPUT_SCHEMA },
+        effort: "medium",
+      },
+    } as any);
+
+    const textBlock = (message.content as any[]).find((b) => b.type === "text");
+    if (!textBlock?.text) throw new Error("The AI returned an empty response.");
+
+    const parsed = JSON.parse(textBlock.text) as Omit<ComposedReport, "style">;
+    const composed: ComposedReport = { style: "trever-2026", ...parsed };
+    return NextResponse.json({ composed });
+  } catch (error) {
+    return NextResponse.json(
+      { error: (error as Error).message || "Could not write up the report." },
+      { status: 500 }
+    );
+  }
+}

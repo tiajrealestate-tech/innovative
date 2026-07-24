@@ -516,9 +516,24 @@ function FindingEditor({
 // Report entry tab (copy-optimized for pasting into Spectora)
 // -----------------------------------------------------------------------------
 
+interface ComposedGroupRow {
+  section: string;
+  heading: string;
+  body: string;
+}
+interface ComposedReportData {
+  style: string;
+  property_overview: string;
+  groups: ComposedGroupRow[];
+}
+
 function EntryTab({ report }: { report: InspectionReport }) {
   const groups = useMemo(() => groupBySection(report.findings), [report.findings]);
   const [copied, setCopied] = useState<string | null>(null);
+  const [style, setStyle] = useState<"standard" | "trever-2026">("standard");
+  const [composed, setComposed] = useState<ComposedReportData | null>(null);
+  const [composing, setComposing] = useState(false);
+  const [composeError, setComposeError] = useState<string | null>(null);
 
   function copy(text: string, id: string) {
     navigator.clipboard?.writeText(text).then(() => {
@@ -527,12 +542,107 @@ function EntryTab({ report }: { report: InspectionReport }) {
     });
   }
 
+  async function selectStyle(next: "standard" | "trever-2026") {
+    setStyle(next);
+    if (next === "trever-2026" && !composed && !composing) {
+      setComposing(true);
+      setComposeError(null);
+      try {
+        const res = await fetch("/api/compose", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ report }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Could not write up the report.");
+        setComposed(data.composed as ComposedReportData);
+      } catch (e) {
+        setComposeError((e as Error).message);
+      } finally {
+        setComposing(false);
+      }
+    }
+  }
+
+  const StyleToggle = (
+    <div className="flex items-center gap-2">
+      <span className="text-xs text-gray-500">Style:</span>
+      <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-xs">
+        <button
+          onClick={() => selectStyle("standard")}
+          className={`px-3 py-1.5 ${style === "standard" ? "bg-brand-500 text-white" : "bg-white hover:bg-gray-50"}`}
+        >
+          Standard
+        </button>
+        <button
+          onClick={() => selectStyle("trever-2026")}
+          className={`px-3 py-1.5 border-l border-gray-300 ${style === "trever-2026" ? "bg-brand-500 text-white" : "bg-white hover:bg-gray-50"}`}
+        >
+          Trever 2026
+        </button>
+      </div>
+    </div>
+  );
+
+  if (style === "trever-2026") {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500">
+            Trever&apos;s 2026 voice — grouped write-ups you can paste as a block.
+          </p>
+          {StyleToggle}
+        </div>
+        {composing && <p className="text-sm text-gray-500">Writing up the report…</p>}
+        {composeError && <p className="text-sm text-red-600">{composeError}</p>}
+        {composed && (
+          <>
+            <div className="bg-white rounded-2xl border border-gray-200 p-4">
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-sm font-semibold">Property Condition Overview</div>
+                <button
+                  onClick={() => copy(composed.property_overview, "overview")}
+                  className="text-xs rounded-md border border-gray-300 hover:bg-gray-50 px-2.5 py-1"
+                >
+                  {copied === "overview" ? "Copied ✓" : "Copy"}
+                </button>
+              </div>
+              <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-line">
+                {composed.property_overview}
+              </p>
+            </div>
+            {composed.groups.map((g, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-200 p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-sm font-semibold">{g.heading}</div>
+                  <button
+                    onClick={() => copy(`${g.heading}\n\n${g.body}`, "g" + i)}
+                    className="text-xs rounded-md border border-gray-300 hover:bg-gray-50 px-2.5 py-1"
+                  >
+                    {copied === "g" + i ? "Copied ✓" : "Copy write-up"}
+                  </button>
+                </div>
+                <div className="text-xs text-gray-400 mb-1">{g.section}</div>
+                <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-line">
+                  {g.body}
+                </p>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <p className="text-sm text-gray-500">
-        Findings in Spectora&apos;s section order. Copy each comment, then check
-        the matching severity and recommendation boxes as you paste.
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">
+          Findings in Spectora&apos;s section order. Copy each comment, then check
+          the matching severity and recommendation boxes as you paste.
+        </p>
+        {StyleToggle}
+      </div>
       {groups.map((g) => (
         <div key={g.key} className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 text-sm font-semibold">
