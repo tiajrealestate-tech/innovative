@@ -1,0 +1,2241 @@
+{
+  "version": "0.5.0",
+  "generatedAt": "2026-07-24T02:52:05.149Z",
+  "sections": [
+    {
+      "section": "Roof",
+      "items": [
+        {
+          "item": "Coverings",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Homeowner's Responsibility",
+                "Concrete",
+                "Asbestos",
+                "Asphalt",
+                "Solar",
+                "Slate",
+                "Ceramic",
+                "Tile",
+                "Metal",
+                "Fiberglass",
+                "Wood",
+                "Flat Roof Material",
+                "Unidentified",
+                "Architectural Shingles"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Unable to See Everything",
+                "Unable to Walk Upon Roof Surface",
+                "Snow Covering the Roof",
+                "Raining"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Shingles Missing",
+                "Roof Coverings Wear Noted",
+                "Discoloration",
+                "Ponding",
+                "Insufficient/Missing Roof Coverings Noted",
+                "Underlayment Damage",
+                "Major Structural Defect in Roof",
+                "Tree Too Close",
+                "Near End of Life Expectancy",
+                "Worn out surface",
+                "New Roof Installed Over Old Roof",
+                "Nonstandard installation"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Roof Drainage Systems",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Aluminum",
+                "Seamless Aluminum",
+                "Steel",
+                "Vinyl",
+                "Copper",
+                "Gutters Missing"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Debris in Gutters",
+                "Downspouts Drain Too Close to Property",
+                "Downspouts Missing",
+                "Underground Downspout Possibly Clogged",
+                "Gutter Improperly Sloped",
+                "Gutter Leakage",
+                "Gutter(s) Loose",
+                "Gutters Missing",
+                "Gutters Clogged",
+                "Downspout loose connection",
+                "Downspout discharge point unknown",
+                "Damaged downspout"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Flashings",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Aluminum",
+                "Asphalt",
+                "Lead",
+                "Copper",
+                "Foam",
+                "Rubber",
+                "Unknown"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Difficult to See Every Flashing"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Corroded - Minor",
+                "Corroded - Severe",
+                "Loose/Separated",
+                "Missing",
+                "Rust and staining at roof vent",
+                "Shifted Flashing Noted",
+                "Potential Improper Seal"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Skylights, Chimneys & Other Roof Penetrations",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Homeowner's Responsibility"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Chimney Cap Missing",
+                "Flashing Defect",
+                "Chimney Clay Liner Cracked/Damaged",
+                "Chimney Flue Dirty",
+                "Chimney Repoint Needed",
+                "Metal Flue Rust",
+                "Skylight Cracked",
+                "Skylight Water Penetration",
+                "Deteriorated Condition(Chimney)",
+                "Poor seal at roof penetration",
+                "Saddle/Cricket flashing defect",
+                "Deteriorated Chimney Crown and Masonry"
+              ]
+            }
+          ],
+          "found": true
+        }
+      ],
+      "found": true
+    },
+    {
+      "section": "Exterior",
+      "items": [
+        {
+          "item": "Siding, Flashing & Trim",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Brick Veneer",
+                "Aluminum",
+                "Asbestos",
+                "Concrete",
+                "Asphalt",
+                "Brick",
+                "Plastic",
+                "Engineered Wood",
+                "Fiber Cement",
+                "Logs",
+                "Masonry",
+                "Stone",
+                "Metal",
+                "Vinyl",
+                "Shingles",
+                "Stone Veneer",
+                "Stucco",
+                "Wood",
+                "Eifs",
+                "Cmu",
+                "Batten",
+                "Beveled",
+                "Channel",
+                "Clapboard",
+                "Drop",
+                "Shiplap",
+                "Shakes",
+                "Panels",
+                "Tongue and Groove",
+                "Horizontal",
+                "Owner’s Responsibility"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Inspection Was Restricted"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Damaged Wall Covering Material",
+                "Exterior Wall Cracks Present",
+                "Evidence of settlement",
+                "Evidence of Water Intrusion",
+                "Flashing/Trim Improperly Installed",
+                "Ground Clearance",
+                "Hail Damage - Major",
+                "Melted Vinyl Siding",
+                "Loose Wall-Covering Material",
+                "Warping/Buckling",
+                "Paint/Finish Failing",
+                "Exposed exterior vent"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Exterior Windows",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Unknown condition of window well drains"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Paint/Refinish needed",
+                "Caulking loose/Deteriorated",
+                "Wood rot at window",
+                "Window trim damaged",
+                "Shutters Damaged",
+                "Window pain - Major Damage",
+                "Window Damaged",
+                "Vulnerability to water penetration and Energy loss",
+                "Retaining Wall Cracks",
+                "Possible poor seal",
+                "Window well cover missing",
+                "Window well drainage defect"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Exterior Doors",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Exterior Doors Inspected",
+                "Fiberglass",
+                "Glass",
+                "Wood",
+                "Hollow Core",
+                "Single Pane",
+                "Steel"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Door Does Not Close or Latch",
+                "Wood Rot at Door",
+                "Threshold (Loose Bricks)",
+                "Hardware Damaged",
+                "Door Hardware Damaged",
+                "Hardware Missing",
+                "Loose Hinge",
+                "Paint/Refinish Needed",
+                "Exterior Door Surface in Poor Condiion",
+                "Sliding Glass Door - Damaged",
+                "Weatherstripping Not Present",
+                "Door Siding trim seal failure"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Decks, Balconies, Porches & Steps",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Balcony",
+                "Covered Porch",
+                "Pool",
+                "Deck",
+                "Deck with Steps",
+                "Hot Tub",
+                "Patio",
+                "Retaining Wall",
+                "Front Porch",
+                "Shed",
+                "Sidewalk",
+                "Sunroom",
+                "None",
+                "Fire Escape Staircase",
+                "Rear Steps",
+                "Porches, Patios, Decks, Balconies & Carports Were Inspected",
+                "Composite",
+                "Concrete",
+                "Wood",
+                "N/A",
+                "Steel",
+                "Brick"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Indoor pool",
+                "Limited exterior access",
+                "Limited access to porch"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Deck - Loose Boards",
+                "Deteriorated Condition at Deck",
+                "Deck - Nails Exposed",
+                "Worn Out Surfaces",
+                "Deck - Rotted wood members",
+                "Ledger Board Defect",
+                "Porch - Unstable Support",
+                "Porch - Water Sealant Required",
+                "Improper Deck Construction Practices",
+                "Moisture Accumulation Along Foundation",
+                "Joist Hangers",
+                "Awning damaged"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Walkways, Patios & Driveways",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Asphalt",
+                "Brick",
+                "Cobblestone",
+                "Concrete",
+                "Dirt",
+                "Gravel",
+                "Pavers",
+                "Street Parking"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Sealed porch"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Driveway Cracking",
+                "Driveway Cracking - Minor",
+                "Driveway Negative Grade Towards Home",
+                "Driveway Trip Hazard",
+                "Patio Cracking - Major",
+                "Patio Cracking - Minor",
+                "Trip Hazard",
+                "Walkway Cracking",
+                "Walkway Cracking - Minor",
+                "Guardrail missing",
+                "Settlement at concrete steps",
+                "Balusters Loose/Damaged"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Eaves, Soffits & Fascia",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Eaves, Soffits and Fascia Were Inspected"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Inspection Was Restricted"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Eaves and Fascia Board- Water Damage",
+                "Eaves - Water Stains",
+                "Soffit Vents- Damaged",
+                "Fascia - Loose",
+                "Fascia - Rotted",
+                "Gap",
+                "Paint/Finish Failing",
+                "Wasps Nest",
+                "Damaged Soffit Vent and Wood Deterioration"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Vegetation, Grading, Drainage & Retaining Walls",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Vegetation, Drainage, Walls & Grading Were Inspected"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Negative Grading",
+                "Retaining Wall Bowing/Movement",
+                "Standing Water",
+                "Tree Debris on Roof",
+                "Fence Defects",
+                "Tree Overhang",
+                "Cracked Retaining Wall (Flower Bed) Noted",
+                "Vegetation Contacting Structure - Shrubs / Bushes",
+                "Debris around drain",
+                "Improper guardrail",
+                "Gate latch/door adjustment",
+                "Large void/ Sinkhole"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Exterior General",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": []
+            }
+          ],
+          "found": true
+        }
+      ],
+      "found": true
+    },
+    {
+      "section": "Basement, Foundation, Crawlspace & Structure",
+      "items": [
+        {
+          "item": "Basements & Crawlspaces",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "No Access",
+                "Partially Limited Crawlspace Access",
+                "Crawlspace – General Inspection Limitations"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Efflorescence",
+                "Moderate Moisture Levels in basement",
+                "Standing Water",
+                "Crawlspace Inspection Limited",
+                "Improper Crawlspace Door",
+                "Heaving & Settling of Concrete Floor",
+                "Secondary egress missing",
+                "Insulation Hanging",
+                "Crawlspace door damaged. Poor seal",
+                "Possible water intrusion issues",
+                "No Ventilation",
+                "Improper support"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Foundation",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Brick",
+                "Stone",
+                "Slab on Grade",
+                "Concrete",
+                "Masonry Block",
+                "Rock",
+                "Unknown(Finished Basement)",
+                "Unknown(Condo)",
+                "Crawlspace",
+                "Unlnown",
+                "Unknown due to pargecoat",
+                "Remaining foundation material unknown due to insulation",
+                "Unknown(Insulation covering)",
+                "Unknown"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "No Access Beneath",
+                "No Crawlspace Access",
+                "No access",
+                "Crawlspace access limited",
+                "Limited Access"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Foundation Cracks",
+                "Common Foundation Cracks",
+                "Heaving/Settling",
+                "Improper Construction Practices",
+                "Poor Ventilation of Foundation Area",
+                "Wall(s) Bowing/Leaning",
+                "Active Water Intrusion",
+                "Possible Foundation Movement",
+                "Foundation shows evidence of water intrusion",
+                "Tree Root damage",
+                "Large patch of foundation",
+                "Restricted Access"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Structural Components",
+          "tabs": [],
+          "found": false
+        }
+      ],
+      "found": true
+    },
+    {
+      "section": "Heating",
+      "items": [
+        {
+          "item": "Equipment",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Carrier",
+                "Bryant",
+                "Payne",
+                "Lennox",
+                "York",
+                "Coleman",
+                "Amana",
+                "Goodman",
+                "Trane",
+                "American Standard",
+                "Rheem",
+                "McQuay",
+                "Ruud",
+                "Airtemp",
+                "Ducane",
+                "Heating elelment-Payne; Cooling element-Carrier",
+                "Unknown",
+                "Ameristar",
+                "Daikin",
+                "Aquatherm",
+                "Comfortmaker",
+                "RunTRU",
+                "Gibson",
+                "Emerald",
+                "Whirlppol",
+                "ArcoAire",
+                "Kenmore",
+                "No Central Air/Heat in property",
+                "Miller",
+                "HydroTherm",
+                "Heil",
+                "Weil-McLain",
+                "Peerless Boilers",
+                "Heating Element: Trane Cooling Element: Carrier",
+                "Concord",
+                "AirQuest",
+                "AeroSys",
+                "Thermo Pride",
+                "General Electric",
+                "Mahic-pak",
+                "Magic-Pak",
+                "Aerosys",
+                "Intertherm",
+                "ACV Triangle Tube Prestige",
+                "Slant",
+                "LG",
+                "Air Temp",
+                "Arcoaire",
+                "Armstrong Air",
+                "Columbia",
+                "Mitsubishi Electric",
+                "Repco",
+                "AirEase",
+                "NTI",
+                "Bosch",
+                "Unit 3’s heating equipment unknown",
+                "No cooling system",
+                "No Central Cooling System Present",
+                "Peerless",
+                "Weather King",
+                "Kelvinator",
+                "Aire-Flo",
+                "Dunkirk",
+                "Oxbox",
+                "JRJ",
+                "Guardian",
+                "Coal",
+                "Corn",
+                "Gas",
+                "Kerosene",
+                "Natural Gas",
+                "Oil",
+                "Propane",
+                "Solar",
+                "Electric",
+                "Wood",
+                "Centralized Boiler",
+                "Water Heater",
+                "Hydronic",
+                "Electric Baseboard",
+                "Electric Wall Heater",
+                "Gas-Fired Heat",
+                "Forced Air",
+                "Heat Pump",
+                "None",
+                "Radiant Heat",
+                "Space Heater",
+                "Steam Boiler",
+                "Oil Fired heat",
+                "Gas Fired Boiler",
+                "Hydronic Air Handler",
+                "Direct Vent Boiler",
+                "Mini Duct Spilt System",
+                "Air Handler",
+                "PTAC"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Inaccessible",
+                "Limited access",
+                "Unknown location",
+                "Inaccessible Heating Equipment in Unit 3"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Blower - Excessive Noise",
+                "Corrosion/Rust",
+                "Filter Dirty",
+                "Filter Missing",
+                "Inadequate Heat",
+                "Inoperable",
+                "Manifold Dirty",
+                "Needs Servicing/Cleaning",
+                "Aging System Observed",
+                "Sediment Trap Missing",
+                "Service Hvac System",
+                "Filter not secure"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Distribution Systems",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Insulated",
+                "Non-insulated"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Unknown Condition of ductwork"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Duct Rusted",
+                "Duct Leaking",
+                "Ducts Not Sealed(Connected) Properly",
+                "Missing Heat Supply at a Room",
+                "Radiator Damaged",
+                "Return Air System Missing/Insufficient",
+                "Missing Register Cover",
+                "Damaged supply cover",
+                "Return register grille loose",
+                "Possible Asbestos on Ductwork",
+                "Mold like substance on ductwork"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Normal Operating Controls",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Thermostat missing",
+                "Loose Thermostat",
+                "Thermostat Inoperable",
+                "Boiler shut off obstructes"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Flues & Vents",
+          "tabs": [],
+          "found": false
+        },
+        {
+          "item": "HVAC General",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": []
+            }
+          ],
+          "found": true
+        }
+      ],
+      "found": true
+    },
+    {
+      "section": "Cooling",
+      "items": [
+        {
+          "item": "Cooling Equipment",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Amana",
+                "Frigidaire",
+                "Armstrong",
+                "Bryant",
+                "Carrier",
+                "Coleman",
+                "General Electric",
+                "Goodman",
+                "Unknown",
+                "Maytag",
+                "Lennox",
+                "Trane",
+                "Rheem",
+                "Luxaire",
+                "York",
+                "Mitsubishi Electric",
+                "Airtemp",
+                "RUUD",
+                "Payne",
+                "Durane",
+                "Daikin",
+                "Oxbox",
+                "Comfortmaker",
+                "Aire-Flo",
+                "Gmc",
+                "American Standard",
+                "Belair",
+                "RunTRU",
+                "Pioneer",
+                "Fujitsu",
+                "Gibson",
+                "Kennore",
+                "No Central Air/Heat in property",
+                "Miller",
+                "Ducane",
+                "Unknown- No roof access",
+                "Heil",
+                "Ameristar",
+                "Concord",
+                "AeroSys",
+                "Magic-Pak",
+                "Weather king",
+                "Hair",
+                "Haier",
+                "RunTgru",
+                "RunThru",
+                "Air Temp",
+                "None",
+                "Aerosys",
+                "Airquest",
+                "Airease",
+                "Arco Aire",
+                "Durastar",
+                "Unknown/No system was labeled 201",
+                "Blue Dot",
+                "ACIQ",
+                "N/A",
+                "ArcoAir",
+                "First Co.",
+                "Smart Comfort",
+                "Air temp",
+                "JRJ",
+                "Guardian",
+                "Keplerx",
+                "Electric",
+                "Oil",
+                "Ceiling Fan",
+                "Gas",
+                "Whole House Fan",
+                "Window AC",
+                "Heat Pump",
+                "Central Air Conditioner",
+                "Swamp Cooler",
+                "Attic Fan",
+                "Air Handler",
+                "Exterior East",
+                "Exterior West",
+                "Exterior North",
+                "Exterior South",
+                "Patio Area",
+                "Roof",
+                "Exterior Rear"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Low Temperature",
+                "Restricted space",
+                "No cooling system present",
+                "No access",
+                "Property condensor not verified",
+                "Missing remote control"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Air Flow Restricted",
+                "Cooling System Did Not Operate",
+                "Condensate Line Discharge Improper",
+                "Failed to Produce Cold Air",
+                "Power Shut Off",
+                "Refrigerant Line Insulation Missing or Damaged",
+                "Swamp Cooler Needs Draining",
+                "Unit Not Leveled",
+                "System Beyond Expected Service Life",
+                "Cooling system inadequate",
+                "Aging Condenser",
+                "Excessive noise and vibration"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Distribution System",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Central",
+                "Split",
+                "No Distribution in property. Only Electric baseboard and space heaters.",
+                "Gas Boiler and radiator(No cooling system)",
+                "Fan Coil System",
+                "No Central Cooling in the property"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Cold Air Return Leaking",
+                "Ducts Dented",
+                "Ducts Deteriorated",
+                "Ducts Heavily Dented",
+                "Ducts Partially Uninsulated",
+                "Ducts Uninsulated",
+                "Improper Supply Duct Configuration",
+                "Joint Disconnected",
+                "Loose Connection",
+                "Improper installation",
+                "No central air in basemnet",
+                "Missing return register"
+              ]
+            }
+          ],
+          "found": true
+        }
+      ],
+      "found": true
+    },
+    {
+      "section": "Plumbing",
+      "items": [
+        {
+          "item": "Main Water Shut-off Device",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Basement",
+                "Crawlspace",
+                "North",
+                "South",
+                "East",
+                "West",
+                "Under Kitchen sink",
+                "Utility room",
+                "Garage",
+                "Main level under steps",
+                "Main level Near water heater",
+                "Main Level",
+                "Near Water Heater",
+                "Unknown",
+                "Under Steps",
+                "At Entrance",
+                "Exterior Attached Shed",
+                "Washer/Dryer Area",
+                "Outside of House",
+                "Unable to Determine",
+                "Under kitchen sink",
+                "Utility Room",
+                "Kitchen",
+                "Main water supply is under steps but no shut off vavle",
+                "Main level"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Unable to Locate",
+                "Inaccessible",
+                "Water Turned Off/ No running water",
+                "Limited access",
+                "Limited Access"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Active Leak at Main Water Valve",
+                "Corrosion on Main Shut-Off and Supply Lines",
+                "Missing/damaged Handle at Valve",
+                "No access to main water shut off valve",
+                "Mechanical damage",
+                "Main water valve defect",
+                "Possible previous leak",
+                "Not properly secured",
+                "Minor Corrosion",
+                "Plumbing System Limitation Due to Water Supply Turned Off",
+                "Main Water Shutoff Accessibility Issue",
+                "Corroded Plumbing Sections"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Water Supply, Distribution Systems & Fixtures",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Copper",
+                "Galvanized",
+                "Hose",
+                "Pex",
+                "Poly",
+                "PVC",
+                "Unknown",
+                "Polybutylene",
+                "Tin",
+                "Unknown (Insulated)",
+                "CVPC",
+                "Inspected Water Supply & Distribution Pipes",
+                "CPVC",
+                "Remaining Unknown"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Plumbing System Limitation"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Distribution Pipe Leaking",
+                "Active Water Leak at Water Shut-Off Valve",
+                "Improper Installation",
+                "Water Distribution Pipes Corroded",
+                "Main Water Supply Valve Leaking",
+                "No Protective Sleeve",
+                "Toilet Damage",
+                "Polybutylene Supply Pipes",
+                "Toilet Loose Connection to Floor",
+                "Toilet Leaking"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Drain, Waste, & Vent Systems",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "1 1/2\"",
+                "2\"",
+                "Drain not present",
+                "Unknown",
+                "3”",
+                "Inspected Drain, Waste, Vent Pipes",
+                "ABS",
+                "Copper",
+                "Iron",
+                "Lead",
+                "PVC",
+                "Galvanized",
+                "Cast Iron",
+                "Remaining plumbing material Unknown. There is no access to clean out valve or exit point of waste pipe",
+                "Unknown(Not able to see all DWV due to slab on grade foundation)",
+                "Astm",
+                "Remaining plumbing material unknown",
+                "Sewer Camera Performed",
+                "Sewer Camera Performed 2"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Not All Pipes Were Inspected",
+                "Underground Main Drain Inspection limitation",
+                "Main DWV pipe location unknown",
+                "DWV(Main Waste Stack) conceled",
+                "Inadequate clearance at crawlspace access",
+                "Sewer Scope/Camera Limitations"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Active Leaking Drain Pipe",
+                "Improper Connection",
+                "Previous Leaking Cleanout",
+                "Shower - Poor Drainage",
+                "Sink - Poor Drainage",
+                "Drainage Not Functional at Toilet",
+                "Drainage Not Functional at Tub",
+                "Old Plumbing System",
+                "Improper installation and old plumbing systems",
+                "Multiple active leaks",
+                "Odor from hot water supply pipes",
+                "Exterior drain damage"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Hot Water Systems, Controls, Flues & Vents",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Attic",
+                "Basement",
+                "Crawlspace",
+                "Main Floor",
+                "Utility Room",
+                "Washer/Dryer Area",
+                "Kitchen Pantry",
+                "Garage",
+                "Location Unknown",
+                "Exterior",
+                "Mor-Flo",
+                "2nd floor",
+                "In-law Suite",
+                "UNITS 1",
+                "2 & 3",
+                "AO Smith",
+                "Bradford & White",
+                "Ecosmart",
+                "GE",
+                "Heat Pump",
+                "Kenmore",
+                "Rheem",
+                "Rinnai",
+                "State",
+                "Unknown",
+                "Whirlpool",
+                "Hotpoint",
+                "Premeir plus",
+                "Ruud",
+                "Noritz",
+                "Us Craftmaster",
+                "Richmond",
+                "Navien",
+                "Ruus",
+                "Maytag",
+                "Mor-flo",
+                "Envirotemp",
+                "Reliance",
+                "Montgomery Ward",
+                "Thermalux",
+                "Eemax",
+                "Vanguard",
+                "American Water heater Company",
+                "Bosch",
+                "Electric",
+                "Gas",
+                "Solar",
+                "Propane",
+                "Indirect",
+                "Tankless"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Access Blocked",
+                "Restricted access",
+                "Gas off",
+                "Wrapped In Insulation"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Corrosion",
+                "Improper Installation",
+                "Insufficient Capacity",
+                "Irregular Flame",
+                "Near End Of Life Expectancy",
+                "No Burner Ignition",
+                "No Drip Pan",
+                "No Expansion Tank",
+                "Tpr Valve: Water Stains, corrosion and Leakage",
+                "Rust",
+                "Not professionally installed",
+                "Domestic water too hot"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Fuel Storage & Distribution",
+          "tabs": [],
+          "found": false
+        },
+        {
+          "item": "Plumbing General",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Plumbing System Deficiencies"
+              ]
+            }
+          ],
+          "found": true
+        }
+      ],
+      "found": true
+    },
+    {
+      "section": "Electrical",
+      "items": [
+        {
+          "item": "Service & Grounding",
+          "tabs": [],
+          "found": false
+        },
+        {
+          "item": "Main & Subpanels, Service & Grounding, Main Overcurrent Device",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Hallway",
+                "Left",
+                "Right",
+                "Front",
+                "Back",
+                "Garage",
+                "Basement",
+                "Kitchen",
+                "Utility room",
+                "Main Level",
+                "Unknown",
+                "2nd Floor",
+                "1st Floor",
+                "3rd Floor",
+                "She’d",
+                "Exterior",
+                "100 AMP",
+                "125 AMP",
+                "150 AMP",
+                "200 AMP",
+                "225 AMP",
+                "440 AMP",
+                "60 AMP",
+                "800 AMP",
+                "Insufficient",
+                "2-50",
+                "2-50 AMP(100)",
+                "75 amps",
+                "Bryant",
+                "Federal Pioneer",
+                "Challenger",
+                "Crouse-Hinds",
+                "Cutler Hammer",
+                "Federal Pacific",
+                "General Electric",
+                "General Switch",
+                "Gould",
+                "ITE",
+                "Murray",
+                "Siemens",
+                "Square D",
+                "T&B",
+                "Walker",
+                "Westinghouse",
+                "Eaton",
+                "Pushmatic",
+                "Leviton",
+                "Zinsco",
+                "Wadsworth",
+                "Circuit Breaker",
+                "Fuses",
+                "Buses",
+                "Interior",
+                "Mone",
+                "None",
+                "Detached Garage"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Limited access to panel",
+                "Limited access",
+                "No Access",
+                "Location unknown",
+                "Limited Access"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Defect at panel",
+                "Inadequate Ground",
+                "Incompatible Meter Base",
+                "Knockouts Missing",
+                "Label Defect at Panel",
+                "Overcrowded and Dated Electrical Panel",
+                "No Ground Wire",
+                "Panel Not secured",
+                "Incorrect Type/Missing Screws at Panel Cover",
+                "Melted Wire",
+                "FPE Federal Pacific Panel",
+                "Possible Inadequate service size"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Branch Wiring Circuits, Breakers & Fuses",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Aluminum",
+                "Copper",
+                "Conduit",
+                "Knob & Tube",
+                "Not Visible",
+                "Romex",
+                "Surface Mounted Distribution",
+                "Ac/Bx (Metal)",
+                "Cloth-Insulated NM Cable"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Aluminum Branch Circuits",
+                "Improper Wiring",
+                "Insufficient Load",
+                "Wiring not properly secured",
+                "Unexplained Electrical Tripping",
+                "Unsecured Wiring Noted in Attic",
+                "Improper Electrical Connection Noted",
+                "Temporary Wiring Used for Permanent Setup"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Lighting Fixtures, Switches & Receptacles",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Cover Plates Damaged",
+                "Weatherproof outlet cover Loose",
+                "Inadequate Number of Receptacles",
+                "Light Inoperable",
+                "Reverse Polarity",
+                "Switches Installed Improperly",
+                "Ungrounded Receptacle",
+                "Junction box Not properly secured",
+                "Receptacle inoperative",
+                "Scorched receptacle",
+                "Protective cover missing",
+                "Improperly Wired Receptacle"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "GFCI & AFCI",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Improper Installation",
+                "No GFCI Protection Installed",
+                "Missing GFCI protection",
+                "GFCI Improperly Wired"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Smoke & CO Detectors",
+          "tabs": [],
+          "found": false
+        },
+        {
+          "item": "Electrical General",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Electrical System"
+              ]
+            }
+          ],
+          "found": true
+        }
+      ],
+      "found": true
+    },
+    {
+      "section": "Fireplace",
+      "items": [
+        {
+          "item": "Cleanout Doors & Frames",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Creosote Buildup",
+                "Inadequate Clearance",
+                "Inspect chimney, and sweep if needed before using",
+                "Missing Fireplace Screen",
+                "Missing cleanout hardware"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Fireplace",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Wood",
+                "Gas",
+                "Ethanol",
+                "Electric",
+                "Electric/pellet",
+                "N/A",
+                "Wood/Converted to Gas"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Gas Supply Shut Off",
+                "Pilot not on",
+                "Not able to test"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Chimney",
+          "tabs": [],
+          "found": false
+        }
+      ],
+      "found": true
+    },
+    {
+      "section": "Doors, Windows & Interior",
+      "items": [
+        {
+          "item": "Doors",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Doors Inspected"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Door Doesn't Latch",
+                "Door Sticks",
+                "Damaged/Missing Door Hardware",
+                "Damaged Trim at Door",
+                "Damaged Door",
+                "Damaged Weather Stripping",
+                "Damaged/Dated Door Hardware Observed",
+                "Noticeable Gap",
+                "Interior-Keyed Deadbolt",
+                "Closet Door Missing",
+                "Closet Light Fixture Defect",
+                "Door would not open"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Windows",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Windows Inspected"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Inaccessible"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Damaged / Missing Hardware at Window",
+                "Previous Moisture Damage at Window",
+                "Cracked/Broken Glass",
+                "Fogged / Broken Seals",
+                "Damaged Window Trim",
+                "Missing/Damaged Window Screen",
+                "Window Would Not Open",
+                "Window Would Not Stay Open",
+                "Emergency Escape Window Defect",
+                "Original and/or lower quality units",
+                "Difficult to operate",
+                "Window Adjustment Needed"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Floors, Walls, Ceilings",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Floors, Walls, Ceilings Inspected"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Door Knob Hole",
+                "Wall Diagonal cracks and displacement",
+                "Minor Cracks",
+                "Previous Water Damage",
+                "Nail Pops",
+                "Carpet Stains",
+                "Damaged Subfloor",
+                "Damaged (General)",
+                "Damaged Drywall",
+                "Hairline Drywall Cracks Observed",
+                "Loose wall",
+                "Minor Damage"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Stairs, Steps, Stoops, Stairways & Ramps",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Stairs, Steps, Stoops, Stairways & Ramps Were Inspected"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Limited Scope of Inspection"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Trip Hazard at Step",
+                "Damage at Steps",
+                "Loose Handrail",
+                "Missing Handrail",
+                "Width of Stairway Too Narrow (36\")",
+                "Headroom at Stairway Too Low (6' 8\")",
+                "Riser Height Too Tall (Greater Than 7 3/4\")",
+                "Tread Depth Too Short (Smaller Than 10\")",
+                "Big Differences Between Treads (3/8\")",
+                "Stairway Illumination",
+                "Problem with 3-Way Switch at Main Level",
+                "Loose Carpeting at Stairs"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Switches, Fixtures & Receptacles",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Inspected a Switches, Fixtures & Receptacles"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Unable to Inspect Everything"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Power Not Present at Receptacle",
+                "Reversed Polarity",
+                "Loose Receptacle",
+                "Ungrounded Receptacle",
+                "Light Bulb Inoperable",
+                "Cover Plates Missing or Damaged",
+                "Inadequate Number of Receptacles in a Room",
+                "Switches Installed Improperly",
+                "2' Wall Missing Receptacle",
+                "More Than 6' Apart",
+                "Major Defect",
+                "Material Defect"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Presence of Smoke and CO Detectors",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Inspected for Presence of Smoke and CO Detectors"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Unable to Test Every Detector"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Old Detectors, New Detectors Recommended",
+                "Smoke Detector Did Not Test Functional",
+                "Missing Smoke Detector",
+                "Missing CO Detector",
+                "Improper Location of Smoke Detector"
+              ]
+            }
+          ],
+          "found": true
+        }
+      ],
+      "found": true
+    },
+    {
+      "section": "Attic, Insulation & Ventilation",
+      "items": [
+        {
+          "item": "Structural Components & Observations in Attic",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Structural Components Were Inspected"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Could Not See Everything in Attic",
+                "Not able to safely access the attic.",
+                "Storage Restriction",
+                "Limited attic access",
+                "No Access",
+                "Limited Attic Inspection Due to Finishes"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Active Water Penetration Observed",
+                "Prior Water Penetration Observed",
+                "Structural Defect in Attic",
+                "Possible Mold & Moisture Problem in Attic",
+                "Roof Truss Component Was Cut",
+                "Improper Notch, Hole, or Cut",
+                "Improper Construction Practices",
+                "Townhouse Common Wall Defect",
+                "Missing Lighting for Attic Storage",
+                "Missing Panel",
+                "Evidence of scorched members",
+                "Exposed wires in attic"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Insulation",
+          "tabs": [],
+          "found": false
+        },
+        {
+          "item": "Ventilation",
+          "tabs": [],
+          "found": false
+        },
+        {
+          "item": "Exhaust Systems",
+          "tabs": [],
+          "found": false
+        }
+      ],
+      "found": true
+    },
+    {
+      "section": "Bathrooms",
+      "items": [
+        {
+          "item": "Sinks, Tubs & Showers",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Ran Water at Sinks, Tubs & Showers"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Plumbing Access Panel Seal Shut",
+                "Plumbing Panel Not Installed",
+                "Incomplete Bathroom"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Active Water Leak",
+                "Defect at S-Trap",
+                "Defect at Trap Component",
+                "Defect at Fixture",
+                "Loose Connection at Fixture",
+                "Damaged Tiles in Bathroom",
+                "Loose Tiles in Shower",
+                "Missing Component at Fixture",
+                "No Running Water at Fixture",
+                "Hot & Cold Was Reversed",
+                "Inadequate Water Flow at Fixture",
+                "Stopper Missing"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Bathroom Toilets",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Toilets Inspected"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Active Leak at Shutoff Valve",
+                "Active Water Leak at Toilet",
+                "Damage at Toilet",
+                "Defect at Flushing Mechanism",
+                "Loose/Missing Component at Toilet",
+                "Toilet Did Not Flush",
+                "Missing Toilet",
+                "No Running Water at Toilet",
+                "Inadequate Clearance at Toilet",
+                "Weak flush",
+                "Toilet inoperable",
+                "Toilet continuously running"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Cabinetry, Ceiling, Walls & Floor",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Cabinet Alignment needed",
+                "Loose Cabinet Door",
+                "Water Damage",
+                "Ceiling Damage",
+                "Wall Damage",
+                "Floor Damage",
+                "Mirror Defect",
+                "Vanity not secured",
+                "Missing bathroom componets",
+                "Cabinet finishes failing",
+                "Access panel not secured",
+                "Damaged or Missing Toilet Paper Holder Noted"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Bathroom Exhaust Fan / Window",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Inspected Bath Exhaust Fans"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Bath Fan Did Not Turn On",
+                "Loose Exhaust Fan",
+                "Fan Rattles",
+                "Light Did Not Turn On",
+                "Missing/Damaged Component at Fan",
+                "Missing Fan",
+                "Excessive Moisture/Condensation",
+                "Window (Glazing) Inside Shower",
+                "Heat Lamp Defect",
+                "Excessive Noise"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "GFCI & Electric in Bathroom",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "GFCI-Protection Tested"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "GFCI Improperly Wired",
+                "GFCI Not Testing As Functional",
+                "Receptacle Is Not GFCI Protected",
+                "GFCI Wouldn't Reset",
+                "Missing Receptacle Within 3' of Sink",
+                "Receptacle Within Tub/Shower Defect",
+                "Switch Within Tub/Shower Defect",
+                "Light Within Shower/Tub Defect",
+                "Ceiling Fan Within Shower/Tub Defect",
+                "Faulty and Improperly Wired GFCI Outlet Noted",
+                "Hot-Neutral Reverse and Missing GFCI Protection"
+              ]
+            }
+          ],
+          "found": true
+        }
+      ],
+      "found": true
+    },
+    {
+      "section": "Laundry",
+      "items": [
+        {
+          "item": "Clothes Washer",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Not fully Inspected",
+                "Not plugged in",
+                "Clothing in machine",
+                "Washing Machine Testing Limitation"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Hoses Not Pressure Tested",
+                "Active Water Leak",
+                "Stand Pipe Defect",
+                "Missing Handle at Valve",
+                "Missing Catch Pan",
+                "Defect at the Hook Up",
+                "Missing GFCI Protection in Laundry",
+                "Inoperative",
+                "Hardware Control Defect",
+                "Not properly installed",
+                "Missing power source",
+                "Rust at washing machine"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Dryer",
+          "tabs": [],
+          "found": false
+        },
+        {
+          "item": "Ventilation",
+          "tabs": [],
+          "found": false
+        },
+        {
+          "item": "Plumbing & Hookups",
+          "tabs": [],
+          "found": false
+        }
+      ],
+      "found": true
+    },
+    {
+      "section": "Kitchen",
+      "items": [
+        {
+          "item": "Kitchen Sink",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Ran Water at Kitchen Sink"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Defect at S-Trap",
+                "Defect at Trap Component",
+                "Defect at the Kitchen Sink",
+                "No Running Water at Sink",
+                "Defect at Sink Fixture",
+                "Garbage disposal Excessive noise",
+                "Low Water pressure",
+                "Loose connection",
+                "Garbage Disposal Inoperative",
+                "Exposed Garbage Disposable wiring",
+                "Slow to drain",
+                "Water damage"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Cabinets & Countertops",
+          "tabs": [],
+          "found": false
+        },
+        {
+          "item": "Garbage Disposal",
+          "tabs": [],
+          "found": false
+        },
+        {
+          "item": "Range/Oven/Cooktop",
+          "tabs": [],
+          "found": false
+        },
+        {
+          "item": "Dishwasher",
+          "tabs": [],
+          "found": false
+        },
+        {
+          "item": "Refrigerator",
+          "tabs": [],
+          "found": false
+        },
+        {
+          "item": "Ventilation",
+          "tabs": [],
+          "found": false
+        }
+      ],
+      "found": true
+    },
+    {
+      "section": "Garage",
+      "items": [
+        {
+          "item": "Garage Door & Opener",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Delayed Wall Switch",
+                "Inoperable Remote",
+                "Loose wall switch",
+                "Light inoperable",
+                "Wire not secured",
+                "Outdated Hardware"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Occupant Door (From garage to inside of home)",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Door Does Not Meet Separation Requirements",
+                "Not Self-closing"
+              ]
+            }
+          ],
+          "found": true
+        },
+        {
+          "item": "Ceiling & Firewall",
+          "tabs": [],
+          "found": false
+        },
+        {
+          "item": "Floor",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Cracking",
+                "Efflorescense",
+                "Staining",
+                "Cracking and Settling in Garage Floor"
+              ]
+            }
+          ],
+          "found": true
+        }
+      ],
+      "found": true
+    },
+    {
+      "section": "General Overview",
+      "items": [
+        {
+          "item": "General",
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            }
+          ],
+          "found": true
+        }
+      ],
+      "found": true
+    },
+    {
+      "section": "Radon Results",
+      "items": [],
+      "found": false
+    }
+  ],
+  "summary": {
+    "sections": 16,
+    "itemsFound": 50,
+    "itemsMissing": 19,
+    "checkboxes": 1019,
+    "elapsedSeconds": 293,
+    "missing": [
+      "Item not found: Basement, Foundation, Crawlspace & Structure › Structural Components",
+      "Item not found: Heating › Flues & Vents",
+      "Item not found: Plumbing › Fuel Storage & Distribution",
+      "Item not found: Electrical › Service & Grounding",
+      "Item not found: Electrical › Smoke & CO Detectors",
+      "Item not found: Fireplace › Chimney",
+      "Item not found: Attic, Insulation & Ventilation › Insulation",
+      "Item not found: Attic, Insulation & Ventilation › Ventilation",
+      "Item not found: Attic, Insulation & Ventilation › Exhaust Systems",
+      "Item not found: Laundry › Dryer",
+      "Item not found: Laundry › Ventilation",
+      "Item not found: Laundry › Plumbing & Hookups",
+      "Item not found: Kitchen › Cabinets & Countertops",
+      "Item not found: Kitchen › Garbage Disposal",
+      "Item not found: Kitchen › Range/Oven/Cooktop",
+      "Item not found: Kitchen › Dishwasher",
+      "Item not found: Kitchen › Refrigerator",
+      "Item not found: Kitchen › Ventilation",
+      "Item not found: Garage › Ceiling & Firewall",
+      "Section not found: Radon Results"
+    ]
+  }
+}
