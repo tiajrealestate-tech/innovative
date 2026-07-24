@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.4
+ * Spectora Autofill — v0.4.2
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -217,6 +217,25 @@
       (el) => el.children.length === 0 && norm(el.textContent) === t
     );
   }
+  // Fire a full, bubbling mouse-event sequence. Spectora's Vue app doesn't
+  // always react to a bare .click(); pointer/mouse events cover its handlers,
+  // and firing on the text leaf lets the event bubble UP to whichever inner
+  // element actually owns the handler (a plain .click() on the outer <li>
+  // overshoots and never reaches it).
+  function fireClick(el) {
+    if (!el) return;
+    const o = { bubbles: true, cancelable: true, view: window };
+    for (const type of ["pointerdown", "mousedown", "pointerup", "mouseup", "click"]) {
+      try {
+        el.dispatchEvent(new MouseEvent(type, o));
+      } catch (e) {}
+    }
+    if (typeof el.click === "function") {
+      try {
+        el.click();
+      } catch (e) {}
+    }
+  }
   function clickByText(name) {
     const t = norm(name);
     const leaves = [...document.querySelectorAll("span,li,a,button,div")].filter(
@@ -225,9 +244,12 @@
     if (!leaves.length) return false;
     leaves.sort((a, b) => (a.closest("li") ? 0 : 1) - (b.closest("li") ? 0 : 1));
     const leaf = leaves[0];
-    const clk =
-      leaf.closest('li,a,button,[role="tab"],[role="button"]') || leaf.parentElement || leaf;
-    clk.click();
+    // Fire on the text leaf first (bubbles up to the real inner handler), then
+    // on the nearest clickable ancestor as a backup — both are safe because
+    // clickByText only drives navigation (sections/items/tabs), never checkboxes.
+    fireClick(leaf);
+    const clk = leaf.closest('li,a,button,[role="tab"],[role="button"]');
+    if (clk && clk !== leaf) fireClick(clk);
     return true;
   }
   function tabActive(name) {

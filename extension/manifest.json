@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Spectora Autofill (beta)",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Builds a Spectora report by checking boxes across all sections and the Information/Limitations/Defects tabs.",
   "content_scripts": [
     {
