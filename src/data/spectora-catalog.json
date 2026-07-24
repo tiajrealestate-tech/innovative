@@ -1,12 +1,14 @@
 {
-  "version": "0.5.0",
-  "generatedAt": "2026-07-24T02:52:05.149Z",
+  "version": "merged",
+  "generatedAt": "2026-07-24T03:42:17.034Z",
+  "source": "union of 2 report scans",
   "sections": [
     {
       "section": "Roof",
       "items": [
         {
           "item": "Coverings",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -53,11 +55,11 @@
                 "Nonstandard installation"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Roof Drainage Systems",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -91,11 +93,11 @@
                 "Damaged downspout"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Flashings",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -127,16 +129,28 @@
                 "Potential Improper Seal"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Skylights, Chimneys & Other Roof Penetrations",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
               "checkboxes": [
-                "Homeowner's Responsibility"
+                "Homeowner's Responsibility",
+                "Chimney Cap Missing",
+                "Flashing Defect",
+                "Chimney Clay Liner Cracked/Damaged",
+                "Chimney Flue Dirty",
+                "Chimney Repoint Needed",
+                "Metal Flue Rust",
+                "Skylight Cracked",
+                "Skylight Water Penetration",
+                "Deteriorated Condition(Chimney)",
+                "Poor seal at roof penetration",
+                "Saddle/Cricket flashing defect",
+                "Deteriorated Chimney Crown and Masonry"
               ]
             },
             {
@@ -160,17 +174,16 @@
                 "Deteriorated Chimney Crown and Masonry"
               ]
             }
-          ],
-          "found": true
+          ]
         }
-      ],
-      "found": true
+      ]
     },
     {
       "section": "Exterior",
       "items": [
         {
           "item": "Siding, Flashing & Trim",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -231,11 +244,11 @@
                 "Exposed exterior vent"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Exterior Windows",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -264,11 +277,11 @@
                 "Window well drainage defect"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Exterior Doors",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -303,11 +316,11 @@
                 "Door Siding trim seal failure"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Decks, Balconies, Porches & Steps",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -361,11 +374,11 @@
                 "Awning damaged"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Walkways, Patios & Driveways",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -403,11 +416,11 @@
                 "Balusters Loose/Damaged"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Eaves, Soffits & Fascia",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -435,11 +448,11 @@
                 "Damaged Soffit Vent and Wood Deterioration"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Vegetation, Grading, Drainage & Retaining Walls",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -468,11 +481,11 @@
                 "Large void/ Sinkhole"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Exterior General",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -486,17 +499,16 @@
               "tab": "Defects",
               "checkboxes": []
             }
-          ],
-          "found": true
+          ]
         }
-      ],
-      "found": true
+      ]
     },
     {
       "section": "Basement, Foundation, Crawlspace & Structure",
       "items": [
         {
           "item": "Basements & Crawlspaces",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -527,11 +539,11 @@
                 "Improper support"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Foundation",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -579,22 +591,21 @@
                 "Restricted Access"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Structural Components",
-          "tabs": [],
-          "found": false
+          "found": false,
+          "tabs": []
         }
-      ],
-      "found": true
+      ]
     },
     {
       "section": "Heating",
       "items": [
         {
           "item": "Equipment",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -722,11 +733,11 @@
                 "Filter not secure"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Distribution Systems",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -757,11 +768,11 @@
                 "Mold like substance on ductwork"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Normal Operating Controls",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -780,16 +791,16 @@
                 "Boiler shut off obstructes"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Flues & Vents",
-          "tabs": [],
-          "found": false
+          "found": false,
+          "tabs": []
         },
         {
           "item": "HVAC General",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -803,17 +814,16 @@
               "tab": "Defects",
               "checkboxes": []
             }
-          ],
-          "found": true
+          ]
         }
-      ],
-      "found": true
+      ]
     },
     {
       "section": "Cooling",
       "items": [
         {
           "item": "Cooling Equipment",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -930,11 +940,11 @@
                 "Excessive noise and vibration"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Distribution System",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -968,17 +978,16 @@
                 "Missing return register"
               ]
             }
-          ],
-          "found": true
+          ]
         }
-      ],
-      "found": true
+      ]
     },
     {
       "section": "Plumbing",
       "items": [
         {
           "item": "Main Water Shut-off Device",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1037,11 +1046,11 @@
                 "Corroded Plumbing Sections"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Water Supply, Distribution Systems & Fixtures",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1083,11 +1092,11 @@
                 "Toilet Leaking"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Drain, Waste, & Vent Systems",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1141,11 +1150,11 @@
                 "Exterior drain damage"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Hot Water Systems, Controls, Flues & Vents",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1228,16 +1237,16 @@
                 "Domestic water too hot"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Fuel Storage & Distribution",
-          "tabs": [],
-          "found": false
+          "found": false,
+          "tabs": []
         },
         {
           "item": "Plumbing General",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1253,22 +1262,21 @@
                 "Plumbing System Deficiencies"
               ]
             }
-          ],
-          "found": true
+          ]
         }
-      ],
-      "found": true
+      ]
     },
     {
       "section": "Electrical",
       "items": [
         {
           "item": "Service & Grounding",
-          "tabs": [],
-          "found": false
+          "found": false,
+          "tabs": []
         },
         {
           "item": "Main & Subpanels, Service & Grounding, Main Overcurrent Device",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1358,11 +1366,11 @@
                 "Possible Inadequate service size"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Branch Wiring Circuits, Breakers & Fuses",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1395,11 +1403,11 @@
                 "Temporary Wiring Used for Permanent Setup"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Lighting Fixtures, Switches & Receptacles",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1426,11 +1434,11 @@
                 "Improperly Wired Receptacle"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "GFCI & AFCI",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1449,16 +1457,16 @@
                 "GFCI Improperly Wired"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Smoke & CO Detectors",
-          "tabs": [],
-          "found": false
+          "found": false,
+          "tabs": []
         },
         {
           "item": "Electrical General",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1474,17 +1482,16 @@
                 "Electrical System"
               ]
             }
-          ],
-          "found": true
+          ]
         }
-      ],
-      "found": true
+      ]
     },
     {
       "section": "Fireplace",
       "items": [
         {
           "item": "Cleanout Doors & Frames",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1504,11 +1511,11 @@
                 "Missing cleanout hardware"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Fireplace",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1530,22 +1537,21 @@
                 "Not able to test"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Chimney",
-          "tabs": [],
-          "found": false
+          "found": false,
+          "tabs": []
         }
-      ],
-      "found": true
+      ]
     },
     {
       "section": "Doors, Windows & Interior",
       "items": [
         {
           "item": "Doors",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1574,11 +1580,11 @@
                 "Door would not open"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Windows",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1609,11 +1615,11 @@
                 "Window Adjustment Needed"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Floors, Walls, Ceilings",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1642,11 +1648,11 @@
                 "Minor Damage"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Stairs, Steps, Stoops, Stairways & Ramps",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1677,11 +1683,11 @@
                 "Loose Carpeting at Stairs"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Switches, Fixtures & Receptacles",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1712,11 +1718,11 @@
                 "Material Defect"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Presence of Smoke and CO Detectors",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1740,17 +1746,16 @@
                 "Improper Location of Smoke Detector"
               ]
             }
-          ],
-          "found": true
+          ]
         }
-      ],
-      "found": true
+      ]
     },
     {
       "section": "Attic, Insulation & Ventilation",
       "items": [
         {
           "item": "Structural Components & Observations in Attic",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1786,32 +1791,31 @@
                 "Exposed wires in attic"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Insulation",
-          "tabs": [],
-          "found": false
+          "found": false,
+          "tabs": []
         },
         {
           "item": "Ventilation",
-          "tabs": [],
-          "found": false
+          "found": false,
+          "tabs": []
         },
         {
           "item": "Exhaust Systems",
-          "tabs": [],
-          "found": false
+          "found": false,
+          "tabs": []
         }
-      ],
-      "found": true
+      ]
     },
     {
       "section": "Bathrooms",
       "items": [
         {
           "item": "Sinks, Tubs & Showers",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1844,11 +1848,11 @@
                 "Stopper Missing"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Bathroom Toilets",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1877,11 +1881,11 @@
                 "Toilet continuously running"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Cabinetry, Ceiling, Walls & Floor",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1908,11 +1912,11 @@
                 "Damaged or Missing Toilet Paper Holder Noted"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Bathroom Exhaust Fan / Window",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1939,11 +1943,11 @@
                 "Excessive Noise"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "GFCI & Electric in Bathroom",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -1971,17 +1975,16 @@
                 "Hot-Neutral Reverse and Missing GFCI Protection"
               ]
             }
-          ],
-          "found": true
+          ]
         }
-      ],
-      "found": true
+      ]
     },
     {
       "section": "Laundry",
       "items": [
         {
           "item": "Clothes Washer",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -2013,32 +2016,31 @@
                 "Rust at washing machine"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Dryer",
-          "tabs": [],
-          "found": false
+          "found": false,
+          "tabs": []
         },
         {
           "item": "Ventilation",
-          "tabs": [],
-          "found": false
+          "found": false,
+          "tabs": []
         },
         {
           "item": "Plumbing & Hookups",
-          "tabs": [],
-          "found": false
+          "found": false,
+          "tabs": []
         }
-      ],
-      "found": true
+      ]
     },
     {
       "section": "Kitchen",
       "items": [
         {
           "item": "Kitchen Sink",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -2067,47 +2069,166 @@
                 "Water damage"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Cabinets & Countertops",
-          "tabs": [],
-          "found": false
+          "found": false,
+          "tabs": []
         },
         {
           "item": "Garbage Disposal",
-          "tabs": [],
-          "found": false
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Turned On Garbage Disposal"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Did not operate"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Active Water Leak",
+                "Electrical Defect",
+                "Missing Electrical Wire Clamp",
+                "Cord Length Too Short (Disposal)",
+                "Did Not Turn On",
+                "Excessive Noise",
+                "Old System"
+              ]
+            }
+          ]
         },
         {
           "item": "Range/Oven/Cooktop",
-          "tabs": [],
-          "found": false
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Turned On Stove & Oven"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "No Stove/Oven Appliance",
+                "Very Old Appliance",
+                "Not operable"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Burner Not Lighting",
+                "Cracked Glasstop",
+                "Missing Anti-Tip",
+                "Loose and/or Damaged Control Knobs",
+                "No Gas Shut-off Valve",
+                "Oven Not Heating Up",
+                "4-Wire Stove/Oven Plug Defect",
+                "Range light inoperative",
+                "Range Exhaust Missing",
+                "Damaged and/or loose handle",
+                "Non-Functioning Range Exhaust Hood",
+                "Exhaust Fan-Excessive Noise"
+              ]
+            }
+          ]
         },
         {
           "item": "Dishwasher",
-          "tabs": [],
-          "found": false
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Inspected Dishwasher",
+                "GFCI for Dishwasher Was Observed"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Dishwasher Was Not Operated",
+                "Dishwasher Very Old"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Did Not Turn On",
+                "Missing GFCI Protection",
+                "Rust on Interior Components",
+                "Did Not Drain Properly",
+                "Active Water Leak",
+                "Defect at Door Gasket",
+                "Defect at Controls",
+                "Defect at Dish Rack",
+                "Defect at Rollers",
+                "Defect at Spray Arms",
+                "Defect at Soap Dispenser",
+                "Defect at Door Springs"
+              ]
+            }
+          ]
         },
         {
           "item": "Refrigerator",
-          "tabs": [],
-          "found": false
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Refrigerator Was On"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Not Installed",
+                "Unplugged"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Water Dispensar inoperable",
+                "Inoperable",
+                "Inadequate Clearance",
+                "Unbalaced mini fridge",
+                "Damaged hardware",
+                "Lights inoperable",
+                "Missing hardware",
+                "Refrigerator Not Cooling",
+                "Icemaker clogged with excessive ice",
+                "Low water pressure at refrigerator dispenser",
+                "Freezer and Refrigerator Door Issues Noted",
+                "Ice Maker Non-Functional"
+              ]
+            }
+          ]
         },
         {
           "item": "Ventilation",
-          "tabs": [],
-          "found": false
+          "found": false,
+          "tabs": []
         }
-      ],
-      "found": true
+      ]
     },
     {
       "section": "Garage",
       "items": [
         {
           "item": "Garage Door & Opener",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -2128,11 +2249,11 @@
                 "Outdated Hardware"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Occupant Door (From garage to inside of home)",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -2149,16 +2270,16 @@
                 "Not Self-closing"
               ]
             }
-          ],
-          "found": true
+          ]
         },
         {
           "item": "Ceiling & Firewall",
-          "tabs": [],
-          "found": false
+          "found": false,
+          "tabs": []
         },
         {
           "item": "Floor",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -2177,17 +2298,16 @@
                 "Cracking and Settling in Garage Floor"
               ]
             }
-          ],
-          "found": true
+          ]
         }
-      ],
-      "found": true
+      ]
     },
     {
       "section": "General Overview",
       "items": [
         {
           "item": "General",
+          "found": true,
           "tabs": [
             {
               "tab": "Information",
@@ -2197,45 +2317,38 @@
               "tab": "Limitations",
               "checkboxes": []
             }
-          ],
-          "found": true
+          ]
         }
-      ],
-      "found": true
+      ]
     },
     {
       "section": "Radon Results",
-      "items": [],
-      "found": false
+      "items": []
     }
   ],
   "summary": {
-    "sections": 16,
-    "itemsFound": 50,
-    "itemsMissing": 19,
-    "checkboxes": 1019,
-    "elapsedSeconds": 293,
-    "missing": [
-      "Item not found: Basement, Foundation, Crawlspace & Structure › Structural Components",
-      "Item not found: Heating › Flues & Vents",
-      "Item not found: Plumbing › Fuel Storage & Distribution",
-      "Item not found: Electrical › Service & Grounding",
-      "Item not found: Electrical › Smoke & CO Detectors",
-      "Item not found: Fireplace › Chimney",
-      "Item not found: Attic, Insulation & Ventilation › Insulation",
-      "Item not found: Attic, Insulation & Ventilation › Ventilation",
-      "Item not found: Attic, Insulation & Ventilation › Exhaust Systems",
-      "Item not found: Laundry › Dryer",
-      "Item not found: Laundry › Ventilation",
-      "Item not found: Laundry › Plumbing & Hookups",
-      "Item not found: Kitchen › Cabinets & Countertops",
-      "Item not found: Kitchen › Garbage Disposal",
-      "Item not found: Kitchen › Range/Oven/Cooktop",
-      "Item not found: Kitchen › Dishwasher",
-      "Item not found: Kitchen › Refrigerator",
-      "Item not found: Kitchen › Ventilation",
-      "Item not found: Garage › Ceiling & Firewall",
-      "Section not found: Radon Results"
+    "itemsWithBoxes": 51,
+    "itemsEmpty": 18,
+    "totalBoxes": 1087,
+    "stillEmpty": [
+      "Exterior > Exterior General",
+      "Basement, Foundation, Crawlspace & Structure > Structural Components",
+      "Heating > Flues & Vents",
+      "Heating > HVAC General",
+      "Plumbing > Fuel Storage & Distribution",
+      "Electrical > Service & Grounding",
+      "Electrical > Smoke & CO Detectors",
+      "Fireplace > Chimney",
+      "Attic, Insulation & Ventilation > Insulation",
+      "Attic, Insulation & Ventilation > Ventilation",
+      "Attic, Insulation & Ventilation > Exhaust Systems",
+      "Laundry > Dryer",
+      "Laundry > Ventilation",
+      "Laundry > Plumbing & Hookups",
+      "Kitchen > Cabinets & Countertops",
+      "Kitchen > Ventilation",
+      "Garage > Ceiling & Firewall",
+      "General Overview > General"
     ]
   }
 }
