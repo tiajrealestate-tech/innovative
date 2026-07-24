@@ -1,78 +1,71 @@
 /* ==========================================================================
- * Spectora Autofill — v0.2
+ * Spectora Autofill — v0.3
  * --------------------------------------------------------------------------
- * Two tools, in one panel that appears on the Spectora report editor:
+ * Panel on the Spectora report editor with three tools:
  *
- *  1) CHECK DEFECTS (the real feature, first version):
- *     Paste a list of defect titles (one per line). "Preview" highlights the
- *     matching defects in the CURRENT item without changing anything.
- *     "Check matched" then ticks their boxes for you.
+ *  1) BUILD REPORT (the real feature): paste lines shaped
+ *        Section > Item > Defect title
+ *     and it navigates to each Section → Item → Defects tab and checks the
+ *     matching pre-written defect — collapsing each card between checks
+ *     (Spectora only allows one open at a time).
  *
- *  2) SCAN (debug): reports the page structure as JSON (read-only).
+ *  2) CHECK THIS ITEM: check a list of defect titles in the item you're on.
  *
- * This version acts only on the item you're currently viewing. Full
- * section→item navigation comes next once checking is confirmed reliable.
+ *  3) SCAN (debug): report the page structure.
+ *
+ * The version shown in the header is read from the manifest, so it always
+ * matches the loaded build.
  * ========================================================================== */
 
 (function () {
   if (window.__spectoraScannerLoaded) return;
   window.__spectoraScannerLoaded = true;
 
-  // Read the version straight from the manifest so the label can never drift.
   const VERSION =
-    typeof chrome !== "undefined" &&
-    chrome.runtime &&
-    chrome.runtime.getManifest
+    typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.getManifest
       ? chrome.runtime.getManifest().version
       : "?";
 
-  const KNOWN_SECTIONS = [
-    "Inspection Details", "Roof", "Exterior",
-    "Basement, Foundation, Crawlspace & Structure", "Heating", "Cooling",
-    "Plumbing", "Electrical", "Fireplace", "Doors, Windows & Interior",
-    "Attic, Insulation & Ventilation", "Bathrooms", "Laundry", "Garage",
-    "General Overview", "Kitchen",
-  ];
   const TAB_NAMES = ["Information", "Limitations", "Defects"];
 
-  // ---- helpers ------------------------------------------------------------
+  // ---- generic helpers ----------------------------------------------------
 
-  function isEditorFrame() {
-    if (document.querySelector('input[type="checkbox"]')) return true;
-    return leafByText(TAB_NAMES).length > 0;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  async function waitFor(pred, timeout = 3000, step = 120) {
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeout) {
+      try {
+        if (pred()) return true;
+      } catch (e) {}
+      await sleep(step);
+    }
+    return false;
   }
 
   function trimText(el) {
     return (el.textContent || "").replace(/\s+/g, " ").trim();
   }
-
   function norm(s) {
     return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   }
 
-  function leafByText(names) {
-    const set = names.map((n) => n.toLowerCase());
-    const out = [];
-    for (const el of document.querySelectorAll("body *")) {
-      if (el.children.length !== 0) continue;
-      const t = trimText(el).toLowerCase();
-      if (t && set.includes(t)) out.push(el);
-      if (out.length > 60) break;
-    }
-    return out;
+  function isEditorFrame() {
+    if (document.querySelector('input[type="checkbox"]')) return true;
+    return [...document.querySelectorAll("span")].some(
+      (el) => el.children.length === 0 && TAB_NAMES.includes(trimText(el))
+    );
   }
 
-  // ---- reading the defect cards in the current item -----------------------
+  // ---- defect cards -------------------------------------------------------
 
-  // Each defect is a `.comment.record` card containing a checkbox. The visible
-  // title is the header text before the "Edit Photos / Edit this comment" UI.
   function defectRecords() {
     const recs = [];
     for (const rec of document.querySelectorAll(".comment.record")) {
       const cb = rec.querySelector('input[type="checkbox"]');
       if (!cb) continue;
       const header = rec.querySelector(".card-header") || rec;
-      let title = trimText(header)
+      const title = trimText(header)
         .replace(/\s*Edit\s+Photos.*$/i, "")
         .replace(/\s*Edit this comment.*$/i, "")
         .trim();
@@ -81,7 +74,6 @@
     return recs;
   }
 
-  // Match a pasted title to a defect record (exact-normalized, then prefix).
   function matchRecord(records, wanted) {
     const w = norm(wanted);
     let best = records.find((r) => norm(r.title) === w);
@@ -90,6 +82,26 @@
     if (best) return best;
     return records.find((r) => norm(r.title).includes(w) && w.length > 4) || null;
   }
+  function findFresh(line) {
+    return matchRecord(defectRecords(), line);
+  }
+
+  // A card is "expanded" when it contains an editable comment area. Only one
+  // can be open at a time; while open the other cards are hidden.
+  function expandedRecord() {
+    for (const rec of document.querySelectorAll(".comment.record")) {
+      if (rec.querySelector('textarea, [contenteditable="true"]')) return rec;
+    }
+    return null;
+  }
+  function collapseOpen() {
+    const rec = expandedRecord();
+    if (!rec) return false;
+    (rec.querySelector(".card-header") || rec).click();
+    return true;
+  }
+
+  // ---- highlight (preview) ------------------------------------------------
 
   let highlighted = [];
   function clearHighlights() {
@@ -106,93 +118,19 @@
   }
 
   function parseLines(text) {
-    return text
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
+    return text.split("\n").map((l) => l.trim()).filter(Boolean);
   }
 
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  // ---- checking the current item ------------------------------------------
 
-  // Poll a condition until true or timeout — robust against slow re-renders.
-  async function waitFor(pred, timeout = 3000, step = 120) {
-    const t0 = Date.now();
-    while (Date.now() - t0 < timeout) {
-      try {
-        if (pred()) return true;
-      } catch (e) {}
-      await sleep(step);
-    }
-    return false;
-  }
-
-  // Always re-query the DOM fresh — after a check, Spectora re-renders the list
-  // and any node references we held become stale.
-  function findFresh(line) {
-    return matchRecord(defectRecords(), line);
-  }
-
-  // A card is "expanded" when it contains an editable comment area. Only one
-  // can be open at a time, and while open the other defect cards are hidden —
-  // so we must collapse it (click its gray header) before finding the next one.
-  function expandedRecord() {
-    for (const rec of document.querySelectorAll(".comment.record")) {
-      if (rec.querySelector('textarea, [contenteditable="true"]')) return rec;
-    }
-    return null;
-  }
-  function collapseOpen() {
-    const rec = expandedRecord();
-    if (!rec) return false;
-    const hdr = rec.querySelector(".card-header") || rec;
-    hdr.click(); // clicking the gray header collapses it (does not uncheck)
-    return true;
-  }
-
-  function preview(text, log) {
-    clearHighlights();
-    const wanted = parseLines(text);
-    if (!defectRecords().length) {
-      log("No defect cards found. Open an item's Defects tab first.");
-      return;
-    }
-    let hit = 0;
-    const misses = [];
-    let firstMatch = null;
-    for (const line of wanted) {
-      const m = findFresh(line);
-      if (m) {
-        highlight(m.rec, m.cb.checked ? "#16a34a" : "#2a56d4");
-        if (!firstMatch) firstMatch = m.rec;
-        hit++;
-      } else {
-        misses.push(line);
-      }
-    }
-    if (firstMatch) firstMatch.scrollIntoView({ behavior: "smooth", block: "center" });
-    log(
-      `Found ${hit} of ${wanted.length}. Blue = will be checked, green = already checked.` +
-        (misses.length ? `\nNot found here: ${misses.join(", ")}` : "")
-    );
-  }
-
-  // Check each defect one at a time, re-scanning fresh and pausing after each
-  // click so Spectora's re-render finishes before we look for the next one.
-  async function applyChecks(text, log) {
-    clearHighlights();
-    const wanted = parseLines(text);
+  async function checkTitles(titles, log, prefix) {
     let checked = 0;
     let already = 0;
     const misses = [];
-
-    // Make sure nothing is expanded before we start (all cards visible).
     if (collapseOpen()) await waitFor(() => defectRecords().length > 1, 2000);
-
-    for (let i = 0; i < wanted.length; i++) {
-      const line = wanted[i];
-      log(`Working… ${i + 1}/${wanted.length}: ${line}`);
-
-      // Any open card hides its siblings — collapse it first so we can search.
+    for (let i = 0; i < titles.length; i++) {
+      const line = titles[i];
+      if (log) log(`${prefix || ""}${i + 1}/${titles.length}: ${line}`);
       if (collapseOpen()) await waitFor(() => defectRecords().length > 1, 2000);
 
       let m = findFresh(line);
@@ -205,45 +143,197 @@
         already++;
         continue;
       }
-
-      m.cb.click(); // checks the defect (Spectora then expands the card)
+      m.cb.click();
       const ok = await waitFor(() => {
         const f = findFresh(line);
         return !!(f && f.cb.checked);
       }, 3500);
       if (ok) checked++;
-      else misses.push(line + " (click didn't stick)");
-
-      // Collapse the card Spectora just expanded, so the next one is findable.
+      else misses.push(line + " (didn't stick)");
       if (collapseOpen()) await waitFor(() => defectRecords().length > 1, 2500);
-      await sleep(200);
+      await sleep(150);
+    }
+    return { checked, already, misses };
+  }
+
+  function preview(text, log) {
+    clearHighlights();
+    const wanted = parseLines(text);
+    if (!defectRecords().length) {
+      log("No defect cards found. Open an item's Defects tab first.");
+      return;
+    }
+    let hit = 0;
+    const misses = [];
+    let first = null;
+    for (const line of wanted) {
+      const m = findFresh(line);
+      if (m) {
+        highlight(m.rec, m.cb.checked ? "#16a34a" : "#2a56d4");
+        if (!first) first = m.rec;
+        hit++;
+      } else misses.push(line);
+    }
+    if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
+    log(
+      `Found ${hit} of ${wanted.length}. Blue = will check, green = already checked.` +
+        (misses.length ? `\nNot found here: ${misses.join(", ")}` : "")
+    );
+  }
+
+  async function applyChecks(text, log) {
+    clearHighlights();
+    const titles = parseLines(text);
+    const r = await checkTitles(titles, log, "");
+    log(
+      `Checked ${r.checked}${r.already ? `, ${r.already} already` : ""} of ${titles.length}.` +
+        (r.misses.length ? `\nProblem: ${r.misses.join(", ")}` : "") +
+        `\n\nEyeball them — if a box is wrong, click it to undo.`
+    );
+  }
+
+  // ---- navigation (sections / items / tabs) -------------------------------
+
+  function existsByText(name) {
+    const t = norm(name);
+    return [...document.querySelectorAll("span,li,a,button,div")].some(
+      (el) => el.children.length === 0 && norm(el.textContent) === t
+    );
+  }
+  function clickByText(name) {
+    const t = norm(name);
+    const leaves = [...document.querySelectorAll("span,li,a,button,div")].filter(
+      (el) => el.children.length === 0 && norm(el.textContent) === t
+    );
+    if (!leaves.length) return false;
+    leaves.sort((a, b) => (a.closest("li") ? 0 : 1) - (b.closest("li") ? 0 : 1));
+    const leaf = leaves[0];
+    const clk =
+      leaf.closest('li,a,button,[role="tab"],[role="button"]') ||
+      leaf.parentElement ||
+      leaf;
+    clk.click();
+    return true;
+  }
+  function tabActive(name) {
+    const leaf = [...document.querySelectorAll("span")].find(
+      (el) => el.children.length === 0 && norm(el.textContent) === norm(name)
+    );
+    if (!leaf || !leaf.parentElement) return false;
+    const c = leaf.parentElement.className || "";
+    return /opacity-100/.test(c) && !/opacity-50/.test(c);
+  }
+
+  async function selectSection(name) {
+    if (!clickByText(name)) return false;
+    await sleep(600);
+    return true;
+  }
+  async function selectItem(name) {
+    const appeared = await waitFor(() => existsByText(name), 3000);
+    if (!appeared) return false;
+    clickByText(name);
+    await sleep(600);
+    return true;
+  }
+  async function openDefectsTab() {
+    clickByText("Defects");
+    await waitFor(() => tabActive("Defects"), 2500);
+    await sleep(400);
+  }
+
+  // ---- full report build --------------------------------------------------
+
+  function parseReport(text) {
+    const map = new Map();
+    for (const raw of text.split("\n")) {
+      const line = raw.trim();
+      if (!line) continue;
+      const parts = line.split(/\s*[>|]\s*/);
+      if (parts.length < 3) continue;
+      const section = parts[0].trim();
+      const item = parts[1].trim();
+      const defect = parts.slice(2).join(" > ").trim();
+      const key = section + "||" + item;
+      if (!map.has(key)) map.set(key, { section, item, defects: [] });
+      map.get(key).defects.push(defect);
+    }
+    return [...map.values()];
+  }
+
+  async function buildReport(text, log) {
+    clearHighlights();
+    const groups = parseReport(text);
+    if (!groups.length) {
+      log("No valid lines. Use:  Section > Item > Defect  (one per line).");
+      return;
+    }
+    let itemsDone = 0;
+    let totalChecked = 0;
+    const problems = [];
+    for (let g = 0; g < groups.length; g++) {
+      const grp = groups[g];
+      log(`(${g + 1}/${groups.length}) ${grp.section} › ${grp.item}…`);
+      if (!(await selectSection(grp.section))) {
+        problems.push("Section not found: " + grp.section);
+        continue;
+      }
+      if (!(await selectItem(grp.item))) {
+        problems.push(`Item not found: ${grp.item} (in ${grp.section})`);
+        continue;
+      }
+      await openDefectsTab();
+      const r = await checkTitles(grp.defects, log, `${grp.item}: `);
+      totalChecked += r.checked;
+      r.misses.forEach((m) => problems.push(`${grp.section} › ${grp.item}: ${m}`));
+      itemsDone++;
     }
     log(
-      `Checked ${checked}${already ? `, ${already} already` : ""} of ${wanted.length}.` +
-        (misses.length ? `\nProblem: ${misses.join(", ")}` : "") +
-        `\n\nEyeball them — if a box is wrong, click it to undo.`
+      `Done — checked ${totalChecked} defect(s) across ${itemsDone}/${groups.length} items.` +
+        (problems.length ? `\n\nIssues:\n- ${problems.join("\n- ")}` : "")
     );
   }
 
   // ---- scan (debug) -------------------------------------------------------
 
   function scan() {
-    const out = { url: location.href, when: new Date().toISOString() };
-    const cbs = document.querySelectorAll('input[type="checkbox"]');
-    out.totalCheckboxes = cbs.length;
-    out.defects = defectRecords().map((r) => ({
-      title: r.title,
-      checked: r.cb.checked,
-    }));
-    out.sections = KNOWN_SECTIONS.filter((n) =>
-      [...document.querySelectorAll("li, span")].some(
-        (el) => el.children.length === 0 && trimText(el) === n
-      )
-    );
-    return out;
+    return {
+      url: location.href,
+      version: VERSION,
+      totalCheckboxes: document.querySelectorAll('input[type="checkbox"]').length,
+      defects: defectRecords().map((r) => ({ title: r.title, checked: r.cb.checked })),
+      defectsTabActive: tabActive("Defects"),
+    };
   }
 
   // ---- panel UI -----------------------------------------------------------
+
+  function mkLabel(t) {
+    const d = document.createElement("div");
+    d.textContent = t;
+    d.style.fontWeight = "600";
+    d.style.margin = "10px 0 6px";
+    return d;
+  }
+  function mkBtn(label, bg, fg) {
+    const b = document.createElement("button");
+    b.textContent = label;
+    Object.assign(b.style, {
+      background: bg, color: fg, border: "none", borderRadius: "8px",
+      padding: "8px 12px", fontWeight: "600", cursor: "pointer",
+    });
+    return b;
+  }
+  function mkTextarea(value, h) {
+    const ta = document.createElement("textarea");
+    Object.assign(ta.style, {
+      width: "100%", height: h, fontFamily: "monospace", fontSize: "12px",
+      border: "1px solid #d0d5dd", borderRadius: "8px", padding: "8px",
+      boxSizing: "border-box",
+    });
+    ta.value = value;
+    return ta;
+  }
 
   function buildPanel() {
     if (document.getElementById("spectora-scanner-panel")) return;
@@ -252,7 +342,7 @@
     panel.id = "spectora-scanner-panel";
     Object.assign(panel.style, {
       position: "fixed", bottom: "16px", right: "16px", zIndex: "2147483647",
-      width: "370px", maxHeight: "80vh", background: "#fff",
+      width: "380px", maxHeight: "84vh", background: "#fff",
       border: "1px solid #d0d5dd", borderRadius: "12px",
       boxShadow: "0 8px 30px rgba(0,0,0,0.18)",
       font: "13px/1.4 -apple-system,Segoe UI,Roboto,sans-serif",
@@ -268,86 +358,60 @@
       "<span>Spectora Autofill v" + VERSION + "</span>" +
       '<span id="sa-close" style="cursor:pointer;font-size:16px;">×</span>';
 
-    const body = document.createElement("div");
-    Object.assign(body.style, { padding: "12px", overflow: "auto" });
+    const bodyWrap = document.createElement("div");
+    Object.assign(bodyWrap.style, { padding: "12px", overflow: "auto" });
 
-    body.appendChild(
-      mkLabel("Defect titles to check in THIS item (one per line):")
-    );
-    const ta = document.createElement("textarea");
-    Object.assign(ta.style, {
-      width: "100%", height: "120px", fontFamily: "monospace", fontSize: "12px",
-      border: "1px solid #d0d5dd", borderRadius: "8px", padding: "8px",
-      boxSizing: "border-box", marginBottom: "8px",
+    // shared log
+    const logEl = document.createElement("pre");
+    Object.assign(logEl.style, {
+      whiteSpace: "pre-wrap", background: "#f6f7f9", border: "1px solid #eee",
+      borderRadius: "8px", padding: "8px", marginTop: "10px", fontSize: "12px", minHeight: "40px",
     });
-    ta.value = "Shingles Missing\nPonding";
-    body.appendChild(ta);
+    const log = (m) => (logEl.textContent = m);
 
+    // --- Build report (auto-navigation) ---
+    bodyWrap.appendChild(mkLabel("Build report — Section > Item > Defect (one per line):"));
+    const taReport = mkTextarea(
+      "Roof > Coverings > Shingles Missing\n" +
+        "Roof > Coverings > Ponding\n" +
+        "Bathrooms > Sinks, Tubs & Showers > Active Water Leak",
+      "120px"
+    );
+    bodyWrap.appendChild(taReport);
+    const buildBtn = mkBtn("Build report", "#16a34a", "#fff");
+    buildBtn.style.marginTop = "8px";
+    bodyWrap.appendChild(buildBtn);
+
+    // --- Check just this item ---
+    bodyWrap.appendChild(mkLabel("…or check just THIS item (defect titles, one per line):"));
+    const taItem = mkTextarea("Shingles Missing\nPonding", "80px");
+    bodyWrap.appendChild(taItem);
     const row = document.createElement("div");
+    row.style.marginTop = "8px";
     const previewBtn = mkBtn("Preview", "#fff", "#111827");
     previewBtn.style.border = "1px solid #d0d5dd";
     const checkBtn = mkBtn("Check matched", "#2a56d4", "#fff");
     checkBtn.style.marginLeft = "8px";
     row.appendChild(previewBtn);
     row.appendChild(checkBtn);
-    body.appendChild(row);
+    bodyWrap.appendChild(row);
 
-    const logEl = document.createElement("pre");
-    Object.assign(logEl.style, {
-      whiteSpace: "pre-wrap", background: "#f6f7f9", border: "1px solid #eee",
-      borderRadius: "8px", padding: "8px", marginTop: "8px", fontSize: "12px",
-      minHeight: "40px",
-    });
-    body.appendChild(logEl);
-    const log = (m) => (logEl.textContent = m);
+    bodyWrap.appendChild(logEl);
 
-    // debug scan (collapsed link)
-    const scanWrap = document.createElement("div");
-    scanWrap.style.marginTop = "10px";
-    const scanBtn = mkBtn("Scan structure (debug)", "#fff", "#6b7280");
-    scanBtn.style.border = "1px solid #e5e7eb";
-    scanBtn.style.fontSize = "12px";
-    const scanOut = document.createElement("textarea");
-    Object.assign(scanOut.style, {
-      width: "100%", height: "0px", fontFamily: "monospace", fontSize: "11px",
-      border: "1px solid #d0d5dd", borderRadius: "8px", padding: "0", marginTop: "6px",
-      boxSizing: "border-box", overflow: "hidden",
-    });
-    scanOut.readOnly = true;
-    scanWrap.appendChild(scanBtn);
-    scanWrap.appendChild(scanOut);
-    body.appendChild(scanWrap);
+    // --- debug scan ---
+    const scanBtn = mkBtn("Scan (debug)", "#fff", "#6b7280");
+    Object.assign(scanBtn.style, { border: "1px solid #e5e7eb", fontSize: "12px", marginTop: "10px" });
+    bodyWrap.appendChild(scanBtn);
 
     panel.appendChild(header);
-    panel.appendChild(body);
+    panel.appendChild(bodyWrap);
     document.body.appendChild(panel);
 
     header.querySelector("#sa-close").onclick = () => panel.remove();
-    previewBtn.onclick = () => preview(ta.value, log);
-    checkBtn.onclick = () => applyChecks(ta.value, log);
-    scanBtn.onclick = () => {
-      scanOut.value = JSON.stringify(scan(), null, 2);
-      scanOut.style.height = "160px";
-      scanOut.style.padding = "8px";
-      scanOut.select();
-    };
-  }
-
-  function mkLabel(t) {
-    const d = document.createElement("div");
-    d.textContent = t;
-    d.style.fontWeight = "600";
-    d.style.marginBottom = "6px";
-    return d;
-  }
-  function mkBtn(label, bg, fg) {
-    const b = document.createElement("button");
-    b.textContent = label;
-    Object.assign(b.style, {
-      background: bg, color: fg, border: "none", borderRadius: "8px",
-      padding: "8px 12px", fontWeight: "600", cursor: "pointer",
-    });
-    return b;
+    buildBtn.onclick = () => buildReport(taReport.value, log);
+    previewBtn.onclick = () => preview(taItem.value, log);
+    checkBtn.onclick = () => applyChecks(taItem.value, log);
+    scanBtn.onclick = () => log(JSON.stringify(scan(), null, 2));
   }
 
   // ---- boot ---------------------------------------------------------------
