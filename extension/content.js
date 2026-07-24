@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.4.2
+ * Spectora Autofill — v0.5.0
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -27,6 +27,30 @@
       : "?";
 
   const TAB_NAMES = ["Information", "Limitations", "Defects"];
+
+  // Your template's sections and their items (from Innovative Home Inspections'
+  // real reports). The whole-report scanner walks this map so it knows where to
+  // go; the checkbox labels it finds at each stop are read live from the page.
+  // If an item here is named slightly differently in Spectora it'll show up as
+  // "missing" in the scan summary, which tells us exactly what to fix.
+  const REPORT_MAP = [
+    ["Roof", ["Coverings", "Roof Drainage Systems", "Flashings", "Skylights, Chimneys & Other Roof Penetrations"]],
+    ["Exterior", ["Siding, Flashing & Trim", "Exterior Windows", "Exterior Doors", "Decks, Balconies, Porches & Steps", "Walkways, Patios & Driveways", "Eaves, Soffits & Fascia", "Vegetation, Grading, Drainage & Retaining Walls", "Exterior General"]],
+    ["Basement, Foundation, Crawlspace & Structure", ["Basements & Crawlspaces", "Foundation", "Structural Components"]],
+    ["Heating", ["Equipment", "Distribution Systems", "Normal Operating Controls", "Flues & Vents", "HVAC General"]],
+    ["Cooling", ["Cooling Equipment", "Distribution System"]],
+    ["Plumbing", ["Main Water Shut-off Device", "Water Supply, Distribution Systems & Fixtures", "Drain, Waste, & Vent Systems", "Hot Water Systems, Controls, Flues & Vents", "Fuel Storage & Distribution", "Plumbing General"]],
+    ["Electrical", ["Service & Grounding", "Main & Subpanels, Service & Grounding, Main Overcurrent Device", "Branch Wiring Circuits, Breakers & Fuses", "Lighting Fixtures, Switches & Receptacles", "GFCI & AFCI", "Smoke & CO Detectors", "Electrical General"]],
+    ["Fireplace", ["Cleanout Doors & Frames", "Fireplace", "Chimney"]],
+    ["Doors, Windows & Interior", ["Doors", "Windows", "Floors, Walls, Ceilings", "Stairs, Steps, Stoops, Stairways & Ramps", "Switches, Fixtures & Receptacles", "Presence of Smoke and CO Detectors"]],
+    ["Attic, Insulation & Ventilation", ["Structural Components & Observations in Attic", "Insulation", "Ventilation", "Exhaust Systems"]],
+    ["Bathrooms", ["Sinks, Tubs & Showers", "Bathroom Toilets", "Cabinetry, Ceiling, Walls & Floor", "Bathroom Exhaust Fan / Window", "GFCI & Electric in Bathroom"]],
+    ["Laundry", ["Clothes Washer", "Dryer", "Ventilation", "Plumbing & Hookups"]],
+    ["Kitchen", ["Kitchen Sink", "Cabinets & Countertops", "Garbage Disposal", "Range/Oven/Cooktop", "Dishwasher", "Refrigerator", "Ventilation"]],
+    ["Garage", ["Garage Door & Opener", "Occupant Door (From garage to inside of home)", "Ceiling & Firewall", "Floor"]],
+    ["General Overview", ["General"]],
+    ["Radon Results", ["Results"]],
+  ];
 
   // ---- generic helpers ----------------------------------------------------
 
@@ -361,6 +385,99 @@
     };
   }
 
+  function downloadText(filename, text, mime) {
+    const blob = new Blob([text], { type: (mime || "text/plain") + ";charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // Read every checkbox label on the tab we're currently on. Collapse any open
+  // defect card first so no siblings are hidden, then read the full list.
+  async function readCurrentTabLabels() {
+    if (collapseOpen()) await waitFor(() => allCheckboxes().length > 1, 1500);
+    const seen = new Set();
+    const labels = [];
+    for (const x of allCheckboxes()) {
+      const l = (x.label || "").trim();
+      if (l && !seen.has(l)) {
+        seen.add(l);
+        labels.push(l);
+      }
+    }
+    return labels;
+  }
+
+  // Walk the entire report (every section -> item -> tab) and record the exact
+  // checkbox wording found at each stop. Produces the "menu" we map findings to.
+  async function scanAll(log) {
+    const started = Date.now();
+    const result = { version: VERSION, url: location.href, generatedAt: new Date().toISOString(), sections: [] };
+    let itemsFound = 0;
+    let itemsMissing = 0;
+    let boxes = 0;
+    const missingList = [];
+
+    for (let s = 0; s < REPORT_MAP.length; s++) {
+      const [section, items] = REPORT_MAP[s];
+      const sectionRec = { section, items: [] };
+      result.sections.push(sectionRec);
+      log(`Scanning ${s + 1}/${REPORT_MAP.length}: ${section}…`);
+      const gotSection = await selectSection(section);
+      if (!gotSection) {
+        sectionRec.found = false;
+        missingList.push(`Section not found: ${section}`);
+        continue;
+      }
+      sectionRec.found = true;
+
+      for (const item of items) {
+        const itemRec = { item, tabs: [] };
+        sectionRec.items.push(itemRec);
+        if (!(await selectItem(item))) {
+          itemRec.found = false;
+          itemsMissing++;
+          missingList.push(`Item not found: ${section} › ${item}`);
+          continue;
+        }
+        itemRec.found = true;
+        itemsFound++;
+
+        for (const tab of TAB_NAMES) {
+          if (!existsByText(tab)) continue; // some items don't have all tabs
+          if (!(await openTab(tab))) continue;
+          const labels = await readCurrentTabLabels();
+          itemRec.tabs.push({ tab, checkboxes: labels });
+          boxes += labels.length;
+          log(`   ${section} › ${item} › ${tab}: ${labels.length} boxes`);
+        }
+      }
+    }
+
+    result.summary = {
+      sections: result.sections.length,
+      itemsFound,
+      itemsMissing,
+      checkboxes: boxes,
+      elapsedSeconds: Math.round((Date.now() - started) / 1000),
+      missing: missingList,
+    };
+
+    downloadText("spectora-checkboxes.json", JSON.stringify(result, null, 2), "application/json");
+    log(
+      `Done. ${boxes} checkboxes across ${itemsFound} items (${result.sections.length} sections) ` +
+        `in ${result.summary.elapsedSeconds}s.\n` +
+        `Downloaded: spectora-checkboxes.json — send me that file.` +
+        (missingList.length ? `\n\n${itemsMissing} items not found (see file):\n- ${missingList.slice(0, 8).join("\n- ")}${missingList.length > 8 ? "\n- …" : ""}` : "")
+    );
+    return result;
+  }
+
   // ---- panel UI -----------------------------------------------------------
 
   function mkLabel(t) {
@@ -450,6 +567,11 @@
 
     bodyWrap.appendChild(logEl);
 
+    bodyWrap.appendChild(mkLabel("Catalog the whole report (read-only — checks nothing):"));
+    const scanAllBtn = mkBtn("Scan whole report → file", "#111827", "#fff");
+    scanAllBtn.style.width = "100%";
+    bodyWrap.appendChild(scanAllBtn);
+
     const scanBtn = mkBtn("Scan (debug)", "#fff", "#6b7280");
     Object.assign(scanBtn.style, { border: "1px solid #e5e7eb", fontSize: "12px", marginTop: "10px" });
     bodyWrap.appendChild(scanBtn);
@@ -463,6 +585,17 @@
     previewBtn.onclick = () => preview(taItem.value, log);
     checkBtn.onclick = () => applyChecks(taItem.value, log);
     scanBtn.onclick = () => log(JSON.stringify(scan(), null, 2));
+    scanAllBtn.onclick = async () => {
+      scanAllBtn.disabled = true;
+      scanAllBtn.textContent = "Scanning… (leave this tab open)";
+      try {
+        await scanAll(log);
+      } catch (e) {
+        log("Scan error: " + (e && e.message ? e.message : e));
+      }
+      scanAllBtn.disabled = false;
+      scanAllBtn.textContent = "Scan whole report → file";
+    };
   }
 
   setInterval(() => {
