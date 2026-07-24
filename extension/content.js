@@ -18,7 +18,13 @@
   if (window.__spectoraScannerLoaded) return;
   window.__spectoraScannerLoaded = true;
 
-  const VERSION = "0.2.2";
+  // Read the version straight from the manifest so the label can never drift.
+  const VERSION =
+    typeof chrome !== "undefined" &&
+    chrome.runtime &&
+    chrome.runtime.getManifest
+      ? chrome.runtime.getManifest().version
+      : "?";
 
   const KNOWN_SECTIONS = [
     "Inspection Details", "Roof", "Exterior",
