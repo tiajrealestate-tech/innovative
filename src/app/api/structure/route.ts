@@ -30,6 +30,30 @@ function mergeDetails(
   };
 }
 
+// Split a long transcript into chunks at sentence/paragraph boundaries so each
+// can be structured by its own (parallel) model call within the time limit.
+// Short transcripts return a single chunk (no overhead).
+function chunkTranscript(t: string, targetChars = 1600, maxChunks = 6): string[] {
+  const trimmed = t.trim();
+  if (trimmed.length <= targetChars) return [trimmed];
+  const parts = trimmed.split(/(?<=[.!?])\s+|\n+/).filter(Boolean);
+  const chunks: string[] = [];
+  let cur = "";
+  for (const p of parts) {
+    if (cur && cur.length + p.length + 1 > targetChars) {
+      chunks.push(cur);
+      cur = "";
+    }
+    cur += (cur ? " " : "") + p;
+  }
+  if (cur) chunks.push(cur);
+  // Too many small chunks → re-pack with a larger target so we stay ≈ maxChunks.
+  if (chunks.length > maxChunks) {
+    return chunkTranscript(trimmed, Math.ceil(trimmed.length / maxChunks) + 1, maxChunks);
+  }
+  return chunks;
+}
+
 // POST { transcript, details? } -> InspectionReport
 export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -57,52 +81,71 @@ export async function POST(req: NextRequest) {
   try {
     const anthropic = new Anthropic({ apiKey });
 
-    // Structured outputs guarantee the response matches CLAUDE_OUTPUT_SCHEMA,
-    // so JSON.parse never fails on a well-formed response.
-    const message = await anthropic.messages.create({
-      // Sonnet handles this structured extraction well and is fast enough to
-      // finish a long real-world walkthrough inside the free-tier 60s function
-      // limit (Opus was overrunning it). The polished 2026 voice is applied
-      // separately in the compose step, so report quality is unaffected.
-      model: "claude-sonnet-5",
-      max_tokens: 16000,
-      system: buildSystemPrompt(),
-      messages: [{ role: "user", content: buildUserPrompt(transcript, typed) }],
-      output_config: {
-        format: {
-          type: "json_schema",
-          schema: CLAUDE_OUTPUT_SCHEMA,
+    // Structure ONE chunk of transcript into raw findings + details. Sonnet is
+    // fast enough to keep each call well under the free-tier 60s limit; the
+    // polished 2026 voice is applied later in the compose step.
+    async function structureChunk(text: string): Promise<ClaudeRawOutput> {
+      const message = await anthropic.messages.create({
+        model: "claude-sonnet-5",
+        max_tokens: 16000,
+        system: buildSystemPrompt(),
+        messages: [{ role: "user", content: buildUserPrompt(text, typed) }],
+        output_config: {
+          format: { type: "json_schema", schema: CLAUDE_OUTPUT_SCHEMA },
+          effort: "low",
         },
-        effort: "low",
-      },
-    } as any);
-
-    const textBlock = (message.content as any[]).find(
-      (b) => b.type === "text"
-    );
-    if (!textBlock?.text) {
-      throw new Error("The AI returned an empty response.");
+      } as any);
+      const textBlock = (message.content as any[]).find((b) => b.type === "text");
+      if (!textBlock?.text) throw new Error("The AI returned an empty response.");
+      return JSON.parse(textBlock.text) as ClaudeRawOutput;
     }
 
-    const raw = JSON.parse(textBlock.text) as ClaudeRawOutput;
+    // Long transcripts blow the 60s limit as a single call. Split into chunks
+    // and run them IN PARALLEL — wall-clock time stays ~one chunk, not the sum —
+    // then merge the findings back into one report.
+    const chunks = chunkTranscript(transcript);
+    const settled = await Promise.allSettled(chunks.map(structureChunk));
+    const oks = settled
+      .filter((s): s is PromiseFulfilledResult<ClaudeRawOutput> => s.status === "fulfilled")
+      .map((s) => s.value);
+    if (!oks.length) {
+      const firstErr = settled.find((s) => s.status === "rejected") as
+        | PromiseRejectedResult
+        | undefined;
+      throw new Error(
+        (firstErr?.reason as Error)?.message || "The AI could not structure this transcript."
+      );
+    }
 
-    const findings = (raw.findings || []).map((f, i) => {
-      const conf = typeof f.confidence === "number" ? f.confidence : null;
-      const flags: string[] = [];
-      if (conf !== null && conf < 0.5) flags.push("low_confidence");
-      return {
-        ...f,
-        id: newId(),
-        order_index: i,
-        confidence: conf,
-        location_tags: Array.isArray(f.location_tags) ? f.location_tags : [],
-        flags,
-      };
-    });
+    // Merge: concatenate findings across chunks (re-indexed), and take the first
+    // non-null value for each inspection detail.
+    const mergedDetails: InspectionDetails = { ...emptyDetails() };
+    for (const r of oks) {
+      const d = r.inspection || ({} as any);
+      for (const k of Object.keys(mergedDetails) as (keyof InspectionDetails)[]) {
+        if (!mergedDetails[k] && d[k]) mergedDetails[k] = d[k];
+      }
+    }
+
+    const findings = oks
+      .flatMap((r) => r.findings || [])
+      .map((f, i) => {
+        const conf = typeof f.confidence === "number" ? f.confidence : null;
+        const flags: string[] = [];
+        if (conf !== null && conf < 0.5) flags.push("low_confidence");
+        return {
+          ...f,
+          id: newId(),
+          order_index: i,
+          confidence: conf,
+          location_tags: Array.isArray(f.location_tags) ? f.location_tags : [],
+          flags,
+        };
+      });
 
     const report: InspectionReport = {
       schema_version: "1.0",
-      inspection: mergeDetails(raw.inspection || emptyDetails(), typed),
+      inspection: mergeDetails(mergedDetails, typed),
       findings,
       meta: {
         generated_at: new Date().toISOString(),
