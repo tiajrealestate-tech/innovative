@@ -47,6 +47,7 @@ A finished report for an entire house contains roughly SIX TO TEN recommendation
 - Every observation must survive INSIDE a numbered list. Consolidating means fewer write-ups, never fewer findings.
 - Split a condition out on its own ONLY when the stand-alone criteria below apply. Two write-ups for the same system is the exception, not the norm.
 - Never emit two write-ups with the same or near-identical heading.
+- THE INSPECTOR'S OWN INSTRUCTIONS OVERRIDE THIS DEFAULT. He dictates what he wants as he walks ("make this its own recommendation", "keep these together", "put this under exterior"). Honor those exactly, even when they produce more or fewer write-ups than the guidance above.
 
 DEFAULT RECOMMENDATION FORMAT ("aggressive but defensible" grouping):
 - HEADING: a short, specific title (four or five words or fewer, e.g. "Roof Covering Deficiencies", "Foundation Wall Moisture"). No vague titles, no the word "Noted".

@@ -31,15 +31,31 @@ export interface MappedFinding {
   needs_review: boolean;
 }
 
+/**
+ * How the report is built. Both modes check Information, Limitations and
+ * Defects boxes; they differ in how the narrative is produced (grouped
+ * write-ups placed in each section's "… General" item vs. relying on each
+ * box's own library wording).
+ */
+export type MapMode = "trever" | "standard";
+
+export function tabsForMode(_mode: MapMode): string[] {
+  return ["Information", "Limitations", "Defects"];
+}
+
 // Gather, for each finding, the boxes it could plausibly map to. We give the
-// matcher the finding's own item first (Defects + Limitations), falling back to
-// the whole section so a match is still reachable when the item name differs.
-export function withCandidates(findings: Finding[]): FindingWithCandidates[] {
+// matcher the finding's own item first, falling back to the whole section so a
+// match is still reachable when the item name differs.
+export function withCandidates(
+  findings: Finding[],
+  mode: MapMode = "trever"
+): FindingWithCandidates[] {
+  const tabs = tabsForMode(mode);
   return findings.map((f) => {
     const resolved = getItem(f.section, f.subsection || "");
     const item = resolved?.item || f.subsection || "";
     const candidates = candidateBoxes(f.section, f.subsection, {
-      tabs: ["Defects", "Limitations"],
+      tabs,
       sectionFallback: true,
     });
     return { finding: f, item, candidates };
@@ -48,8 +64,12 @@ export function withCandidates(findings: Finding[]): FindingWithCandidates[] {
 
 // ---- AI matcher prompt ------------------------------------------------------
 
-export function buildMapSystemPrompt(): string {
-  return `You are the mapping engine for a home-inspection tool. Each FINDING was dictated by an inspector and written in their narrative voice. Your job is to match each finding to the SINGLE best pre-written Spectora checkbox from the CANDIDATES provided for that finding — the checkbox whose meaning matches the finding.
+export function buildMapSystemPrompt(mode: MapMode = "trever"): string {
+  const modeNote =
+    mode === "trever"
+      ? `\n\nMODE: this inspector also writes consolidated narrative write-ups for defects, so a finding with no good Defects box is fine — returning box_label = null is correct rather than forcing a weak match, because the narrative already covers it.`
+      : "";
+  return `You are the mapping engine for a home-inspection tool.${modeNote} Each FINDING was dictated by an inspector and written in their narrative voice. Your job is to match each finding to the SINGLE best pre-written Spectora checkbox from the CANDIDATES provided for that finding — the checkbox whose meaning matches the finding.
 
 RULES
 - Choose from the candidate labels EXACTLY as written (copy the label verbatim). Never invent a label.
@@ -117,7 +137,8 @@ export interface MapRawMatch {
 // model inventing or misremembering a label).
 export function resolveMatches(
   items: FindingWithCandidates[],
-  raw: MapRawMatch[]
+  raw: MapRawMatch[],
+  mode: MapMode = "trever"
 ): MappedFinding[] {
   const byIndex = new Map<number, MapRawMatch>();
   for (const m of raw) byIndex.set(m.finding_index, m);
@@ -133,8 +154,14 @@ export function resolveMatches(
         tab: "Defects",
         box_label: null,
         confidence: m?.confidence ?? 0,
-        reason: m?.reason || "No matching checkbox found.",
-        needs_review: true,
+        reason:
+          m?.reason ||
+          (mode === "trever"
+            ? "No matching box — covered by the written write-up."
+            : "No matching checkbox found."),
+        // In the Trever method defects intentionally have no checkbox — the
+        // narrative carries them — so an unmatched finding isn't a problem.
+        needs_review: mode !== "trever",
       };
     }
     // Confirm the label is a real candidate; recover the true tab/item.
@@ -174,5 +201,105 @@ export function toExtensionLines(mapped: MappedFinding[]): string {
   return mapped
     .filter((m) => m.box_label)
     .map((m) => `${m.section} > ${m.item} > ${m.tab} > ${m.box_label}`)
+    .join("\n");
+}
+
+// -----------------------------------------------------------------------------
+// INFORMATION PASS
+// -----------------------------------------------------------------------------
+// Defect findings never carry descriptive facts ("asphalt shingle roof",
+// "200 amp panel", "Carrier furnace", "brick veneer"), so Information boxes were
+// being skipped entirely. This pass reads the TRANSCRIPT directly against every
+// Information checkbox in the template and returns the ones the inspector
+// actually stated.
+
+export function buildInfoSystemPrompt(): string {
+  return `You select Information checkboxes for a home inspection report.
+
+You get the inspector's walkthrough transcript and the list of Information checkboxes available in their template (grouped by section and item). Information boxes record descriptive FACTS about the property — materials (asphalt shingles, brick veneer, copper supply lines), equipment brands (Carrier, Rheem), sizes/capacities (200 AMP, 1 1/2"), fuel types, and locations (basement, garage, utility room).
+
+RULES
+- Select a checkbox ONLY when the transcript actually states or clearly implies that fact. Never guess a brand, material, size, or location that was not mentioned.
+- Copy each label EXACTLY as written in the candidate list, along with its section and item.
+- Multiple boxes may apply to one item (e.g. both a material and a fuel type).
+- Selecting nothing for an item is correct when the transcript says nothing about it.
+- Do not select Defect or Limitation conditions here — only descriptive information.
+
+Return ONLY the structured object requested.`;
+}
+
+export function buildInfoUserPrompt(
+  transcript: string,
+  candidates: BoxCandidate[]
+): string {
+  const byKey = new Map<string, string[]>();
+  for (const c of candidates) {
+    const key = `${c.section} > ${c.item}`;
+    if (!byKey.has(key)) byKey.set(key, []);
+    byKey.get(key)!.push(c.label);
+  }
+  const listing = [...byKey.entries()]
+    .map(([key, labels]) => `${key}\n  ${labels.join(" | ")}`)
+    .join("\n");
+  return `TRANSCRIPT:\n"""\n${transcript}\n"""\n\nAVAILABLE INFORMATION CHECKBOXES:\n${listing}`;
+}
+
+export const INFO_OUTPUT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    selections: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          section: { type: "string" },
+          item: { type: "string" },
+          label: { type: "string" },
+          evidence: { type: "string" },
+        },
+        required: ["section", "item", "label", "evidence"],
+      },
+    },
+  },
+  required: ["selections"],
+} as const;
+
+export interface InfoSelection {
+  section: string;
+  item: string;
+  label: string;
+  evidence: string;
+}
+
+/** Keep only selections that name a real checkbox, and drop duplicates. */
+export function resolveInfoSelections(
+  candidates: BoxCandidate[],
+  raw: InfoSelection[]
+): BoxCandidate[] {
+  const index = new Map<string, BoxCandidate>();
+  for (const c of candidates) {
+    index.set(`${c.section}||${c.item}||${c.label}`.toLowerCase(), c);
+    index.set(`${c.label}`.toLowerCase(), c);
+  }
+  const out: BoxCandidate[] = [];
+  const seen = new Set<string>();
+  for (const r of raw || []) {
+    const hit =
+      index.get(`${r.section}||${r.item}||${r.label}`.toLowerCase()) ||
+      index.get(`${r.label}`.toLowerCase());
+    if (!hit) continue;
+    const key = `${hit.section}||${hit.item}||${hit.label}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(hit);
+  }
+  return out;
+}
+
+export function infoBoxesToLines(boxes: BoxCandidate[]): string {
+  return boxes
+    .map((b) => `${b.section} > ${b.item} > ${b.tab} > ${b.label}`)
     .join("\n");
 }

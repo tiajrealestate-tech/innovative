@@ -207,6 +207,8 @@ function SpectoraTab({ report }: { report: InspectionReport }) {
   const [rows, setRows] = useState<MappedRow[] | null>(null);
   const [lines, setLines] = useState("");
   const [copied, setCopied] = useState(false);
+  const [mode, setMode] = useState<"trever" | "standard">("trever");
+  const [infoCount, setInfoCount] = useState(0);
 
   const titleById = useMemo(() => {
     const m = new Map<string, string>();
@@ -222,12 +224,13 @@ function SpectoraTab({ report }: { report: InspectionReport }) {
       const res = await fetch("/api/map", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ report }),
+        body: JSON.stringify({ report, mode }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Mapping failed.");
       setRows(data.mapped as MappedRow[]);
       setLines(data.lines as string);
+      setInfoCount(typeof data.infoCount === "number" ? data.infoCount : 0);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -253,10 +256,45 @@ function SpectoraTab({ report }: { report: InspectionReport }) {
       <div className="rounded-xl border border-gray-200 bg-white p-5">
         <h2 className="font-semibold">Build the Spectora report</h2>
         <p className="text-sm text-gray-600 mt-1">
-          This matches each finding to the exact pre-written checkbox in your Spectora
-          template. Copy the list, open your report in Spectora, and paste it into the{" "}
+          This matches findings to the pre-written checkboxes in your Spectora template.
+          Copy the list, open your report in Spectora, and paste it into the{" "}
           <span className="font-medium">Spectora Autofill</span> extension&rsquo;s &ldquo;Build
           report&rdquo; box.
+        </p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-gray-500">Method:</span>
+          <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-xs">
+            <button
+              onClick={() => { setMode("trever"); setRows(null); }}
+              className={`px-3 py-1.5 ${mode === "trever" ? "bg-brand-500 text-white" : "bg-white hover:bg-gray-50"}`}
+            >
+              Trever method
+            </button>
+            <button
+              onClick={() => { setMode("standard"); setRows(null); }}
+              className={`px-3 py-1.5 border-l border-gray-300 ${mode === "standard" ? "bg-brand-500 text-white" : "bg-white hover:bg-gray-50"}`}
+            >
+              Standard
+            </button>
+          </div>
+        </div>
+        <p className="text-xs text-gray-500 mt-2">
+          {mode === "trever" ? (
+            <>
+              <span className="font-medium">Trever method:</span> checks{" "}
+              <span className="font-medium">Information, Limitations and Defects</span> boxes.
+              Information boxes (materials, brands, amperage, locations) are read straight from
+              the transcript. Defects with no good box are fine &mdash; the consolidated
+              write-ups (Report entry → Trever 2026) carry them.
+            </>
+          ) : (
+            <>
+              <span className="font-medium">Standard:</span> every defect checks its own
+              pre-written <span className="font-medium">Defects</span> box, which auto-fills
+              that box&rsquo;s library wording. This is how most inspectors work.
+            </>
+          )}
         </p>
         <button
           onClick={run}
@@ -273,7 +311,8 @@ function SpectoraTab({ report }: { report: InspectionReport }) {
           <div className="mt-5 rounded-xl border border-gray-200 bg-white p-5">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-sm">
-                Build list — {matched.length} of {rows.length} matched
+                Build list — {matched.length} of {rows.length} findings matched
+                {infoCount > 0 ? ` · ${infoCount} Information box${infoCount === 1 ? "" : "es"}` : ""}
               </h3>
               <button
                 onClick={copyLines}

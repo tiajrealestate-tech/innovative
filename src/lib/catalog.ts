@@ -117,6 +117,26 @@ export function placementItemFor(section: string): string {
   return (general || sec.items[0]).item;
 }
 
+/**
+ * Every checkbox on a given tab across the whole template. Used by the
+ * Information pass, which reads the transcript directly (materials, brands,
+ * amperage, locations) rather than going through defect findings.
+ */
+export function allBoxesOnTab(tab: string): BoxCandidate[] {
+  const out: BoxCandidate[] = [];
+  for (const s of CATALOG.sections) {
+    for (const it of s.items) {
+      for (const t of it.tabs) {
+        if (norm(t.tab) !== norm(tab)) continue;
+        for (const label of t.checkboxes) {
+          out.push({ section: s.section, item: it.item, tab: t.tab, label });
+        }
+      }
+    }
+  }
+  return out;
+}
+
 /** Total unique boxes — handy for diagnostics. */
 export function catalogStats() {
   let items = 0;
