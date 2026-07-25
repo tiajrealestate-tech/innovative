@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.7.3
+ * Spectora Autofill — v0.7.4
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -250,17 +250,23 @@
   // and firing on the text leaf lets the event bubble UP to whichever inner
   // element actually owns the handler (a plain .click() on the outer <li>
   // overshoots and never reaches it).
-  // Exactly one click. Used where a second click would do damage (e.g. "Add",
-  // which opens a dialog and would otherwise create duplicate comments).
+  // Exactly one activation. Spectora's Vue handlers need the full pointer/mouse
+  // sequence (a bare click event is ignored — see fireClick), but fireClick
+  // delivers TWO activations (synthetic click + native .click()), which is what
+  // duplicated comments. This fires the full sequence with a single click at
+  // the end, on a single element.
   function clickOnce(el) {
     if (!el) return false;
     const o = { bubbles: true, cancelable: true, view: window };
+    for (const type of ["pointerdown", "mousedown", "pointerup", "mouseup"]) {
+      try { el.dispatchEvent(new MouseEvent(type, o)); } catch (e) {}
+    }
     try {
       el.dispatchEvent(new MouseEvent("click", o));
+      return true;
     } catch (e) {
-      try { el.click(); } catch (e2) { return false; }
+      try { el.click(); return true; } catch (e2) { return false; }
     }
-    return true;
   }
   function clickByTextOnce(name) {
     const t = norm(name);
@@ -649,7 +655,13 @@
       return { ok: false, reason: "filled the dialog but no Save button was found", titleFilled, bodyFilled };
     }
     clickOnce(saveBtn);
-    const closed = await waitFor(() => !findAddCommentModal(), 6000);
+    let closed = await waitFor(() => !findAddCommentModal(), 3000);
+    // Retry once only if the dialog is verifiably still open — a duplicate
+    // submit is impossible then, and a swallowed first click gets a second try.
+    if (!closed && findAddCommentModal()) {
+      clickOnce(saveBtn);
+      closed = await waitFor(() => !findAddCommentModal(), 4000);
+    }
     await sleep(400);
     if (collapseOpen()) await sleep(200);
 
