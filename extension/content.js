@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.6.0
+ * Spectora Autofill — v0.6.1
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -504,39 +504,73 @@
     return true;
   }
 
-  // Add a custom comment to the current item/tab and fill it with the write-up.
-  async function addCustomComment(heading, body) {
-    const countCards = () => document.querySelectorAll('.comment.record').length;
-    const before = countCards();
-    if (!clickByText("Add") && !clickByText("+ Add")) {
-      return { ok: false, reason: "'Add' button not found" };
-    }
-    await waitFor(() => countCards() > before || !!expandedRecord(), 4000);
-    await sleep(500);
-    const card =
-      expandedRecord() ||
-      [...document.querySelectorAll(".comment.record")].pop();
-    if (!card) return { ok: false, reason: "new comment card didn't appear" };
-
-    const header = card.querySelector(".card-header") || card;
-    const titleEl = header.querySelector(
-      'input[type="text"], input:not([type]), [contenteditable="true"]'
+  // A real editable field (not one of Spectora's search boxes).
+  function isSearchField(el) {
+    const c = ((el.className || "") + " " + (el.getAttribute("placeholder") || "")).toString();
+    return /search/i.test(c);
+  }
+  function editableFieldsIn(scope) {
+    return [...scope.querySelectorAll('textarea, [contenteditable="true"]')].filter(
+      (el) => !isSearchField(el)
     );
-    // Body: the biggest textarea/contenteditable in the card that isn't the title.
-    const bodyCandidates = [
-      ...card.querySelectorAll('textarea, [contenteditable="true"]'),
-    ].filter((el) => el !== titleEl);
-    const bodyEl = bodyCandidates[0] || card.querySelector("textarea, [contenteditable=\"true\"]");
+  }
+  function titleFieldIn(scope) {
+    return (
+      [...scope.querySelectorAll('input[type="text"], input:not([type])')].find(
+        (el) => !isSearchField(el)
+      ) || null
+    );
+  }
+
+  // Add a custom comment to the current item/tab and fill it with the write-up.
+  // Spectora's comment cards expose a TEXTAREA for the body; there is usually no
+  // separate title input, so in that case the heading is written above the body
+  // in the same textarea (otherwise the heading would be lost).
+  async function addCustomComment(heading, body) {
+    const cardCount = () => document.querySelectorAll(".comment.record").length;
+    const areaCount = () => editableFieldsIn(document).length;
+    const before = { cards: cardCount(), areas: areaCount() };
+
+    if (!clickByText("Add") && !clickByText("+ Add")) {
+      return { ok: false, reason: "'Add' control not found" };
+    }
+    const appeared = await waitFor(
+      () => cardCount() > before.cards || areaCount() > before.areas || !!expandedRecord(),
+      5000
+    );
+    await sleep(600);
+    const after = { cards: cardCount(), areas: areaCount() };
+    if (!appeared) {
+      return {
+        ok: false,
+        reason: `nothing appeared after clicking Add (cards ${before.cards}→${after.cards}, fields ${before.areas}→${after.areas})`,
+      };
+    }
+
+    // Prefer the open/editing card; otherwise the last card on the tab.
+    const card = expandedRecord() || [...document.querySelectorAll(".comment.record")].pop();
+    const scope = card || document;
+
+    const titleEl = titleFieldIn(scope);
+    const fields = editableFieldsIn(scope);
+    // Newly added editors append, so the last one is the new comment's body.
+    const bodyEl = fields[fields.length - 1] || editableFieldsIn(document).pop() || null;
+
+    if (!bodyEl) {
+      return {
+        ok: false,
+        reason: `no editable comment field found (cards ${after.cards}, fields ${after.areas})`,
+      };
+    }
 
     let titleFilled = false;
-    let bodyFilled = false;
     if (titleEl && titleEl !== bodyEl) titleFilled = setFieldValue(titleEl, heading);
-    if (bodyEl && bodyEl !== titleEl) bodyFilled = setFieldValue(bodyEl, body);
-    else if (bodyEl) bodyFilled = setFieldValue(bodyEl, heading + "\n\n" + body);
+    // No separate title field → keep the heading by writing it above the body.
+    const text = titleFilled || !heading ? body : heading + "\n\n" + body;
+    const bodyFilled = setFieldValue(bodyEl, text);
 
-    // collapse so the next item is clean
     if (collapseOpen()) await sleep(200);
-    return { ok: titleFilled || bodyFilled, titleFilled, bodyFilled };
+    return { ok: bodyFilled, titleFilled, bodyFilled };
   }
 
   // Payload format the app copies (multi-line safe):
@@ -593,7 +627,7 @@
       await openTab("Defects");
       const r = await addCustomComment(b.heading, b.body);
       if (r.ok) done++;
-      else problems.push(`${b.section} › ${b.item}: ${r.reason || "couldn't fill"}`);
+      else problems.push(`${b.section} › ${b.item || "?"}: ${r.reason || "couldn't fill the comment"}`);
       await sleep(400);
     }
     log(
