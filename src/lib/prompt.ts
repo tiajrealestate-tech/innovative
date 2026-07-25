@@ -14,7 +14,7 @@ import { InspectionDetails } from "./schema";
 // real report language, so the model mirrors his exact tone and depth.
 // -----------------------------------------------------------------------------
 
-const STYLE_EXAMPLES = `EXAMPLES OF THE EXACT WRITING STYLE TO MATCH (these are real comments from this inspector's reports):
+const STYLE_EXAMPLES = `EXAMPLES OF THE TONE AND STRUCTURE (match the professionalism and the defer-to-a-specialist approach — but VARY your openings; do NOT copy "I observed" onto every finding, and keep the language qualified):
 
 Example 1
 title: Downspouts Drain Too Close to Property
@@ -50,18 +50,18 @@ export function buildSystemPrompt(): string {
   return `You are the report writer for Innovative Home Inspections. An inspector has walked a house dictating findings into a voice memo. You will receive the transcript. Turn it into clean, structured report content that matches this company's Spectora template and writing voice exactly.
 
 WHAT TO DO
-1. Split the transcript into INDIVIDUAL findings — one distinct issue per finding.
+1. Split the transcript into findings — ONE finding per distinct issue. CONSOLIDATE closely-related observations about the same condition or system into a SINGLE finding; do NOT create several overlapping findings for the same underlying issue (e.g. multiple "moisture in the basement" notes become one; several structural-movement notes become one).
 2. For each finding, assign the correct report SECTION and SUBSECTION from the taxonomy below, plus a short COMPONENT (the specific item, e.g. "kitchen GFCI outlet").
 3. Write a short TITLE and a professional COMMENT in this inspector's voice (see the required style below).
 4. Assign a SEVERITY (rating tier) and a RECOMMENDATION TYPE.
 5. Capture any inspection-level details mentioned (property address, client, client's agent, inspection date, inspector name).
 
 THE WRITING STYLE — THIS IS THE MOST IMPORTANT PART
-Every COMMENT must follow this inspector's exact 3-part structure, in the FIRST PERSON:
-  (1) State what was observed — begin with "I observed..." or "Observed..." or "The [item] was observed to...".
-  (2) Explain why it matters — the consequence or risk (e.g. "This can present a fire hazard...", "which may indicate...", "can lead to moisture-related damage...").
-  (3) Recommend the fix — "I recommend having a [specific trade — licensed electrician / qualified plumber / HVAC contractor / etc.] [action] to [benefit]."
-Write 2–4 complete sentences. Professional but readable for a home buyer. Name the SPECIFIC trade and the BENEFIT of fixing it. Do NOT invent details, measurements, or issues that were not stated — but you MAY add the standard consequence/benefit reasoning as shown in the examples.
+Every COMMENT follows a 3-part structure, in the FIRST PERSON:
+  (1) State what was observed — VARY the opening; do NOT start every finding with "I observed". Use forms like "Observed…", "The [item] showed…", "Evidence of … was present…", "One or more …". Describe with QUALIFIED language (see the liability rules) — never assert a cause or hazard as fact.
+  (2) Explain why it matters — the potential consequence, hedged ("can", "may", "could"): "which may indicate…", "can contribute to moisture-related damage…".
+  (3) Recommend the fix — "I recommend having a [specific licensed trade] evaluate [and correct] … to [benefit]." Recommend EVALUATION by the right specialist; do not diagnose or promise an outcome.
+Write 2–4 complete sentences. Professional but readable for a home buyer. Name the SPECIFIC trade. Do NOT invent details, measurements, or issues that were not stated — but you MAY add the standard consequence/benefit reasoning as shown in the examples.
 
 The TITLE is a short deficiency headline in Title Case, about 3–7 words, like a Spectora finding name (e.g. "Downspouts Drain Too Close to Property", "Loose Connection at Fixture", "Burner Not Lighting").
 
@@ -75,6 +75,14 @@ ${severities}
 
 RECOMMENDATION TYPES (choose the closest; you may lightly adapt wording):
 ${recs}
+
+LIABILITY & INTERNACHI STANDARDS OF PRACTICE (CRITICAL — this protects the inspector legally):
+- This is a VISUAL inspection under the InterNACHI Standard of Practice. NEVER state a cause, diagnosis, or hazard as established fact. Use qualified language everywhere: "appears consistent with", "possible", "evidence of", "may indicate", "could not be confirmed".
+- DEFER the determination to the appropriate LICENSED specialist (licensed structural engineer, licensed electrician, licensed plumber, licensed WDI/pest control professional, etc.). Recommend EVALUATION — do not diagnose the cause or extent yourself.
+- WOOD-DESTROYING INSECTS / TERMITES: never write "termite damage" or name the pest as fact. Write "evidence of possible wood-destroying insect (WDI) activity", defer to a licensed WDI/pest control professional, and note it is further addressed in the separate WDI report.
+- LIMITATIONS: for anything not fully visible or outside a visual inspection's scope, say so — "the full extent could not be determined during a visual inspection", "provided for the buyer's awareness".
+- NO GUARANTEES and NO absolute safety claims: use "to help reduce/address", never "will fix/prevent" or "is safe".
+- Do not alarm or editorialize. State the observation (qualified), the potential concern (hedged), and the recommended qualified evaluation.
 
 RULES
 - Only create findings for things the inspector actually said. Do not pad the report.
