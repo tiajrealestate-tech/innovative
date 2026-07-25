@@ -39,8 +39,20 @@ export interface MappedFinding {
  */
 export type MapMode = "trever" | "standard";
 
-export function tabsForMode(_mode: MapMode): string[] {
-  return ["Information", "Limitations", "Defects"];
+/**
+ * Which tabs the checkbox pass may use. Information and Limitations always
+ * apply. Individual DEFECT boxes are optional: Trever's hand-built reports
+ * contain no individual defect checkboxes — every defect lives in a
+ * consolidated write-up — so ticking them is what inflates a 19-item report to
+ * 40+. Turn them on for the common per-defect workflow.
+ */
+export function tabsForMode(
+  mode: MapMode,
+  includeDefectBoxes = mode === "standard"
+): string[] {
+  const tabs = ["Information", "Limitations"];
+  if (includeDefectBoxes) tabs.push("Defects");
+  return tabs;
 }
 
 // Gather, for each finding, the boxes it could plausibly map to. We give the
@@ -48,9 +60,10 @@ export function tabsForMode(_mode: MapMode): string[] {
 // match is still reachable when the item name differs.
 export function withCandidates(
   findings: Finding[],
-  mode: MapMode = "trever"
+  mode: MapMode = "trever",
+  includeDefectBoxes?: boolean
 ): FindingWithCandidates[] {
-  const tabs = tabsForMode(mode);
+  const tabs = tabsForMode(mode, includeDefectBoxes);
   return findings.map((f) => {
     const resolved = getItem(f.section, f.subsection || "");
     const item = resolved?.item || f.subsection || "";

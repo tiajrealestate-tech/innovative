@@ -35,10 +35,13 @@ export async function POST(req: NextRequest) {
 
   let report: InspectionReport | null = null;
   let mode: MapMode = "trever";
+  let includeDefectBoxes = false;
   try {
     const body = await req.json();
     report = body?.report ?? null;
     if (body?.mode === "standard" || body?.mode === "trever") mode = body.mode;
+    if (typeof body?.includeDefectBoxes === "boolean")
+      includeDefectBoxes = body.includeDefectBoxes;
   } catch {
     // fall through
   }
@@ -49,7 +52,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const items = withCandidates(report.findings, mode);
+  const items = withCandidates(report.findings, mode, includeDefectBoxes);
   const transcript = report.meta?.transcript || "";
   const infoCandidates = allBoxesOnTab("Information");
 
@@ -116,6 +119,7 @@ export async function POST(req: NextRequest) {
       mapped,
       lines,
       mode,
+      includeDefectBoxes,
       info: infoBoxes,
       infoCount: infoBoxes.length,
     });

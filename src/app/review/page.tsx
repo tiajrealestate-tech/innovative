@@ -209,6 +209,7 @@ function SpectoraTab({ report }: { report: InspectionReport }) {
   const [copied, setCopied] = useState(false);
   const [mode, setMode] = useState<"trever" | "standard">("trever");
   const [infoCount, setInfoCount] = useState(0);
+  const [includeDefectBoxes, setIncludeDefectBoxes] = useState(false);
 
   const titleById = useMemo(() => {
     const m = new Map<string, string>();
@@ -224,7 +225,7 @@ function SpectoraTab({ report }: { report: InspectionReport }) {
       const res = await fetch("/api/map", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ report, mode }),
+        body: JSON.stringify({ report, mode, includeDefectBoxes }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Mapping failed.");
@@ -279,6 +280,22 @@ function SpectoraTab({ report }: { report: InspectionReport }) {
             </button>
           </div>
         </div>
+        <label className="mt-3 flex items-start gap-2 text-xs text-gray-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={includeDefectBoxes}
+            onChange={(e) => { setIncludeDefectBoxes(e.target.checked); setRows(null); }}
+            className="mt-0.5"
+          />
+          <span>
+            <span className="font-medium">Also check individual Defect boxes</span> — leave
+            this off to match Trever&rsquo;s hand-built reports (his 19-finding report contains
+            no individual defect checkboxes; every defect lives in a write-up). Turning it on
+            ticks a box per defect, which is how most inspectors work but produces a much
+            longer report.
+          </span>
+        </label>
+
         <p className="text-xs text-gray-500 mt-2">
           {mode === "trever" ? (
             <>
