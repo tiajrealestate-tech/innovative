@@ -70,7 +70,11 @@ export async function POST(req: NextRequest) {
       const item =
         (itemHint && getItem(section, itemHint)?.item) ||
         placementItemFor(section);
-      return { ...g, section, item };
+      const severity =
+        g.severity === "safety" || g.severity === "maintenance"
+          ? g.severity
+          : ("recommendation" as const);
+      return { ...g, section, item, severity };
     });
     const composed: ComposedReport = {
       style: "trever-2026",

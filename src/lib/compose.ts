@@ -25,6 +25,8 @@ export interface ComposedGroup {
   body: string; // framing + numbered list + consolidated recommendation
   /** Spectora item this write-up should be placed in (filled in server-side). */
   item?: string;
+  /** Spectora rating chip: safety | recommendation | maintenance. */
+  severity?: "safety" | "recommendation" | "maintenance";
 }
 export interface ComposedReport {
   style: ReportStyle;
@@ -81,7 +83,12 @@ GROUPING CONTROL: you decide the grouping — a section may become one write-up 
 
 PROPERTY CONDITIONS OVERVIEW: a short, balanced summary of the ESTABLISHED findings — identify the most important systems requiring attention. Do NOT repeat every recommendation, introduce new findings, name contractors, declare the property safe or structurally sound, give negotiation advice, or over-praise.
 
-OUTPUT: plain text only — no markdown, bold, italics, or decorative bullets. Return ONLY the structured object requested: property_overview (string) and groups (array of {section, heading, body}). In each group, "section" must be EXACTLY one of the section names given in the input (e.g. "Roof", "Exterior") — never an item name, and never a combined "Section › Item" string; the tool decides which item each write-up lands in. Use ONLY the findings provided; do not invent conditions.`;
+SEVERITY RATING: every write-up carries a "severity" — the Spectora chip it is filed under.
+- "safety" (Safety Hazard/Major Defects): gas leaks or gas odors, carbon monoxide / combustion-venting hazards, structural movement concerns, major electrical shock or fire hazards, active sewage, conditions an occupant could be hurt by. When the numbered list contains even one such condition, the whole write-up is "safety".
+- "maintenance" (Maintenance Item): routine upkeep with no defect urgency (servicing, cleaning, minor caulking).
+- "recommendation" for everything else — this is the default and by far the most common.
+
+OUTPUT: plain text only — no markdown, bold, italics, or decorative bullets. Return ONLY the structured object requested: property_overview (string) and groups (array of {section, heading, body, severity}). In each group, "section" must be EXACTLY one of the section names given in the input (e.g. "Roof", "Exterior") — never an item name, and never a combined "Section › Item" string; the tool decides which item each write-up lands in. Use ONLY the findings provided; do not invent conditions.`;
 }
 
 function findingLine(f: Finding): string {
@@ -139,8 +146,12 @@ export const COMPOSE_OUTPUT_SCHEMA = {
           section: { type: "string" },
           heading: { type: "string" },
           body: { type: "string" },
+          severity: {
+            type: "string",
+            enum: ["safety", "recommendation", "maintenance"],
+          },
         },
-        required: ["section", "heading", "body"],
+        required: ["section", "heading", "body", "severity"],
       },
     },
   },

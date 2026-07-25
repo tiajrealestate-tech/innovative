@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.7.7
+ * Spectora Autofill — v0.7.8
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -648,7 +648,26 @@
     return false;
   }
 
-  async function addCustomComment(heading, body) {
+  // The modal's rating defaults to "Recommendation". For anything else, click
+  // the matching rating option inside the dialog; if no such control is
+  // visible the comment still saves at the default — never a reason to fail.
+  function pickSeverity(modal, severity) {
+    const want =
+      severity === "safety"
+        ? /safety\s*hazard/i
+        : severity === "maintenance"
+        ? /maintenance\s*item/i
+        : null;
+    if (!want) return false;
+    const opt = [...modal.querySelectorAll('button,[role="button"],label,span,a,div,li')].find(
+      (el) => el.children.length === 0 && want.test(trimText(el)) && el.offsetParent !== null
+    );
+    if (!opt) return false;
+    clickOnce(opt);
+    return true;
+  }
+
+  async function addCustomComment(heading, body, severity) {
     if (!clickByTextOnce("Add") && !clickByTextOnce("+ Add")) {
       return { ok: false, reason: "'Add' control not found" };
     }
@@ -690,6 +709,11 @@
       bodyFilled = bodyEl.isContentEditable
         ? setRichText(bodyEl, text)
         : setFieldValue(bodyEl, text);
+    }
+
+    if (severity && severity !== "recommendation") {
+      pickSeverity(modal, severity);
+      await sleep(250);
     }
 
     // Save (inside the modal only — never hit the page's other buttons).
@@ -796,6 +820,7 @@
           item: secParts.slice(1).join(" ").trim(),
           heading: "",
           body: "",
+          severity: "",
         };
         inBody = false;
         continue;
@@ -807,6 +832,10 @@
         continue;
       }
       if (t.startsWith("@@HEADING:")) { cur.heading = t.slice(10).trim(); continue; }
+      if (t.startsWith("@@SEVERITY:")) {
+        cur.severity = t.slice(11).trim().toLowerCase();
+        continue;
+      }
       if (t === "@@BODY") { inBody = true; continue; }
       if (t === "@@END") { inBody = false; continue; }
       if (inBody) cur.body += (cur.body ? "\n" : "") + raw;
@@ -862,7 +891,7 @@
         continue;
       }
       const tabOk = await openTab("Defects");
-      const r = await addCustomComment(b.heading, b.body);
+      const r = await addCustomComment(b.heading, b.body, b.severity);
       if (r.ok) done++;
       else
         problems.push(

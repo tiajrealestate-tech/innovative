@@ -591,6 +591,8 @@ interface ComposedGroupRow {
   body: string;
   /** Target Spectora item, chosen server-side (the section's "… General"). */
   item?: string;
+  /** Spectora rating chip: safety | recommendation | maintenance. */
+  severity?: string;
 }
 interface ComposedReportData {
   style: string;
@@ -624,7 +626,7 @@ function buildExtensionPayload(
   return composed.groups
     .map(
       (g) =>
-        `@@SECTION: ${g.section}\n@@ITEM: ${g.item || fallbackItem(g.section)}\n@@HEADING: ${g.heading}\n@@BODY\n${g.body}\n@@END`
+        `@@SECTION: ${g.section}\n@@ITEM: ${g.item || fallbackItem(g.section)}\n@@SEVERITY: ${g.severity || "recommendation"}\n@@HEADING: ${g.heading}\n@@BODY\n${g.body}\n@@END`
     )
     .join("\n\n");
 }
@@ -728,7 +730,19 @@ function EntryTab({ report }: { report: InspectionReport }) {
             {composed.groups.map((g, i) => (
               <div key={i} className="bg-white rounded-2xl border border-gray-200 p-4">
                 <div className="flex items-center justify-between mb-1">
-                  <div className="text-sm font-semibold">{g.heading}</div>
+                  <div className="text-sm font-semibold flex items-center gap-2">
+                    {g.heading}
+                    {g.severity === "safety" && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wide rounded-full bg-red-100 text-red-700 px-2 py-0.5">
+                        Safety Hazard
+                      </span>
+                    )}
+                    {g.severity === "maintenance" && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wide rounded-full bg-sky-100 text-sky-700 px-2 py-0.5">
+                        Maintenance
+                      </span>
+                    )}
+                  </div>
                   <button
                     onClick={() => copy(`${g.heading}\n\n${g.body}`, "g" + i)}
                     className="text-xs rounded-md border border-gray-300 hover:bg-gray-50 px-2.5 py-1"
@@ -736,7 +750,10 @@ function EntryTab({ report }: { report: InspectionReport }) {
                     {copied === "g" + i ? "Copied ✓" : "Copy write-up"}
                   </button>
                 </div>
-                <div className="text-xs text-gray-400 mb-1">{g.section}</div>
+                <div className="text-xs text-gray-400 mb-1">
+                  {g.section}
+                  {g.item ? ` › ${g.item}` : ""}
+                </div>
                 <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-line">
                   {g.body}
                 </p>
