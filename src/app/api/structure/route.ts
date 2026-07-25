@@ -33,10 +33,11 @@ function mergeDetails(
 // Split a long transcript into chunks at sentence/paragraph boundaries so each
 // can be structured by its own (parallel) model call within the time limit.
 // Short transcripts return a single chunk (no overhead).
-// With the higher Pro time limit, most transcripts are a SINGLE call (better
-// global consolidation, no chunk-seam duplicates). Only very long transcripts
-// split, into a few parallel chunks.
-function chunkTranscript(t: string, targetChars = 9000, maxChunks = 4): string[] {
+// Single pass is strongly preferred: the model can only de-duplicate and
+// consolidate findings it sees together. With Opus on the Pro 300s budget,
+// virtually every real walkthrough fits in one call; chunking is a safety net
+// for extreme transcripts only.
+function chunkTranscript(t: string, targetChars = 24000, maxChunks = 3): string[] {
   const trimmed = t.trim();
   if (trimmed.length <= targetChars) return [trimmed];
   // Grow the target so we never produce more than ~maxChunks chunks (this also
@@ -92,18 +93,18 @@ export async function POST(req: NextRequest) {
   try {
     const anthropic = new Anthropic({ apiKey });
 
-    // Structure ONE chunk of transcript into raw findings + details. Sonnet is
-    // fast enough to keep each call well under the free-tier 60s limit; the
-    // polished 2026 voice is applied later in the compose step.
+    // Structure ONE chunk of transcript into raw findings + details. Opus with
+    // medium effort — the house-style rules (CYA wording, forbidden terms,
+    // consolidation) reward careful reading, and the Pro 300s budget affords it.
     async function structureChunk(text: string): Promise<ClaudeRawOutput> {
       const message = await anthropic.messages.create({
-        model: "claude-sonnet-5",
+        model: "claude-opus-5",
         max_tokens: 16000,
         system: buildSystemPrompt(),
         messages: [{ role: "user", content: buildUserPrompt(text, typed) }],
         output_config: {
           format: { type: "json_schema", schema: CLAUDE_OUTPUT_SCHEMA },
-          effort: "low",
+          effort: "medium",
         },
       } as any);
       const textBlock = (message.content as any[]).find((b) => b.type === "text");

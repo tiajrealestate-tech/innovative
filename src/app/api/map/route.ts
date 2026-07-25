@@ -44,13 +44,13 @@ export async function POST(req: NextRequest) {
   try {
     const anthropic = new Anthropic({ apiKey });
     const message = await anthropic.messages.create({
-      model: "claude-opus-4-8",
+      model: "claude-opus-5",
       max_tokens: 8000,
       system: buildMapSystemPrompt(),
       messages: [{ role: "user", content: buildMapUserPrompt(items) }],
       output_config: {
         format: { type: "json_schema", schema: MAP_OUTPUT_SCHEMA },
-        effort: "low",
+        effort: "medium",
       },
     } as any);
 

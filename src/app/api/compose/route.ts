@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
   try {
     const anthropic = new Anthropic({ apiKey });
     const message = await anthropic.messages.create({
-      model: "claude-opus-4-8",
+      model: "claude-opus-5",
       max_tokens: 12000,
       system: buildComposeSystemPrompt(),
       messages: [
