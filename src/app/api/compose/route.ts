@@ -8,7 +8,7 @@ import {
   ComposedReport,
   groupForCompose,
 } from "@/lib/compose";
-import { placementItemFor } from "@/lib/catalog";
+import { getItem, getSection, placementItemFor } from "@/lib/catalog";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // seconds (Vercel Pro)
@@ -58,11 +58,20 @@ export async function POST(req: NextRequest) {
     const parsed = JSON.parse(textBlock.text) as Omit<ComposedReport, "style">;
     // Consolidated write-ups belong in the section's "… General" item, which is
     // where Trever's real reports put them (and why those items carry no
-    // library checkboxes).
-    const placedGroups = (parsed.groups || []).map((g) => ({
-      ...g,
-      item: placementItemFor(g.section),
-    }));
+    // library checkboxes). The model sometimes returns a combined
+    // "Section › Item" string in `section` (it mirrors the placement examples
+    // in the prompt), which would break both placement and extension
+    // navigation — split it apart and resolve each half against the catalog.
+    const placedGroups = (parsed.groups || []).map((g) => {
+      const parts = String(g.section || "").split(/\s*[›>|]\s*/);
+      const secName = (parts[0] || "").trim();
+      const section = getSection(secName)?.section || secName;
+      const itemHint = parts.slice(1).join(" ").trim();
+      const item =
+        (itemHint && getItem(section, itemHint)?.item) ||
+        placementItemFor(section);
+      return { ...g, section, item };
+    });
     const composed: ComposedReport = {
       style: "trever-2026",
       ...parsed,

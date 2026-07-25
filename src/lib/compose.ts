@@ -81,7 +81,7 @@ GROUPING CONTROL: you decide the grouping — a section may become one write-up 
 
 PROPERTY CONDITIONS OVERVIEW: a short, balanced summary of the ESTABLISHED findings — identify the most important systems requiring attention. Do NOT repeat every recommendation, introduce new findings, name contractors, declare the property safe or structurally sound, give negotiation advice, or over-praise.
 
-OUTPUT: plain text only — no markdown, bold, italics, or decorative bullets. Return ONLY the structured object requested: property_overview (string) and groups (array of {section, heading, body}). Use ONLY the findings provided; do not invent conditions.`;
+OUTPUT: plain text only — no markdown, bold, italics, or decorative bullets. Return ONLY the structured object requested: property_overview (string) and groups (array of {section, heading, body}). In each group, "section" must be EXACTLY one of the section names given in the input (e.g. "Roof", "Exterior") — never an item name, and never a combined "Section › Item" string; the tool decides which item each write-up lands in. Use ONLY the findings provided; do not invent conditions.`;
 }
 
 function findingLine(f: Finding): string {

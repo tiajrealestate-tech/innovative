@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.7.4
+ * Spectora Autofill — v0.7.5
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -245,6 +245,46 @@
       (el) => el.children.length === 0 && norm(el.textContent) === t
     );
   }
+  // The app's write-ups sometimes carry an item name that's close to — but not
+  // exactly — what Spectora shows ("Chimneys & Other Roof Penetrations" vs
+  // "Skylights, Chimneys & Other Roof Penetrations"). Resolve the wanted name
+  // to the closest on-screen nav label; null when nothing is close enough,
+  // so the caller can fall back rather than click something wrong.
+  function resolveNavText(name) {
+    const t = norm(name);
+    if (!t) return null;
+    const leaves = [...document.querySelectorAll("span,li,a,button,div")].filter(
+      (el) => el.children.length === 0 && trimText(el) && trimText(el).length < 90
+    );
+    if (leaves.some((el) => norm(el.textContent) === t)) return name;
+    const want = t.split(" ").filter(Boolean);
+    let best = null;
+    let bestScore = 0;
+    const seen = new Set();
+    for (const el of leaves) {
+      const txt = trimText(el);
+      const n = norm(txt);
+      if (!n || seen.has(n)) continue;
+      seen.add(n);
+      const have = new Set(n.split(" ").filter(Boolean));
+      let hit = 0;
+      for (const w of want) if (have.has(w)) hit++;
+      let score = hit / Math.max(want.length, have.size);
+      // One name containing the other is a strong signal, but only when the
+      // shorter is a big piece of the longer — otherwise a tiny generic label
+      // ("Service & Grounding") hijacks a longer target that merely includes it.
+      const shorter = Math.min(n.length, t.length);
+      const longer = Math.max(n.length, t.length);
+      if ((n.includes(t) || t.includes(n)) && shorter / longer >= 0.5) {
+        score = Math.max(score, 0.75);
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        best = txt;
+      }
+    }
+    return bestScore >= 0.6 ? best : null;
+  }
   // Fire a full, bubbling mouse-event sequence. Spectora's Vue app doesn't
   // always react to a bare .click(); pointer/mouse events cover its handlers,
   // and firing on the text leaf lets the event bubble UP to whichever inner
@@ -323,8 +363,14 @@
   }
   async function selectItem(name) {
     // After switching sections the item list can take a moment to appear.
-    if (!(await waitFor(() => existsByText(name), 7000))) return false;
-    clickByText(name);
+    // Accept the closest on-screen name when the exact one isn't there.
+    let resolved = null;
+    await waitFor(() => {
+      resolved = resolveNavText(name);
+      return !!resolved;
+    }, 7000);
+    if (!resolved) return false;
+    clickByText(resolved);
     await sleep(900); // let the item's tabs/content render
     return true;
   }
@@ -742,12 +788,24 @@
       const t = raw.trim();
       if (t.startsWith("@@SECTION:")) {
         if (cur) blocks.push(cur);
-        cur = { section: t.slice(10).trim(), item: "", heading: "", body: "" };
+        // Tolerate a combined "Section › Item" (or "Section > Item") value:
+        // the part before the separator is the section, the rest is the item.
+        const secParts = t.slice(10).trim().split(/\s*[›>|]\s*/);
+        cur = {
+          section: (secParts[0] || "").trim(),
+          item: secParts.slice(1).join(" ").trim(),
+          heading: "",
+          body: "",
+        };
         inBody = false;
         continue;
       }
       if (!cur) continue;
-      if (t.startsWith("@@ITEM:")) { cur.item = t.slice(7).trim(); continue; }
+      if (t.startsWith("@@ITEM:")) {
+        const v = t.slice(7).trim();
+        if (v) cur.item = v; // an empty @@ITEM must not erase a split-off item
+        continue;
+      }
       if (t.startsWith("@@HEADING:")) { cur.heading = t.slice(10).trim(); continue; }
       if (t === "@@BODY") { inBody = true; continue; }
       if (t === "@@END") { inBody = false; continue; }
@@ -757,6 +815,14 @@
     return blocks
       .map((b) => ({ ...b, body: b.body.trim() }))
       .filter((b) => b.section && (b.heading || b.body));
+  }
+
+  // The section's "… General" item (from REPORT_MAP) — where consolidated
+  // write-ups belong when the named item can't be found.
+  function generalItemFor(section) {
+    const entry = REPORT_MAP.find(([s]) => norm(s) === norm(section));
+    if (!entry) return "";
+    return entry[1].find((it) => /\bgeneral\b/i.test(it)) || "";
   }
 
   async function placeWriteups(text, log) {
@@ -775,8 +841,15 @@
         continue;
       }
       if (b.item && !(await selectItem(b.item))) {
-        problems.push(`Item not found: ${b.item} (in ${b.section})`);
-        continue;
+        // The write-up names an item this section doesn't have — put it where
+        // consolidated write-ups live anyway: the section's "… General" item.
+        const fb = generalItemFor(b.section);
+        if (fb && norm(fb) !== norm(b.item) && (await selectItem(fb))) {
+          log(`  "${b.item}" isn't an item in ${b.section} — placing in "${fb}" instead.`);
+        } else {
+          problems.push(`Item not found: ${b.item} (in ${b.section})`);
+          continue;
+        }
       }
       await openTab("Defects");
       const r = await addCustomComment(b.heading, b.body);
