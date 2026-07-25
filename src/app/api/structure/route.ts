@@ -69,7 +69,10 @@ export async function POST(req: NextRequest) {
           type: "json_schema",
           schema: CLAUDE_OUTPUT_SCHEMA,
         },
-        effort: "medium",
+        // "low" keeps long real-world transcripts inside the free-tier 60s
+        // function limit. Extraction is largely mechanical, so quality holds;
+        // the 2026 voice is applied later in the compose step anyway.
+        effort: "low",
       },
     } as any);
 

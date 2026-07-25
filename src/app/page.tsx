@@ -8,6 +8,25 @@ import { saveReport } from "@/lib/storage";
 
 type Stage = "idle" | "uploading" | "transcribing" | "structuring" | "error";
 
+// Read a response as JSON, but degrade gracefully when the body isn't JSON
+// (e.g. a platform timeout/500 page). Returns a friendly Error instead of the
+// raw "Unexpected token …" parse error.
+async function readJsonSafe(res: Response, step: string): Promise<any> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    if (res.status === 504 || res.status === 408 || res.status === 502) {
+      throw new Error(
+        `The ${step} step took too long and timed out — this usually happens with a very long transcript. Try again, or split the walkthrough into two shorter passes.`
+      );
+    }
+    throw new Error(
+      `The ${step} step hit a server error (${res.status}). Give it a moment and try again.`
+    );
+  }
+}
+
 export default function UploadPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
@@ -49,7 +68,7 @@ export default function UploadPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ audioUrl: blob.url }),
         });
-        const tData = await tRes.json();
+        const tData = await readJsonSafe(tRes, "transcription");
         if (!tRes.ok) throw new Error(tData.error || "Transcription failed.");
         transcript = tData.transcript;
       }
@@ -67,7 +86,7 @@ export default function UploadPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ transcript, details }),
       });
-      const sData = await sRes.json();
+      const sData = await readJsonSafe(sRes, "structuring");
       if (!sRes.ok) throw new Error(sData.error || "Could not structure findings.");
 
       saveReport(sData.report);
