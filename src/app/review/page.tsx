@@ -527,6 +527,36 @@ interface ComposedReportData {
   groups: ComposedGroupRow[];
 }
 
+// Build the payload the browser extension parses to PLACE these write-ups into
+// Spectora. Each block carries the section, a target item (the most common
+// subsection among that section's findings), the heading, and the body.
+function buildExtensionPayload(
+  composed: ComposedReportData,
+  findings: Finding[]
+): string {
+  const bySection = new Map<string, Map<string, number>>();
+  for (const f of findings) {
+    const sec = f.section || "";
+    if (!bySection.has(sec)) bySection.set(sec, new Map());
+    const item = f.subsection || "";
+    if (item) {
+      const m = bySection.get(sec)!;
+      m.set(item, (m.get(item) || 0) + 1);
+    }
+  }
+  const bestItem = (sec: string) => {
+    const m = bySection.get(sec);
+    if (!m || !m.size) return "";
+    return [...m.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  };
+  return composed.groups
+    .map(
+      (g) =>
+        `@@SECTION: ${g.section}\n@@ITEM: ${bestItem(g.section)}\n@@HEADING: ${g.heading}\n@@BODY\n${g.body}\n@@END`
+    )
+    .join("\n\n");
+}
+
 function EntryTab({ report }: { report: InspectionReport }) {
   const groups = useMemo(() => groupBySection(report.findings), [report.findings]);
   const [copied, setCopied] = useState<string | null>(null);
@@ -597,6 +627,18 @@ function EntryTab({ report }: { report: InspectionReport }) {
         {composeError && <p className="text-sm text-red-600">{composeError}</p>}
         {composed && (
           <>
+            <div className="rounded-2xl border border-purple-200 bg-purple-50 p-4 flex items-center justify-between">
+              <div className="text-sm text-purple-900">
+                <span className="font-semibold">Send these write-ups to the extension</span> — copy,
+                then paste into the extension&apos;s “Place write-ups” box in Spectora.
+              </div>
+              <button
+                onClick={() => copy(buildExtensionPayload(composed, report.findings), "payload")}
+                className="shrink-0 ml-3 text-sm rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium px-3 py-2"
+              >
+                {copied === "payload" ? "Copied ✓" : "Copy for extension"}
+              </button>
+            </div>
             <div className="bg-white rounded-2xl border border-gray-200 p-4">
               <div className="flex items-center justify-between mb-1">
                 <div className="text-sm font-semibold">Property Condition Overview</div>

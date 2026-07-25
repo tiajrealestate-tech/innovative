@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.5.0
+ * Spectora Autofill — v0.6.0
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -478,6 +478,150 @@
     return result;
   }
 
+  // ---- placing 2026 write-ups (text) into the report ---------------------
+
+  // Set a value on a React/Vue-controlled field so the framework notices it.
+  function setFieldValue(el, text) {
+    if (!el) return false;
+    try { el.focus(); } catch (e) {}
+    if (el.tagName === "TEXTAREA" || el.tagName === "INPUT") {
+      const proto =
+        el.tagName === "TEXTAREA"
+          ? window.HTMLTextAreaElement.prototype
+          : window.HTMLInputElement.prototype;
+      const desc = Object.getOwnPropertyDescriptor(proto, "value");
+      if (desc && desc.set) desc.set.call(el, text);
+      else el.value = text;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    } else if (el.isContentEditable) {
+      el.textContent = text;
+      el.dispatchEvent(new InputEvent("input", { bubbles: true }));
+    } else {
+      return false;
+    }
+    try { el.dispatchEvent(new Event("blur", { bubbles: true })); } catch (e) {}
+    return true;
+  }
+
+  // Add a custom comment to the current item/tab and fill it with the write-up.
+  async function addCustomComment(heading, body) {
+    const countCards = () => document.querySelectorAll('.comment.record').length;
+    const before = countCards();
+    if (!clickByText("Add") && !clickByText("+ Add")) {
+      return { ok: false, reason: "'Add' button not found" };
+    }
+    await waitFor(() => countCards() > before || !!expandedRecord(), 4000);
+    await sleep(500);
+    const card =
+      expandedRecord() ||
+      [...document.querySelectorAll(".comment.record")].pop();
+    if (!card) return { ok: false, reason: "new comment card didn't appear" };
+
+    const header = card.querySelector(".card-header") || card;
+    const titleEl = header.querySelector(
+      'input[type="text"], input:not([type]), [contenteditable="true"]'
+    );
+    // Body: the biggest textarea/contenteditable in the card that isn't the title.
+    const bodyCandidates = [
+      ...card.querySelectorAll('textarea, [contenteditable="true"]'),
+    ].filter((el) => el !== titleEl);
+    const bodyEl = bodyCandidates[0] || card.querySelector("textarea, [contenteditable=\"true\"]");
+
+    let titleFilled = false;
+    let bodyFilled = false;
+    if (titleEl && titleEl !== bodyEl) titleFilled = setFieldValue(titleEl, heading);
+    if (bodyEl && bodyEl !== titleEl) bodyFilled = setFieldValue(bodyEl, body);
+    else if (bodyEl) bodyFilled = setFieldValue(bodyEl, heading + "\n\n" + body);
+
+    // collapse so the next item is clean
+    if (collapseOpen()) await sleep(200);
+    return { ok: titleFilled || bodyFilled, titleFilled, bodyFilled };
+  }
+
+  // Payload format the app copies (multi-line safe):
+  //   @@SECTION: Roof
+  //   @@ITEM: Coverings
+  //   @@HEADING: ROOF, CHIMNEY, AND DRAINAGE SYSTEMS
+  //   @@BODY
+  //   ...body lines...
+  //   @@END
+  function parseWriteups(text) {
+    const blocks = [];
+    let cur = null;
+    let inBody = false;
+    for (const raw of text.split("\n")) {
+      const t = raw.trim();
+      if (t.startsWith("@@SECTION:")) {
+        if (cur) blocks.push(cur);
+        cur = { section: t.slice(10).trim(), item: "", heading: "", body: "" };
+        inBody = false;
+        continue;
+      }
+      if (!cur) continue;
+      if (t.startsWith("@@ITEM:")) { cur.item = t.slice(7).trim(); continue; }
+      if (t.startsWith("@@HEADING:")) { cur.heading = t.slice(10).trim(); continue; }
+      if (t === "@@BODY") { inBody = true; continue; }
+      if (t === "@@END") { inBody = false; continue; }
+      if (inBody) cur.body += (cur.body ? "\n" : "") + raw;
+    }
+    if (cur) blocks.push(cur);
+    return blocks
+      .map((b) => ({ ...b, body: b.body.trim() }))
+      .filter((b) => b.section && (b.heading || b.body));
+  }
+
+  async function placeWriteups(text, log) {
+    const blocks = parseWriteups(text);
+    if (!blocks.length) {
+      log('No write-ups found. In the app, open Report entry → Trever 2026 → "Copy for extension", then paste that here.');
+      return;
+    }
+    let done = 0;
+    const problems = [];
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      log(`(${i + 1}/${blocks.length}) ${b.section} › ${b.item || "?"}…`);
+      if (!(await selectSection(b.section))) {
+        problems.push("Section not found: " + b.section);
+        continue;
+      }
+      if (b.item && !(await selectItem(b.item))) {
+        problems.push(`Item not found: ${b.item} (in ${b.section})`);
+        continue;
+      }
+      await openTab("Defects");
+      const r = await addCustomComment(b.heading, b.body);
+      if (r.ok) done++;
+      else problems.push(`${b.section} › ${b.item}: ${r.reason || "couldn't fill"}`);
+      await sleep(400);
+    }
+    log(
+      `Done — placed ${done}/${blocks.length} write-ups.` +
+        (problems.length ? `\n\nIssues:\n- ${problems.join("\n- ")}` : "") +
+        `\n\nIf nothing landed, click "Scan comment tools (debug)" and send me the result.`
+    );
+  }
+
+  // Debug: dump the clickable "Add"-type controls and the editable fields on the
+  // current view, so we can target the right comment title/body reliably.
+  function scanCommentTools() {
+    const buttons = [...document.querySelectorAll('button,[role="button"],a,span,div')]
+      .filter((el) => el.children.length === 0 && /^\+?\s*(add|comment|note|save)$/i.test(trimText(el)))
+      .slice(0, 25)
+      .map((el) => ({ tag: el.tagName, text: trimText(el).slice(0, 40) }));
+    const fields = [...document.querySelectorAll('input,textarea,[contenteditable="true"]')]
+      .slice(0, 30)
+      .map((el) => ({
+        tag: el.tagName,
+        type: el.getAttribute("type") || "",
+        placeholder: el.getAttribute("placeholder") || "",
+        editable: !!el.isContentEditable,
+        cls: (el.className || "").toString().slice(0, 50),
+      }));
+    return { url: location.href, addButtons: buttons, fields };
+  }
+
   // ---- panel UI -----------------------------------------------------------
 
   function mkLabel(t) {
@@ -565,6 +709,19 @@
     row.appendChild(checkBtn);
     bodyWrap.appendChild(row);
 
+    bodyWrap.appendChild(
+      mkLabel("Place 2026 write-ups (paste the app's “Copy for extension”):")
+    );
+    const taWriteups = mkTextarea(
+      "@@SECTION: Roof\n@@ITEM: Coverings\n@@HEADING: ROOF DEFICIENCIES\n@@BODY\n(paste from the app)\n@@END",
+      "90px"
+    );
+    bodyWrap.appendChild(taWriteups);
+    const placeBtn = mkBtn("Place write-ups", "#7c3aed", "#fff");
+    placeBtn.style.marginTop = "8px";
+    placeBtn.style.width = "100%";
+    bodyWrap.appendChild(placeBtn);
+
     bodyWrap.appendChild(logEl);
 
     bodyWrap.appendChild(mkLabel("Catalog the whole report (read-only — checks nothing):"));
@@ -576,6 +733,10 @@
     Object.assign(scanBtn.style, { border: "1px solid #e5e7eb", fontSize: "12px", marginTop: "10px" });
     bodyWrap.appendChild(scanBtn);
 
+    const scanToolsBtn = mkBtn("Scan comment tools (debug)", "#fff", "#6b7280");
+    Object.assign(scanToolsBtn.style, { border: "1px solid #e5e7eb", fontSize: "12px", marginTop: "8px" });
+    bodyWrap.appendChild(scanToolsBtn);
+
     panel.appendChild(header);
     panel.appendChild(bodyWrap);
     document.body.appendChild(panel);
@@ -585,6 +746,18 @@
     previewBtn.onclick = () => preview(taItem.value, log);
     checkBtn.onclick = () => applyChecks(taItem.value, log);
     scanBtn.onclick = () => log(JSON.stringify(scan(), null, 2));
+    scanToolsBtn.onclick = () => log(JSON.stringify(scanCommentTools(), null, 2));
+    placeBtn.onclick = async () => {
+      placeBtn.disabled = true;
+      placeBtn.textContent = "Placing… (leave this tab open)";
+      try {
+        await placeWriteups(taWriteups.value, log);
+      } catch (e) {
+        log("Place error: " + (e && e.message ? e.message : e));
+      }
+      placeBtn.disabled = false;
+      placeBtn.textContent = "Place write-ups";
+    };
     scanAllBtn.onclick = async () => {
       scanAllBtn.disabled = true;
       scanAllBtn.textContent = "Scanning… (leave this tab open)";
