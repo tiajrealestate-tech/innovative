@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.7.6
+ * Spectora Autofill — v0.7.7
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -817,12 +817,28 @@
       .filter((b) => b.section && (b.heading || b.body));
   }
 
-  // The section's "… General" item (from REPORT_MAP) — where consolidated
-  // write-ups belong when the named item can't be found.
-  function generalItemFor(section) {
+  // A write-up must never be dropped just because its named item can't be
+  // opened. Fall back through the section's other items — the "… General"
+  // item first (that's where consolidated write-ups live), then the rest in
+  // template order — and say in the log where it actually went so it can be
+  // moved inside Spectora if needed.
+  async function selectItemWithFallback(section, item, log) {
+    if (!item) return { ok: true, item: "" };
+    if (await selectItem(item)) return { ok: true, item };
     const entry = REPORT_MAP.find(([s]) => norm(s) === norm(section));
-    if (!entry) return "";
-    return entry[1].find((it) => /\bgeneral\b/i.test(it)) || "";
+    const list = entry ? entry[1] : [];
+    const ordered = [
+      ...list.filter((it) => /\bgeneral\b/i.test(it)),
+      ...list.filter((it) => !/\bgeneral\b/i.test(it)),
+    ];
+    for (const cand of ordered) {
+      if (norm(cand) === norm(item)) continue;
+      if (await selectItem(cand)) {
+        log(`  Couldn't open "${item}" in ${section} — placed in "${cand}" instead (move it in Spectora if needed).`);
+        return { ok: true, item: cand };
+      }
+    }
+    return { ok: false, item: "" };
   }
 
   async function placeWriteups(text, log) {
@@ -840,21 +856,19 @@
         problems.push("Section not found: " + b.section);
         continue;
       }
-      if (b.item && !(await selectItem(b.item))) {
-        // The write-up names an item this section doesn't have — put it where
-        // consolidated write-ups live anyway: the section's "… General" item.
-        const fb = generalItemFor(b.section);
-        if (fb && norm(fb) !== norm(b.item) && (await selectItem(fb))) {
-          log(`  "${b.item}" isn't an item in ${b.section} — placing in "${fb}" instead.`);
-        } else {
-          problems.push(`Item not found: ${b.item} (in ${b.section})`);
-          continue;
-        }
+      const sel = await selectItemWithFallback(b.section, b.item, log);
+      if (!sel.ok) {
+        problems.push(`Item not found: ${b.item} (in ${b.section} — no other item there would open either)`);
+        continue;
       }
-      await openTab("Defects");
+      const tabOk = await openTab("Defects");
       const r = await addCustomComment(b.heading, b.body);
       if (r.ok) done++;
-      else problems.push(`${b.section} › ${b.item || "?"}: ${r.reason || "couldn't fill the comment"}`);
+      else
+        problems.push(
+          `${b.section} › ${sel.item || b.item || "?"}: ${r.reason || "couldn't fill the comment"}` +
+            (tabOk ? "" : " (the Defects tab never opened)")
+        );
       await sleep(400);
     }
     log(
