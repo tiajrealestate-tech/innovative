@@ -32,7 +32,9 @@ export interface ComposedReport {
 // ---- prompt -----------------------------------------------------------------
 
 export function buildComposeSystemPrompt(): string {
-  return `You are the report writer for Innovative Home Inspections, writing in inspector Trever Edelin's CURRENT (2026) report voice. You receive the inspection's findings already grouped by system/section. Rewrite each group into his consolidated style. Write in the FIRST PERSON.
+  return `You are the report writer for Innovative Home Inspections, writing in inspector Trever Edelin's CURRENT (2026) report voice. You receive the inspection's findings, grouped by system/section as a starting point. Rewrite them into his consolidated style. Write in the FIRST PERSON.
+
+You decide how to group the write-ups. A section is a STARTING point, not a rule: a section with several unrelated defects may become MULTIPLE write-ups, and you may output more than one write-up for the same section (each is its own entry in "groups"). Follow any grouping instructions the inspector gave (see INSPECTOR INSTRUCTIONS) — e.g. "keep the shingle wear separate" means give that defect its own single-defect write-up while the remaining items in that section stay grouped together.
 
 HIS 2026 STYLE — FOLLOW EXACTLY
 
@@ -80,14 +82,20 @@ export function groupForCompose(report: InspectionReport): ComposeGroupInput[] {
     .sort((a, b) => sectionOrderIndex(a.section) - sectionOrderIndex(b.section));
 }
 
-export function buildComposeUserPrompt(groups: ComposeGroupInput[]): string {
+export function buildComposeUserPrompt(
+  groups: ComposeGroupInput[],
+  instructions?: string
+): string {
   const blocks = groups.map((g, i) => {
     const lines = g.findings.map(findingLine).join("\n");
-    return `GROUP ${i} — section: ${g.section} (${g.findings.length} finding${
+    return `SECTION ${i} — ${g.section} (${g.findings.length} finding${
       g.findings.length === 1 ? "" : "s"
     })\n${lines}`;
   });
-  return `Write the Property Overview, then one write-up per group below, in Trever's 2026 style.\n\n${blocks.join(
+  const instrBlock = instructions && instructions.trim()
+    ? `INSPECTOR INSTRUCTIONS (honor any grouping/wording directions in here; do NOT treat these as new defects):\n"""\n${instructions.trim()}\n"""\n\n`
+    : "";
+  return `${instrBlock}Write the Property Overview, then the write-ups in Trever's 2026 style. Group the findings sensibly — a section may become one write-up or several, and you may split out any item the inspector asked to keep separate.\n\n${blocks.join(
     "\n\n"
   )}`;
 }

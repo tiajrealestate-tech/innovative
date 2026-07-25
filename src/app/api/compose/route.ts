@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
   }
 
   const groups = groupForCompose(report);
+  const instructions = report.meta?.transcript || "";
 
   try {
     const anthropic = new Anthropic({ apiKey });
@@ -41,7 +42,9 @@ export async function POST(req: NextRequest) {
       model: "claude-opus-4-8",
       max_tokens: 12000,
       system: buildComposeSystemPrompt(),
-      messages: [{ role: "user", content: buildComposeUserPrompt(groups) }],
+      messages: [
+        { role: "user", content: buildComposeUserPrompt(groups, instructions) },
+      ],
       output_config: {
         format: { type: "json_schema", schema: COMPOSE_OUTPUT_SCHEMA },
         effort: "medium",
