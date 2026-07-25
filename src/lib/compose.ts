@@ -43,16 +43,18 @@ HIS 2026 STYLE — FOLLOW EXACTLY
 
 2) EACH GROUP:
    - If the group has MULTIPLE defects, write a consolidated write-up:
-     * HEADING: ALL CAPS, system-scoped, e.g. "ROOF DEFICIENCIES", "EXTERIOR DEFICIENCIES", "COOLING SYSTEM DEFICIENCIES", "PLUMBING DEFICIENCIES", "BASEMENT MOISTURE DEFICIENCIES".
-     * BODY: 1–2 framing sentences on overall condition and likely cause, in a measured tone ("Some conditions appear consistent with age and normal wear, while others may indicate deferred maintenance."). Then a new line: "Observed deficiencies include:" followed by a numbered list, each on its own line as "1 – ...", "2 – ...". Then a consolidated recommendation: "I recommend further evaluation and all necessary repairs by a qualified licensed [specific trade] to correct the deficiencies identified above and verify [system] is functioning as intended."
+     * HEADING: ALL CAPS. Usually "[SYSTEM] DEFICIENCIES" (e.g. "EXTERIOR DEFICIENCIES", "HVAC DEFICIENCIES", "PLUMBING DEFICIENCIES", "ELECTRICAL DEFICIENCIES"), but may be a short descriptive title when the group spans related systems, e.g. "ROOF, CHIMNEYS, AND DRAINAGE SYSTEMS" or "WINDOW & DOOR DEFICIENCIES".
+     * BODY: 1–2 framing sentences on overall condition and likely cause, in a measured tone ("Some conditions appear consistent with age and normal wear, while others may indicate deferred maintenance."). You MAY note a relevant positive before the deficiencies ("The cooling system was operational and cooling the home at the time of inspection; however, several deficiencies were observed…"; "encouragingly, no evidence of active moisture was observed"). Then a new line: "Observed deficiencies include:" followed by a numbered list, each on its own line as "1 – ...", "2 – ...". Then a TWO-SENTENCE consolidated recommendation: the first names who to bring in — "I recommend further evaluation [and repair] by a [licensed/qualified specific trade]." — and the second begins "Recommend …" and lists the specific corrective actions matching the numbered deficiencies (e.g. "Recommend cleaning the gutters, extending the downspouts away from the foundation, and trimming back the overhanging trees.").
    - If the group has a SINGLE defect, keep it short: HEADING is the defect name in caps; BODY is one observation sentence + why it matters + one recommendation ("I recommend having a qualified [trade] ..."). No numbered list.
-   - CLOSING LINE: end every write-up's body with his brief referral line naming the trade — e.g. "Contact a qualified roofing professional." / "Contact a qualified professional." — on its own final line.
+   - CLOSING LINE: end every write-up's body with his brief referral line, naming the specific trade when it is clear — "Contact a qualified roofing professional." / "Contact a qualified electrician." / "Contact a qualified handyman." / otherwise "Contact a qualified professional." — on its own final line.
 
 3) TRADES: name the specific trade — licensed roofing contractor, licensed HVAC contractor, licensed plumber, licensed structural engineer, qualified arborist, licensed pest control provider, etc.
 
 4) SERVICE-DEPENDENT ITEMS: if a finding says water/gas/power was shut off or the item could not be operated, do NOT call it a defect — frame it as "could not be confirmed" and say to verify it operates once service is turned on.
 
 5) MEASURED TONE where appropriate: "noted for awareness", "provided as an observation for the buyer's awareness rather than a determination of a structural defect", "the cause could not be determined during the visual inspection."
+
+6) AGING / END-OF-LIFE EQUIPMENT: when a system is near the end of its service life but still functioning, say so plainly ("cooling adequately but near the end of typical service life") and recommend budgeting for eventual replacement rather than calling it failed.
 
 RULES
 - Use ONLY the findings provided. Do not invent defects, measurements, or systems that were not given.

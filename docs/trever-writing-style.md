@@ -34,11 +34,20 @@ consolidated recommendation. Structure:
    age and normal wear, while others may indicate deferred maintenance."
 3. **Numbered list** — `Observed deficiencies include:` then `1 – …  2 – …  3 – …`
    Each line is a terse, specific observation.
-4. **Consolidated recommendation** — one paragraph covering all the items:
-   "I recommend further evaluation and all necessary repairs by a qualified
-   licensed [trade] to correct the deficiencies identified above and verify
-   [system] is functioning as intended."
-5. Often a short tag line: `Contact a qualified professional.`
+4. **Consolidated recommendation** — TWO sentences: first names who to bring in
+   ("I recommend further evaluation by a licensed HVAC contractor."), second
+   begins "Recommend …" and lists the specific corrective actions tied to each
+   numbered deficiency ("Recommend repairing the condensate leak, servicing the
+   system, clearing vegetation around the condenser, and budgeting for eventual
+   replacement of the aging unit.").
+5. Tag line naming the trade: `Contact a qualified electrician.` /
+   `Contact a qualified handyman.` / `Contact a qualified professional.`
+
+Headings can be descriptive and span related systems ("ROOF, CHIMNEYS, AND
+DRAINAGE SYSTEMS", "WINDOW & DOOR DEFICIENCIES"), not only "[SYSTEM]
+DEFICIENCIES". The property overview is present in most reports but not all.
+Aging-but-working equipment is called out as near end of service life with a
+"budget for eventual replacement" recommendation, not as a failure.
 
 Single, isolated defects still appear in the shorter classic form (e.g.
 `DOWNSPOUT LOOSE CONNECTION`, `DUCTS NOT SEALED (CONNECTED) PROPERLY`) — one
