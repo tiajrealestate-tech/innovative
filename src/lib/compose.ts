@@ -23,6 +23,8 @@ export interface ComposedGroup {
   section: string;
   heading: string; // ALL CAPS, e.g. "ROOF DEFICIENCIES"
   body: string; // framing + numbered list + consolidated recommendation
+  /** Spectora item this write-up should be placed in (filled in server-side). */
+  item?: string;
 }
 export interface ComposedReport {
   style: ReportStyle;
@@ -36,7 +38,15 @@ export function buildComposeSystemPrompt(): string {
   return `${HOUSE_STYLE}
 
 TASK — GROUPED REPORT RECOMMENDATIONS
-You are given the inspection's findings, grouped by section as field notes. Produce the completed report recommendations in the DEFAULT grouped format, plus a Property Conditions Overview. Write in the first person. Preserve every legitimate finding; remove only true duplicates.
+You are given the inspection's findings as field notes. Produce the completed report recommendations in the DEFAULT grouped format, plus a Property Conditions Overview. Write in the first person.
+
+HOW AGGRESSIVELY TO GROUP — THIS IS THE MOST IMPORTANT INSTRUCTION
+A finished report for an entire house contains roughly SIX TO TEN recommendations in total — not one per observation. Consolidate hard: all of a system's deficiencies become ONE recommendation whose numbered list carries the individual conditions. For example, a single "EXTERIOR MAINTENANCE DEFICIENCIES" recommendation properly contains cracked driveways, mortar deterioration, damaged hose bibbs, deteriorated trim and siding, fencing deterioration, overhanging limbs, and a missing sewer cleanout cap — nine separate observations in one write-up, not nine write-ups.
+- Default to ONE recommendation per major system (Roof, Exterior, Basement/Foundation/Crawlspace, Heating/HVAC, Cooling, Plumbing, Electrical, Doors/Windows/Interior, Attic, Bathrooms, Laundry, Kitchen, Garage).
+- You MAY group by THEME across sections when the conditions share a cause and a fix — e.g. a single "WATER MANAGEMENT & SUSPECTED CRAWL SPACE MOISTURE INTRUSION" write-up covering negative grading, downspouts terminating at the foundation, efflorescence, elevated moisture readings, and blocked crawl space vents.
+- Every observation must survive INSIDE a numbered list. Consolidating means fewer write-ups, never fewer findings.
+- Split a condition out on its own ONLY when the stand-alone criteria below apply. Two write-ups for the same system is the exception, not the norm.
+- Never emit two write-ups with the same or near-identical heading.
 
 DEFAULT RECOMMENDATION FORMAT ("aggressive but defensible" grouping):
 - HEADING: a short, specific title (four or five words or fewer, e.g. "Roof Covering Deficiencies", "Foundation Wall Moisture"). No vague titles, no the word "Noted".

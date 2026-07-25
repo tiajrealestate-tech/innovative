@@ -8,6 +8,7 @@ import {
   ComposedReport,
   groupForCompose,
 } from "@/lib/compose";
+import { placementItemFor } from "@/lib/catalog";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // seconds (Vercel Pro)
@@ -55,7 +56,18 @@ export async function POST(req: NextRequest) {
     if (!textBlock?.text) throw new Error("The AI returned an empty response.");
 
     const parsed = JSON.parse(textBlock.text) as Omit<ComposedReport, "style">;
-    const composed: ComposedReport = { style: "trever-2026", ...parsed };
+    // Consolidated write-ups belong in the section's "… General" item, which is
+    // where Trever's real reports put them (and why those items carry no
+    // library checkboxes).
+    const placedGroups = (parsed.groups || []).map((g) => ({
+      ...g,
+      item: placementItemFor(g.section),
+    }));
+    const composed: ComposedReport = {
+      style: "trever-2026",
+      ...parsed,
+      groups: placedGroups,
+    };
     return NextResponse.json({ composed });
   } catch (error) {
     return NextResponse.json(

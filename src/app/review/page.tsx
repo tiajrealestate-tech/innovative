@@ -520,6 +520,8 @@ interface ComposedGroupRow {
   section: string;
   heading: string;
   body: string;
+  /** Target Spectora item, chosen server-side (the section's "… General"). */
+  item?: string;
 }
 interface ComposedReportData {
   style: string;
@@ -528,8 +530,9 @@ interface ComposedReportData {
 }
 
 // Build the payload the browser extension parses to PLACE these write-ups into
-// Spectora. Each block carries the section, a target item (the most common
-// subsection among that section's findings), the heading, and the body.
+// Spectora. The target item comes from the server (the section's "… General"
+// item, which is where consolidated write-ups live); fall back to the most
+// common subsection among that section's findings only if it's missing.
 function buildExtensionPayload(
   composed: ComposedReportData,
   findings: Finding[]
@@ -544,7 +547,7 @@ function buildExtensionPayload(
       m.set(item, (m.get(item) || 0) + 1);
     }
   }
-  const bestItem = (sec: string) => {
+  const fallbackItem = (sec: string) => {
     const m = bySection.get(sec);
     if (!m || !m.size) return "";
     return [...m.entries()].sort((a, b) => b[1] - a[1])[0][0];
@@ -552,7 +555,7 @@ function buildExtensionPayload(
   return composed.groups
     .map(
       (g) =>
-        `@@SECTION: ${g.section}\n@@ITEM: ${bestItem(g.section)}\n@@HEADING: ${g.heading}\n@@BODY\n${g.body}\n@@END`
+        `@@SECTION: ${g.section}\n@@ITEM: ${g.item || fallbackItem(g.section)}\n@@HEADING: ${g.heading}\n@@BODY\n${g.body}\n@@END`
     )
     .join("\n\n");
 }

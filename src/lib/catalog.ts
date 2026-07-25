@@ -103,6 +103,20 @@ export function candidateBoxes(
   return out;
 }
 
+/**
+ * Where a consolidated write-up for a section should be placed. Trever's real
+ * reports put the grouped system recommendation in the section's "… General"
+ * item (Exterior General, HVAC General, Plumbing General, Electrical General);
+ * those items hold no library checkboxes precisely because they're the home for
+ * custom narrative. Falls back to the section's first item.
+ */
+export function placementItemFor(section: string): string {
+  const sec = getSection(section);
+  if (!sec || !sec.items.length) return "";
+  const general = sec.items.find((i) => /\bgeneral\b/i.test(i.item));
+  return (general || sec.items[0]).item;
+}
+
 /** Total unique boxes — handy for diagnostics. */
 export function catalogStats() {
   let items = 0;
