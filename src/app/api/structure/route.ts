@@ -36,21 +36,29 @@ function mergeDetails(
 function chunkTranscript(t: string, targetChars = 1600, maxChunks = 6): string[] {
   const trimmed = t.trim();
   if (trimmed.length <= targetChars) return [trimmed];
-  const parts = trimmed.split(/(?<=[.!?])\s+|\n+/).filter(Boolean);
+  // Grow the target so we never produce more than ~maxChunks chunks (this also
+  // guarantees termination — no recursion).
+  const target = Math.max(targetChars, Math.ceil(trimmed.length / maxChunks));
+  // Split into sentence-ish parts, then hard-split any part longer than target
+  // (long run-on dictation) so greedy packing always makes progress.
+  const parts: string[] = [];
+  for (const raw of trimmed.split(/(?<=[.!?])\s+|\n+/).filter(Boolean)) {
+    if (raw.length <= target) {
+      parts.push(raw);
+    } else {
+      for (let i = 0; i < raw.length; i += target) parts.push(raw.slice(i, i + target));
+    }
+  }
   const chunks: string[] = [];
   let cur = "";
   for (const p of parts) {
-    if (cur && cur.length + p.length + 1 > targetChars) {
+    if (cur && cur.length + p.length + 1 > target) {
       chunks.push(cur);
       cur = "";
     }
     cur += (cur ? " " : "") + p;
   }
   if (cur) chunks.push(cur);
-  // Too many small chunks → re-pack with a larger target so we stay ≈ maxChunks.
-  if (chunks.length > maxChunks) {
-    return chunkTranscript(trimmed, Math.ceil(trimmed.length / maxChunks) + 1, maxChunks);
-  }
   return chunks;
 }
 
