@@ -11,7 +11,7 @@ import {
 } from "@/lib/schema";
 
 export const runtime = "nodejs";
-export const maxDuration = 60; // seconds
+export const maxDuration = 300; // seconds (Vercel Pro)
 
 // Merge the AI-extracted details with anything the inspector typed in.
 // Typed values win when present; otherwise fall back to what the AI heard.
@@ -33,7 +33,10 @@ function mergeDetails(
 // Split a long transcript into chunks at sentence/paragraph boundaries so each
 // can be structured by its own (parallel) model call within the time limit.
 // Short transcripts return a single chunk (no overhead).
-function chunkTranscript(t: string, targetChars = 1600, maxChunks = 6): string[] {
+// With the higher Pro time limit, most transcripts are a SINGLE call (better
+// global consolidation, no chunk-seam duplicates). Only very long transcripts
+// split, into a few parallel chunks.
+function chunkTranscript(t: string, targetChars = 9000, maxChunks = 4): string[] {
   const trimmed = t.trim();
   if (trimmed.length <= targetChars) return [trimmed];
   // Grow the target so we never produce more than ~maxChunks chunks (this also

@@ -12,7 +12,7 @@ import {
 } from "@/lib/spectora-map";
 
 export const runtime = "nodejs";
-export const maxDuration = 60; // seconds
+export const maxDuration = 300; // seconds (Vercel Pro)
 
 // POST { report } -> { mapped, lines }
 // Maps each finding to the best Spectora checkbox from the scanned catalog.

@@ -10,7 +10,7 @@ import {
 } from "@/lib/compose";
 
 export const runtime = "nodejs";
-export const maxDuration = 60; // seconds
+export const maxDuration = 300; // seconds (Vercel Pro)
 
 // POST { report } -> ComposedReport  (Trever's 2026 report voice)
 export async function POST(req: NextRequest) {
