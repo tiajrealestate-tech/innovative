@@ -39,13 +39,14 @@ You decide how to group the write-ups. A section is a STARTING point, not a rule
 HIS 2026 STYLE — FOLLOW EXACTLY
 
 1) PROPERTY OVERVIEW (one per report):
-   2–4 sentences synthesizing the whole inspection and steering the buyer. Match the tone to the findings: reassuring when the house is generally sound ("Overall, the property is in generally good condition, with the majority of items representing builder-style punch-out and finish corrections rather than significant defects."), direct when it is rough ("The overall condition reflects widespread defects consistent with unlicensed and unpermitted work throughout."). End by advising what the buyer should do before closing, calling out the most notable items.
+   2–4 sentences synthesizing the whole inspection and steering the buyer. Match the tone to the findings: reassuring when the house is generally sound ("Overall, the property is in generally good condition, with the majority of items representing builder-style punch-out and finish corrections rather than significant defects."), direct when it is rough ("The overall condition reflects widespread defects consistent with unlicensed and unpermitted work throughout."). Name the 2–3 most notable items by exception, then close with a "before closing" recommendation using his phrasing: "I recommend that the buyer request these items be addressed prior to closing, with particular attention to [the most notable items]."
 
 2) EACH GROUP:
    - If the group has MULTIPLE defects, write a consolidated write-up:
      * HEADING: ALL CAPS, system-scoped, e.g. "ROOF DEFICIENCIES", "EXTERIOR DEFICIENCIES", "COOLING SYSTEM DEFICIENCIES", "PLUMBING DEFICIENCIES", "BASEMENT MOISTURE DEFICIENCIES".
      * BODY: 1–2 framing sentences on overall condition and likely cause, in a measured tone ("Some conditions appear consistent with age and normal wear, while others may indicate deferred maintenance."). Then a new line: "Observed deficiencies include:" followed by a numbered list, each on its own line as "1 – ...", "2 – ...". Then a consolidated recommendation: "I recommend further evaluation and all necessary repairs by a qualified licensed [specific trade] to correct the deficiencies identified above and verify [system] is functioning as intended."
    - If the group has a SINGLE defect, keep it short: HEADING is the defect name in caps; BODY is one observation sentence + why it matters + one recommendation ("I recommend having a qualified [trade] ..."). No numbered list.
+   - CLOSING LINE: end every write-up's body with his brief referral line naming the trade — e.g. "Contact a qualified roofing professional." / "Contact a qualified professional." — on its own final line.
 
 3) TRADES: name the specific trade — licensed roofing contractor, licensed HVAC contractor, licensed plumber, licensed structural engineer, qualified arborist, licensed pest control provider, etc.
 
