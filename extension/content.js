@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.6.1
+ * Spectora Autofill — v0.6.2
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -569,8 +569,66 @@
     const text = titleFilled || !heading ? body : heading + "\n\n" + body;
     const bodyFilled = setFieldValue(bodyEl, text);
 
+    // Commit it. Spectora usually needs an explicit Save/Add/Done click for a
+    // new comment; without this the typed text is discarded when we navigate.
+    const saved = clickSaveNear(bodyEl);
+    await sleep(600);
+
     if (collapseOpen()) await sleep(200);
-    return { ok: bodyFilled, titleFilled, bodyFilled };
+    return { ok: bodyFilled, titleFilled, bodyFilled, saved };
+  }
+
+  // Find and click a Save/Add/Done/Create control near the editor we just filled
+  // (searching the card first, then the page).
+  function clickSaveNear(el) {
+    const isSave = (t) => /^(save|save comment|add comment|add|done|create|apply|ok)$/i.test(t);
+    const scopes = [];
+    if (el) {
+      const card = el.closest(".comment.record") || el.closest("form") || el.parentElement;
+      if (card) scopes.push(card);
+    }
+    scopes.push(document);
+    for (const scope of scopes) {
+      const btn = [...scope.querySelectorAll('button,[role="button"],span,a,div')].find(
+        (b) => b.children.length === 0 && isSave(trimText(b)) && b.offsetParent !== null
+      );
+      if (btn) {
+        fireClick(btn);
+        const clickable = btn.closest('button,[role="button"],a');
+        if (clickable && clickable !== btn) fireClick(clickable);
+        return trimText(btn);
+      }
+    }
+    return null;
+  }
+
+  // Debug: click "Add" and report exactly what appears, so we can target the
+  // real comment editor instead of guessing.
+  async function debugClickAdd() {
+    const snap = () => ({
+      cards: document.querySelectorAll(".comment.record").length,
+      textareas: document.querySelectorAll("textarea").length,
+      editables: document.querySelectorAll('[contenteditable="true"]').length,
+      dialogs: document.querySelectorAll('[role="dialog"],.modal,.v-dialog').length,
+    });
+    const before = snap();
+    const clicked = clickByText("Add") || clickByText("+ Add");
+    await sleep(1500);
+    const after = snap();
+    const buttons = [...document.querySelectorAll('button,[role="button"],span,a')]
+      .filter((b) => b.children.length === 0 && b.offsetParent !== null)
+      .map((b) => trimText(b))
+      .filter((t) => t && t.length <= 24)
+      .slice(0, 40);
+    const fields = [...document.querySelectorAll('textarea,[contenteditable="true"],input[type="text"]')]
+      .filter((f) => f.offsetParent !== null)
+      .map((f) => ({
+        tag: f.tagName,
+        placeholder: f.getAttribute("placeholder") || "",
+        cls: (f.className || "").toString().slice(0, 60),
+        value: (f.value || f.textContent || "").slice(0, 30),
+      }));
+    return { clickedAdd: clicked, before, after, visibleButtons: buttons, visibleFields: fields };
   }
 
   // Payload format the app copies (multi-line safe):
@@ -771,6 +829,10 @@
     Object.assign(scanToolsBtn.style, { border: "1px solid #e5e7eb", fontSize: "12px", marginTop: "8px" });
     bodyWrap.appendChild(scanToolsBtn);
 
+    const clickAddBtn = mkBtn("Debug: click Add & report", "#fff", "#6b7280");
+    Object.assign(clickAddBtn.style, { border: "1px solid #e5e7eb", fontSize: "12px", marginTop: "8px" });
+    bodyWrap.appendChild(clickAddBtn);
+
     panel.appendChild(header);
     panel.appendChild(bodyWrap);
     document.body.appendChild(panel);
@@ -781,6 +843,14 @@
     checkBtn.onclick = () => applyChecks(taItem.value, log);
     scanBtn.onclick = () => log(JSON.stringify(scan(), null, 2));
     scanToolsBtn.onclick = () => log(JSON.stringify(scanCommentTools(), null, 2));
+    clickAddBtn.onclick = async () => {
+      log("Clicking Add…");
+      try {
+        log(JSON.stringify(await debugClickAdd(), null, 2));
+      } catch (e) {
+        log("Debug error: " + (e && e.message ? e.message : e));
+      }
+    };
     placeBtn.onclick = async () => {
       placeBtn.disabled = true;
       placeBtn.textContent = "Placing… (leave this tab open)";
