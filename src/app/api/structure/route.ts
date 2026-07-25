@@ -60,7 +60,11 @@ export async function POST(req: NextRequest) {
     // Structured outputs guarantee the response matches CLAUDE_OUTPUT_SCHEMA,
     // so JSON.parse never fails on a well-formed response.
     const message = await anthropic.messages.create({
-      model: "claude-opus-4-8",
+      // Sonnet handles this structured extraction well and is fast enough to
+      // finish a long real-world walkthrough inside the free-tier 60s function
+      // limit (Opus was overrunning it). The polished 2026 voice is applied
+      // separately in the compose step, so report quality is unaffected.
+      model: "claude-sonnet-5",
       max_tokens: 16000,
       system: buildSystemPrompt(),
       messages: [{ role: "user", content: buildUserPrompt(transcript, typed) }],
@@ -69,9 +73,6 @@ export async function POST(req: NextRequest) {
           type: "json_schema",
           schema: CLAUDE_OUTPUT_SCHEMA,
         },
-        // "low" keeps long real-world transcripts inside the free-tier 60s
-        // function limit. Extraction is largely mechanical, so quality holds;
-        // the 2026 voice is applied later in the compose step anyway.
         effort: "low",
       },
     } as any);
