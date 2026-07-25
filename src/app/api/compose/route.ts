@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const anthropic = new Anthropic({ apiKey });
-    const message = await anthropic.messages.create({
+    const message = await anthropic.messages.stream({
       model: "claude-opus-5",
       max_tokens: 24000,
       system: buildComposeSystemPrompt(),
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
         format: { type: "json_schema", schema: COMPOSE_OUTPUT_SCHEMA },
         effort: "medium",
       },
-    } as any);
+    } as any).finalMessage();
 
     const textBlock = (message.content as any[]).find((b) => b.type === "text");
     if (!textBlock?.text) throw new Error("The AI returned an empty response.");

@@ -97,7 +97,9 @@ export async function POST(req: NextRequest) {
     // medium effort — the house-style rules (CYA wording, forbidden terms,
     // consolidation) reward careful reading, and the Pro 300s budget affords it.
     async function structureChunk(text: string): Promise<ClaudeRawOutput> {
-      const message = await anthropic.messages.create({
+      // Streamed: the SDK requires streaming once max_tokens is large enough that
+      // a request could run long. finalMessage() still yields the whole result.
+      const message = await anthropic.messages.stream({
         model: "claude-opus-5",
         // A full walkthrough can yield 50+ findings; too small a budget cuts the
         // JSON mid-string and surfaces as "Unterminated string in JSON".
@@ -108,7 +110,7 @@ export async function POST(req: NextRequest) {
           format: { type: "json_schema", schema: CLAUDE_OUTPUT_SCHEMA },
           effort: "medium",
         },
-      } as any);
+      } as any).finalMessage();
       const textBlock = (message.content as any[]).find((b) => b.type === "text");
       if (!textBlock?.text) throw new Error("The AI returned an empty response.");
       if ((message as any).stop_reason === "max_tokens") {

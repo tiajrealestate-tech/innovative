@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     };
 
     // Pass 1 — match defect/limitation findings to their boxes.
-    const findingPass = anthropic.messages.create({
+    const findingPass = anthropic.messages.stream({
       model: "claude-opus-5",
       max_tokens: 16000,
       system: buildMapSystemPrompt(mode),
@@ -72,14 +72,14 @@ export async function POST(req: NextRequest) {
         format: { type: "json_schema", schema: MAP_OUTPUT_SCHEMA },
         effort: "medium",
       },
-    } as any);
+    } as any).finalMessage();
 
     // Pass 2 — Information boxes come from the TRANSCRIPT, not from defect
     // findings (materials, brands, amperage, locations are never deficiencies),
     // which is why they were previously skipped entirely.
     const infoPass =
       transcript && infoCandidates.length
-        ? anthropic.messages.create({
+        ? anthropic.messages.stream({
             model: "claude-opus-5",
             max_tokens: 16000,
             system: buildInfoSystemPrompt(),
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
               format: { type: "json_schema", schema: INFO_OUTPUT_SCHEMA },
               effort: "medium",
             },
-          } as any)
+          } as any).finalMessage()
         : Promise.resolve(null);
 
     const [findingMsg, infoMsg] = await Promise.all([findingPass, infoPass]);
