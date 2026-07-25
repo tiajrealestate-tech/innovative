@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.7.2
+ * Spectora Autofill — v0.7.3
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -250,6 +250,27 @@
   // and firing on the text leaf lets the event bubble UP to whichever inner
   // element actually owns the handler (a plain .click() on the outer <li>
   // overshoots and never reaches it).
+  // Exactly one click. Used where a second click would do damage (e.g. "Add",
+  // which opens a dialog and would otherwise create duplicate comments).
+  function clickOnce(el) {
+    if (!el) return false;
+    const o = { bubbles: true, cancelable: true, view: window };
+    try {
+      el.dispatchEvent(new MouseEvent("click", o));
+    } catch (e) {
+      try { el.click(); } catch (e2) { return false; }
+    }
+    return true;
+  }
+  function clickByTextOnce(name) {
+    const t = norm(name);
+    const leaf = [...document.querySelectorAll("span,li,a,button,div")].find(
+      (el) => el.children.length === 0 && norm(el.textContent) === t && el.offsetParent !== null
+    );
+    if (!leaf) return false;
+    return clickOnce(leaf);
+  }
+
   function fireClick(el) {
     if (!el) return;
     const o = { bubbles: true, cancelable: true, view: window };
@@ -576,7 +597,7 @@
   }
 
   async function addCustomComment(heading, body) {
-    if (!clickByText("Add") && !clickByText("+ Add")) {
+    if (!clickByTextOnce("Add") && !clickByTextOnce("+ Add")) {
       return { ok: false, reason: "'Add' control not found" };
     }
 
@@ -584,7 +605,14 @@
       ? findAddCommentModal()
       : null;
     if (!modal) return { ok: false, reason: "'Add a new Comment' dialog did not open" };
-    await sleep(400);
+    // Spectora uses Froala; its contenteditable surface (.fr-element) is created
+    // a moment AFTER the dialog appears. Writing before it exists lands in the
+    // hidden original textarea, which Froala then overwrites with an empty body.
+    await waitFor(
+      () => !!modal.querySelector('.fr-element[contenteditable="true"], [contenteditable="true"]'),
+      5000
+    );
+    await sleep(500);
 
     // Name field: the modal's text input (skip search boxes).
     const nameEl =
@@ -593,9 +621,11 @@
       ) || null;
     // Body: the rich-text editor (contenteditable) or a textarea.
     const bodyEl =
+      modal.querySelector('.fr-element[contenteditable="true"]') ||
       [...modal.querySelectorAll('[contenteditable="true"], textarea')].find(
         (el) => !isSearchField(el) && el.offsetParent !== null
-      ) || null;
+      ) ||
+      null;
 
     if (!nameEl && !bodyEl) {
       return { ok: false, reason: "dialog opened but no Name/body field was found" };
@@ -618,7 +648,7 @@
     if (!saveBtn) {
       return { ok: false, reason: "filled the dialog but no Save button was found", titleFilled, bodyFilled };
     }
-    fireClick(saveBtn);
+    clickOnce(saveBtn);
     const closed = await waitFor(() => !findAddCommentModal(), 6000);
     await sleep(400);
     if (collapseOpen()) await sleep(200);
