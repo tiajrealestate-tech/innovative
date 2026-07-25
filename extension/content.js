@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.7.5
+ * Spectora Autofill — v0.7.6
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -860,7 +860,7 @@
     log(
       `Done — placed ${done}/${blocks.length} write-ups.` +
         (problems.length ? `\n\nIssues:\n- ${problems.join("\n- ")}` : "") +
-        `\n\nIf nothing landed, click "Scan comment tools (debug)" and send me the result.`
+        `\n\nClick "Copy log" below and paste it into the chat.`
     );
   }
 
@@ -943,9 +943,22 @@
     const logEl = document.createElement("pre");
     Object.assign(logEl.style, {
       whiteSpace: "pre-wrap", background: "#f6f7f9", border: "1px solid #eee",
-      borderRadius: "8px", padding: "8px", marginTop: "10px", fontSize: "12px", minHeight: "40px",
+      borderRadius: "8px", padding: "8px", marginTop: "10px", fontSize: "12px",
+      minHeight: "40px", maxHeight: "220px", overflow: "auto",
     });
-    const log = (m) => (logEl.textContent = m);
+    // The log keeps the WHOLE run's history (not just the last line) so the
+    // "Copy log" button can hand the full diagnostic to the chat in one click.
+    let logLines = [];
+    const log = (m) => {
+      logLines.push(m);
+      if (logLines.length > 400) logLines = logLines.slice(-400);
+      logEl.textContent = logLines.join("\n");
+      logEl.scrollTop = logEl.scrollHeight;
+    };
+    const resetLog = () => {
+      logLines = [];
+      logEl.textContent = "";
+    };
 
     bodyWrap.appendChild(mkLabel("Build report — Section > Item > Tab > Label (one per line):"));
     const taReport = mkTextarea(
@@ -987,6 +1000,36 @@
     bodyWrap.appendChild(placeBtn);
 
     bodyWrap.appendChild(logEl);
+
+    const copyLogBtn = mkBtn("Copy log", "#fff", "#111827");
+    Object.assign(copyLogBtn.style, {
+      border: "1px solid #d0d5dd", marginTop: "6px", width: "100%", fontSize: "12px",
+    });
+    copyLogBtn.onclick = async () => {
+      const text = logLines.join("\n") || logEl.textContent || "(log is empty)";
+      let ok = false;
+      try {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      } catch (e) {}
+      if (!ok) {
+        // Clipboard API can be blocked in content scripts; fall back to the
+        // classic hidden-textarea copy.
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          ok = document.execCommand("copy");
+        } catch (e) {}
+        ta.remove();
+      }
+      copyLogBtn.textContent = ok
+        ? "Copied ✓ — now paste it into the chat"
+        : "Copy failed — select the gray text by hand";
+      setTimeout(() => (copyLogBtn.textContent = "Copy log"), 3000);
+    };
+    bodyWrap.appendChild(copyLogBtn);
 
     bodyWrap.appendChild(mkLabel("Catalog the whole report (read-only — checks nothing):"));
     const scanAllBtn = mkBtn("Scan whole report → file", "#111827", "#fff");
@@ -1037,12 +1080,28 @@
       panel.remove();
       showReopenButton();
     };
-    buildBtn.onclick = () => buildReport(taReport.value, log);
-    previewBtn.onclick = () => preview(taItem.value, log);
-    checkBtn.onclick = () => applyChecks(taItem.value, log);
-    scanBtn.onclick = () => log(JSON.stringify(scan(), null, 2));
-    scanToolsBtn.onclick = () => log(JSON.stringify(scanCommentTools(), null, 2));
+    buildBtn.onclick = () => {
+      resetLog();
+      buildReport(taReport.value, log);
+    };
+    previewBtn.onclick = () => {
+      resetLog();
+      preview(taItem.value, log);
+    };
+    checkBtn.onclick = () => {
+      resetLog();
+      applyChecks(taItem.value, log);
+    };
+    scanBtn.onclick = () => {
+      resetLog();
+      log(JSON.stringify(scan(), null, 2));
+    };
+    scanToolsBtn.onclick = () => {
+      resetLog();
+      log(JSON.stringify(scanCommentTools(), null, 2));
+    };
     clickAddBtn.onclick = async () => {
+      resetLog();
       log("Clicking Add…");
       try {
         log(JSON.stringify(await debugClickAdd(), null, 2));
@@ -1051,6 +1110,7 @@
       }
     };
     placeBtn.onclick = async () => {
+      resetLog();
       placeBtn.disabled = true;
       placeBtn.textContent = "Placing… (leave this tab open)";
       try {
@@ -1062,6 +1122,7 @@
       placeBtn.textContent = "Place write-ups";
     };
     scanAllBtn.onclick = async () => {
+      resetLog();
       scanAllBtn.disabled = true;
       scanAllBtn.textContent = "Scanning… (leave this tab open)";
       try {
