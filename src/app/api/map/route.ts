@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     // Pass 1 — match defect/limitation findings to their boxes.
     const findingPass = anthropic.messages.create({
       model: "claude-opus-5",
-      max_tokens: 8000,
+      max_tokens: 16000,
       system: buildMapSystemPrompt(mode),
       messages: [{ role: "user", content: buildMapUserPrompt(items) }],
       output_config: {
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       transcript && infoCandidates.length
         ? anthropic.messages.create({
             model: "claude-opus-5",
-            max_tokens: 8000,
+            max_tokens: 16000,
             system: buildInfoSystemPrompt(),
             messages: [
               { role: "user", content: buildInfoUserPrompt(transcript, infoCandidates) },

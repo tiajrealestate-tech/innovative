@@ -99,7 +99,9 @@ export async function POST(req: NextRequest) {
     async function structureChunk(text: string): Promise<ClaudeRawOutput> {
       const message = await anthropic.messages.create({
         model: "claude-opus-5",
-        max_tokens: 16000,
+        // A full walkthrough can yield 50+ findings; too small a budget cuts the
+        // JSON mid-string and surfaces as "Unterminated string in JSON".
+        max_tokens: 32000,
         system: buildSystemPrompt(),
         messages: [{ role: "user", content: buildUserPrompt(text, typed) }],
         output_config: {
@@ -109,6 +111,11 @@ export async function POST(req: NextRequest) {
       } as any);
       const textBlock = (message.content as any[]).find((b) => b.type === "text");
       if (!textBlock?.text) throw new Error("The AI returned an empty response.");
+      if ((message as any).stop_reason === "max_tokens") {
+        throw new Error(
+          "This walkthrough produced more findings than fit in one response. Try splitting the transcript into two shorter passes."
+        );
+      }
       return JSON.parse(textBlock.text) as ClaudeRawOutput;
     }
 

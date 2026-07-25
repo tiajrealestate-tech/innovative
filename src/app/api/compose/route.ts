@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const anthropic = new Anthropic({ apiKey });
     const message = await anthropic.messages.create({
       model: "claude-opus-5",
-      max_tokens: 12000,
+      max_tokens: 24000,
       system: buildComposeSystemPrompt(),
       messages: [
         { role: "user", content: buildComposeUserPrompt(groups, instructions) },
