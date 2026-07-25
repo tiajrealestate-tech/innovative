@@ -332,12 +332,25 @@ function SpectoraTab({ report }: { report: InspectionReport }) {
           {review.length > 0 && (
             <div className="mt-5 rounded-xl border border-amber-300 bg-amber-50 p-5">
               <h3 className="font-semibold text-sm text-amber-900">
-                {review.length} need your eyes — no confident checkbox match
+                {mode === "trever"
+                  ? `${review.length} covered by your write-ups — not checked`
+                  : `${review.length} need your eyes — no confident checkbox match`}
               </h3>
               <p className="text-xs text-amber-800 mt-1">
-                These findings didn&rsquo;t line up with a pre-written box (or the match was
-                weak). Handle them by hand in Spectora, or tell me the right box and I&rsquo;ll
-                teach the mapping.
+                {mode === "trever" ? (
+                  <>
+                    No pre-written box fits these (or the match was weak), so they are
+                    deliberately left unchecked &mdash; a wrong box would pull in the wrong
+                    recommendation. They belong in the consolidated write-ups (Report entry
+                    → Trever 2026). Check the list to be sure nothing is missing there.
+                  </>
+                ) : (
+                  <>
+                    These findings didn&rsquo;t line up with a pre-written box (or the match
+                    was weak). Handle them by hand in Spectora, or tell me the right box and
+                    I&rsquo;ll teach the mapping.
+                  </>
+                )}
               </p>
               <ul className="mt-3 space-y-2">
                 {review.map((r) => (

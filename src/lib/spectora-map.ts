@@ -196,10 +196,14 @@ export function resolveMatches(
   });
 }
 
-/** The pasteable build list for the extension. Skips unmatched findings. */
+/**
+ * The pasteable build list for the extension. Only CONFIDENT matches are
+ * included: a weak guess would tick the wrong box and pull in the wrong
+ * pre-written recommendation, which is worse than leaving it to the write-up.
+ */
 export function toExtensionLines(mapped: MappedFinding[]): string {
   return mapped
-    .filter((m) => m.box_label)
+    .filter((m) => m.box_label && !m.needs_review)
     .map((m) => `${m.section} > ${m.item} > ${m.tab} > ${m.box_label}`)
     .join("\n");
 }
