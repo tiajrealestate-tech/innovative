@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.7.1
+ * Spectora Autofill — v0.7.2
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -27,6 +27,10 @@
       : "?";
 
   const TAB_NAMES = ["Information", "Limitations", "Defects"];
+
+  // Panel visibility preferences persist across page loads.
+  const HIDE_KEY = "spectoraAutofillHidden";
+  const MIN_KEY = "spectoraAutofillMinimized";
 
   // Your template's sections and their items (from Innovative Home Inspections'
   // real reports). The whole-report scanner walks this map so it knows where to
@@ -813,7 +817,10 @@
     });
     header.innerHTML =
       "<span>Spectora Autofill v" + VERSION + "</span>" +
-      '<span id="sa-close" style="cursor:pointer;font-size:16px;">×</span>';
+      '<span style="display:flex;gap:10px;align-items:center;">' +
+      '<span id="sa-min" title="Minimize" style="cursor:pointer;font-size:18px;line-height:1;">–</span>' +
+      '<span id="sa-close" title="Hide" style="cursor:pointer;font-size:16px;line-height:1;">×</span>' +
+      "</span>";
 
     const bodyWrap = document.createElement("div");
     Object.assign(bodyWrap.style, { padding: "12px", overflow: "auto" });
@@ -887,7 +894,34 @@
     panel.appendChild(bodyWrap);
     document.body.appendChild(panel);
 
-    header.querySelector("#sa-close").onclick = () => panel.remove();
+    // Minimize collapses to just the title bar; the header itself restores it.
+    let minimized = localStorage.getItem(MIN_KEY) === "1";
+    const applyMinimized = () => {
+      bodyWrap.style.display = minimized ? "none" : "";
+      panel.style.width = minimized ? "auto" : "390px";
+      header.querySelector("#sa-min").textContent = minimized ? "▢" : "–";
+      header.querySelector("#sa-min").title = minimized ? "Expand" : "Minimize";
+    };
+    applyMinimized();
+    const toggleMin = (e) => {
+      if (e) e.stopPropagation();
+      minimized = !minimized;
+      localStorage.setItem(MIN_KEY, minimized ? "1" : "0");
+      applyMinimized();
+    };
+    header.querySelector("#sa-min").onclick = toggleMin;
+    header.onclick = (e) => {
+      // Clicking the bar while collapsed brings it back.
+      if (minimized && e.target.id !== "sa-close") toggleMin();
+    };
+
+    // Hiding must stick — the keep-alive timer would otherwise rebuild it.
+    header.querySelector("#sa-close").onclick = (e) => {
+      e.stopPropagation();
+      localStorage.setItem(HIDE_KEY, "1");
+      panel.remove();
+      showReopenButton();
+    };
     buildBtn.onclick = () => buildReport(taReport.value, log);
     previewBtn.onclick = () => preview(taItem.value, log);
     checkBtn.onclick = () => applyChecks(taItem.value, log);
@@ -925,9 +959,34 @@
     };
   }
 
-  setInterval(() => {
-    if (isEditorFrame() && !document.getElementById("spectora-scanner-panel")) {
+  // Small floating button to bring the panel back after hiding it.
+  function showReopenButton() {
+    if (document.getElementById("spectora-scanner-reopen")) return;
+    const b = document.createElement("div");
+    b.id = "spectora-scanner-reopen";
+    b.textContent = "SA";
+    b.title = "Show Spectora Autofill";
+    Object.assign(b.style, {
+      position: "fixed", bottom: "16px", right: "16px", zIndex: "2147483647",
+      width: "40px", height: "40px", borderRadius: "20px", background: "#2a56d4",
+      color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+      font: "600 13px -apple-system,Segoe UI,Roboto,sans-serif", cursor: "pointer",
+      boxShadow: "0 4px 14px rgba(0,0,0,0.25)",
+    });
+    b.onclick = () => {
+      localStorage.setItem(HIDE_KEY, "0");
+      b.remove();
       buildPanel();
+    };
+    document.body.appendChild(b);
+  }
+
+  setInterval(() => {
+    if (!isEditorFrame()) return;
+    if (localStorage.getItem(HIDE_KEY) === "1") {
+      showReopenButton();
+      return;
     }
+    if (!document.getElementById("spectora-scanner-panel")) buildPanel();
   }, 1000);
 })();

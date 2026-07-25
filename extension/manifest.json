@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Spectora Autofill (beta)",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Builds a Spectora report: checks boxes across all sections/tabs and places the app's 2026 write-ups into each section's comment area.",
   "content_scripts": [
     {
