@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.6.2
+ * Spectora Autofill — v0.7.0
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -522,60 +522,110 @@
     );
   }
 
-  // Add a custom comment to the current item/tab and fill it with the write-up.
-  // Spectora's comment cards expose a TEXTAREA for the body; there is usually no
-  // separate title input, so in that case the heading is written above the body
-  // in the same textarea (otherwise the heading would be lost).
-  async function addCustomComment(heading, body) {
-    const cardCount = () => document.querySelectorAll(".comment.record").length;
-    const areaCount = () => editableFieldsIn(document).length;
-    const before = { cards: cardCount(), areas: areaCount() };
+  // Clicking "Add" opens a MODAL — "Add a new Comment" — containing a Name
+  // input, a rich-text body editor ("Enter text here") and Cancel/Save. The
+  // modal lives outside the comment card, so everything below is scoped to it.
+  function findAddCommentModal() {
+    const heading = [...document.querySelectorAll("div,span,h1,h2,h3,h4,label")].find(
+      (el) => el.children.length === 0 && /add a new comment/i.test(trimText(el))
+    );
+    if (!heading) return null;
+    // Walk up to the container that also holds the editor / Save control.
+    let node = heading.parentElement;
+    for (let i = 0; i < 8 && node; i++) {
+      const hasField = node.querySelector('input, textarea, [contenteditable="true"]');
+      const hasSave = [...node.querySelectorAll('button,[role="button"],span,a')].some(
+        (b) => b.children.length === 0 && /^(save|cancel)$/i.test(trimText(b))
+      );
+      if (hasField && hasSave) return node;
+      node = node.parentElement;
+    }
+    return heading.closest('[role="dialog"], .modal, .v-dialog') || null;
+  }
 
+  // Type into a rich-text editor. execCommand drives the editor's own model
+  // (Quill/TipTap/ProseMirror style), which a bare textContent assignment does not.
+  function setRichText(el, text) {
+    if (!el) return false;
+    try {
+      el.focus();
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      if (document.execCommand("insertText", false, text)) {
+        el.dispatchEvent(new InputEvent("input", { bubbles: true }));
+        return true;
+      }
+    } catch (e) {}
+    // Fallback: paragraph-per-line so line breaks survive.
+    try {
+      el.innerHTML = text
+        .split("\n")
+        .map((line) => "<p>" + line.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])) + "</p>")
+        .join("");
+      el.dispatchEvent(new InputEvent("input", { bubbles: true }));
+      return true;
+    } catch (e) {}
+    return false;
+  }
+
+  async function addCustomComment(heading, body) {
     if (!clickByText("Add") && !clickByText("+ Add")) {
       return { ok: false, reason: "'Add' control not found" };
     }
-    const appeared = await waitFor(
-      () => cardCount() > before.cards || areaCount() > before.areas || !!expandedRecord(),
-      5000
-    );
-    await sleep(600);
-    const after = { cards: cardCount(), areas: areaCount() };
-    if (!appeared) {
-      return {
-        ok: false,
-        reason: `nothing appeared after clicking Add (cards ${before.cards}→${after.cards}, fields ${before.areas}→${after.areas})`,
-      };
+
+    const modal = (await waitFor(() => !!findAddCommentModal(), 6000))
+      ? findAddCommentModal()
+      : null;
+    if (!modal) return { ok: false, reason: "'Add a new Comment' dialog did not open" };
+    await sleep(400);
+
+    // Name field: the modal's text input (skip search boxes).
+    const nameEl =
+      [...modal.querySelectorAll('input[type="text"], input:not([type])')].find(
+        (el) => !isSearchField(el) && el.offsetParent !== null
+      ) || null;
+    // Body: the rich-text editor (contenteditable) or a textarea.
+    const bodyEl =
+      [...modal.querySelectorAll('[contenteditable="true"], textarea')].find(
+        (el) => !isSearchField(el) && el.offsetParent !== null
+      ) || null;
+
+    if (!nameEl && !bodyEl) {
+      return { ok: false, reason: "dialog opened but no Name/body field was found" };
     }
 
-    // Prefer the open/editing card; otherwise the last card on the tab.
-    const card = expandedRecord() || [...document.querySelectorAll(".comment.record")].pop();
-    const scope = card || document;
-
-    const titleEl = titleFieldIn(scope);
-    const fields = editableFieldsIn(scope);
-    // Newly added editors append, so the last one is the new comment's body.
-    const bodyEl = fields[fields.length - 1] || editableFieldsIn(document).pop() || null;
-
-    if (!bodyEl) {
-      return {
-        ok: false,
-        reason: `no editable comment field found (cards ${after.cards}, fields ${after.areas})`,
-      };
-    }
-
-    let titleFilled = false;
-    if (titleEl && titleEl !== bodyEl) titleFilled = setFieldValue(titleEl, heading);
-    // No separate title field → keep the heading by writing it above the body.
+    const titleFilled = nameEl ? setFieldValue(nameEl, heading) : false;
     const text = titleFilled || !heading ? body : heading + "\n\n" + body;
-    const bodyFilled = setFieldValue(bodyEl, text);
+    let bodyFilled = false;
+    if (bodyEl) {
+      bodyFilled = bodyEl.isContentEditable
+        ? setRichText(bodyEl, text)
+        : setFieldValue(bodyEl, text);
+    }
 
-    // Commit it. Spectora usually needs an explicit Save/Add/Done click for a
-    // new comment; without this the typed text is discarded when we navigate.
-    const saved = clickSaveNear(bodyEl);
-    await sleep(600);
-
+    // Save (inside the modal only — never hit the page's other buttons).
+    await sleep(250);
+    const saveBtn = [...modal.querySelectorAll('button,[role="button"],span,a,div')].find(
+      (b) => b.children.length === 0 && /^save$/i.test(trimText(b)) && b.offsetParent !== null
+    );
+    if (!saveBtn) {
+      return { ok: false, reason: "filled the dialog but no Save button was found", titleFilled, bodyFilled };
+    }
+    fireClick(saveBtn);
+    const closed = await waitFor(() => !findAddCommentModal(), 6000);
+    await sleep(400);
     if (collapseOpen()) await sleep(200);
-    return { ok: bodyFilled, titleFilled, bodyFilled, saved };
+
+    return {
+      ok: (titleFilled || bodyFilled) && closed,
+      titleFilled,
+      bodyFilled,
+      saved: closed,
+      reason: closed ? "" : "clicked Save but the dialog stayed open",
+    };
   }
 
   // Find and click a Save/Add/Done/Create control near the editor we just filled
