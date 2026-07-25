@@ -28,6 +28,7 @@ export const TAXONOMY: TaxonomySection[] = [
       "Roof Drainage Systems",
       "Flashings",
       "Skylights, Chimneys & Other Roof Penetrations",
+      "Roofing General",
     ],
   },
   {
@@ -40,6 +41,8 @@ export const TAXONOMY: TaxonomySection[] = [
       "Walkways, Patios & Driveways",
       "Eaves, Soffits & Fascia",
       "Vegetation, Grading, Drainage & Retaining Walls",
+      "Windows & Doors",
+      "Basement Walkout",
       "Exterior General",
     ],
   },
@@ -49,6 +52,7 @@ export const TAXONOMY: TaxonomySection[] = [
       "Basements & Crawlspaces",
       "Foundation",
       "Structural Components",
+      "Structural General",
     ],
   },
   {
@@ -73,12 +77,14 @@ export const TAXONOMY: TaxonomySection[] = [
       "Drain, Waste, & Vent Systems",
       "Hot Water Systems, Controls, Flues & Vents",
       "Fuel Storage & Distribution",
+      "Sump Pump",
       "Plumbing General",
     ],
   },
   {
     section: "Electrical",
     subsections: [
+      "Service Entrance Conductors",
       "Service & Grounding",
       "Main & Subpanels, Service & Grounding, Main Overcurrent Device",
       "Branch Wiring Circuits, Breakers & Fuses",

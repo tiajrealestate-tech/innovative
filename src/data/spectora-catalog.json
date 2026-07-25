@@ -175,6 +175,24 @@
               ]
             }
           ]
+        },
+        {
+          "item": "Roofing General",
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": []
+            }
+          ]
         }
       ]
     },
@@ -500,6 +518,42 @@
               "checkboxes": []
             }
           ]
+        },
+        {
+          "item": "Windows & Doors",
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": []
+            }
+          ]
+        },
+        {
+          "item": "Basement Walkout",
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": []
+            }
+          ]
         }
       ]
     },
@@ -597,6 +651,24 @@
           "item": "Structural Components",
           "found": false,
           "tabs": []
+        },
+        {
+          "item": "Structural General",
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": []
+            }
+          ]
         }
       ]
     },
@@ -1263,6 +1335,24 @@
               ]
             }
           ]
+        },
+        {
+          "item": "Sump Pump",
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": []
+            }
+          ]
         }
       ]
     },
@@ -1481,6 +1571,24 @@
               "checkboxes": [
                 "Electrical System"
               ]
+            }
+          ]
+        },
+        {
+          "item": "Service Entrance Conductors",
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": []
             }
           ]
         }

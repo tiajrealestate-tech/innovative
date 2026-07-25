@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.7.0
+ * Spectora Autofill — v0.7.1
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -34,13 +34,13 @@
   // If an item here is named slightly differently in Spectora it'll show up as
   // "missing" in the scan summary, which tells us exactly what to fix.
   const REPORT_MAP = [
-    ["Roof", ["Coverings", "Roof Drainage Systems", "Flashings", "Skylights, Chimneys & Other Roof Penetrations"]],
-    ["Exterior", ["Siding, Flashing & Trim", "Exterior Windows", "Exterior Doors", "Decks, Balconies, Porches & Steps", "Walkways, Patios & Driveways", "Eaves, Soffits & Fascia", "Vegetation, Grading, Drainage & Retaining Walls", "Exterior General"]],
-    ["Basement, Foundation, Crawlspace & Structure", ["Basements & Crawlspaces", "Foundation", "Structural Components"]],
+    ["Roof", ["Coverings", "Roof Drainage Systems", "Flashings", "Skylights, Chimneys & Other Roof Penetrations", "Roofing General"]],
+    ["Exterior", ["Siding, Flashing & Trim", "Exterior Windows", "Exterior Doors", "Decks, Balconies, Porches & Steps", "Walkways, Patios & Driveways", "Eaves, Soffits & Fascia", "Vegetation, Grading, Drainage & Retaining Walls", "Windows & Doors", "Basement Walkout", "Exterior General"]],
+    ["Basement, Foundation, Crawlspace & Structure", ["Basements & Crawlspaces", "Foundation", "Structural Components", "Structural General"]],
     ["Heating", ["Equipment", "Distribution Systems", "Normal Operating Controls", "Flues & Vents", "HVAC General"]],
     ["Cooling", ["Cooling Equipment", "Distribution System"]],
-    ["Plumbing", ["Main Water Shut-off Device", "Water Supply, Distribution Systems & Fixtures", "Drain, Waste, & Vent Systems", "Hot Water Systems, Controls, Flues & Vents", "Fuel Storage & Distribution", "Plumbing General"]],
-    ["Electrical", ["Service & Grounding", "Main & Subpanels, Service & Grounding, Main Overcurrent Device", "Branch Wiring Circuits, Breakers & Fuses", "Lighting Fixtures, Switches & Receptacles", "GFCI & AFCI", "Smoke & CO Detectors", "Electrical General"]],
+    ["Plumbing", ["Main Water Shut-off Device", "Water Supply, Distribution Systems & Fixtures", "Drain, Waste, & Vent Systems", "Hot Water Systems, Controls, Flues & Vents", "Fuel Storage & Distribution", "Sump Pump", "Plumbing General"]],
+    ["Electrical", ["Service Entrance Conductors", "Service & Grounding", "Main & Subpanels, Service & Grounding, Main Overcurrent Device", "Branch Wiring Circuits, Breakers & Fuses", "Lighting Fixtures, Switches & Receptacles", "GFCI & AFCI", "Smoke & CO Detectors", "Electrical General"]],
     ["Fireplace", ["Cleanout Doors & Frames", "Fireplace", "Chimney"]],
     ["Doors, Windows & Interior", ["Doors", "Windows", "Floors, Walls, Ceilings", "Stairs, Steps, Stoops, Stairways & Ramps", "Switches, Fixtures & Receptacles", "Presence of Smoke and CO Detectors"]],
     ["Attic, Insulation & Ventilation", ["Structural Components & Observations in Attic", "Insulation", "Ventilation", "Exhaust Systems"]],

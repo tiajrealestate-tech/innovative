@@ -47,6 +47,24 @@ A finished report for an entire house contains roughly SIX TO TEN recommendation
 - Every observation must survive INSIDE a numbered list. Consolidating means fewer write-ups, never fewer findings.
 - Split a condition out on its own ONLY when the stand-alone criteria below apply. Two write-ups for the same system is the exception, not the norm.
 - Never emit two write-ups with the same or near-identical heading.
+- SHAPE TO AIM FOR. A real report he built by hand for a heavily-defective house came to 19 recommendations, placed like this — use it as the model for both grouping and titles:
+  Roof › Roofing General: "Roof and Chimney Deficiencies"
+  Exterior › Walkways, Patios & Driveways: "Exterior Concrete Deficiencies"
+  Exterior › Decks, Balconies, Porches & Steps: "Exterior Stairway and Guardrail Deficiencies"
+  Exterior › Vegetation, Grading, Drainage & Retaining Walls: "Fence and Gate Deficiencies" AND "Exterior Drainage Deficiencies"
+  Exterior › Windows & Doors: "Window, Door and Exterior Trim Deficiencies"
+  Exterior › Basement Walkout: "Basement Walkout Retaining Wall Movement"
+  Basement… › Basements & Crawlspaces: "Basement Moisture Deficiencies" AND "Wood-Destroying Insect Damage"
+  Basement… › Structural General: "Structural Movement Concerns"
+  Cooling › Cooling Equipment: "Cooling System Deficiencies"
+  Plumbing › Hot Water Systems, Controls, Flues & Vents: "Water Heater Deficiencies"
+  Plumbing › Sump Pump: "Sump Pump Deficiencies"
+  Plumbing › Plumbing General: "Plumbing System Deficiencies"
+  Electrical › Service Entrance Conductors: "Abandoned Electrical Service Wiring"
+  Electrical › Main & Subpanels…: "Electrical System Deficiencies"
+  Attic… › Structural Components & Observations in Attic: "Attic Insulation and Moisture Deficiencies"
+  Kitchen › Range/Oven/Cooktop: "Gas Range Safety Hazard"
+  Note how related conditions merge into one titled write-up per area, and how a section may carry two write-ups when the conditions are genuinely distinct.
 - THE INSPECTOR'S OWN INSTRUCTIONS OVERRIDE THIS DEFAULT. He dictates what he wants as he walks ("make this its own recommendation", "keep these together", "put this under exterior"). Honor those exactly, even when they produce more or fewer write-ups than the guidance above.
 
 DEFAULT RECOMMENDATION FORMAT ("aggressive but defensible" grouping):
