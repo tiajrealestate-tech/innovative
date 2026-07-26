@@ -16,6 +16,7 @@ import { Finding, InspectionReport } from "./schema";
 import { severityLabel } from "./severity";
 import { sectionOrderIndex } from "./taxonomy";
 import { HOUSE_STYLE } from "./houseStyle";
+import { sectionItems } from "./catalog";
 
 export type ReportStyle = "standard" | "trever-2026";
 
@@ -109,7 +110,11 @@ SEVERITY RATING: every write-up carries a "severity" — the Spectora chip it is
 
 - "recommendation" — the default (~70%): genuine defects needing a qualified contractor to evaluate or repair, without immediate danger and short of major-system failure — aging (but working) systems, roof wear with life left, corrosion, moisture EVIDENCE or history without active damage, wood-destroying insect damage, isolated wiring corrections, panel rust, a few fogged window seals, trim rot, drainage and grading corrections.
 
-OUTPUT: plain text only — no markdown, bold, italics, or decorative bullets. Return ONLY the structured object requested: property_overview (string) and groups (array of {section, heading, body, severity}). In each group, "section" must be EXACTLY one of the section names given in the input (e.g. "Roof", "Exterior") — never an item name, and never a combined "Section › Item" string; the tool decides which item each write-up lands in. Use ONLY the findings provided; do not invent conditions.`;
+PLACEMENT ("item"): every group also carries an "item" — the Spectora item the write-up is filed under, chosen EXACTLY from that section's AVAILABLE ITEMS list given in the input (copy the name verbatim). Follow his real placements:
+- A write-up about one area goes in that area's item: exterior concrete -> "Walkways, Patios & Driveways"; exterior stairs/guardrails -> "Decks, Balconies, Porches & Steps"; drainage/fences/grading -> "Vegetation, Grading, Drainage & Retaining Walls"; windows/doors/trim -> "Windows & Doors"; chimney -> the Skylights/Chimneys item; water heater -> "Hot Water Systems, Controls, Flues & Vents"; sump pump -> "Sump Pump".
+- A consolidated whole-SYSTEM write-up goes in the section's "... General" item when the list has one (e.g. "Roofing General", "Plumbing General", "Electrical General", "Structural General").
+
+OUTPUT: plain text only — no markdown, bold, italics, or decorative bullets. Return ONLY the structured object requested: property_overview (string) and groups (array of {section, heading, body, severity, item}). In each group, "section" must be EXACTLY one of the section names given in the input (e.g. "Roof", "Exterior") — never an item name, and never a combined "Section › Item" string. Use ONLY the findings provided; do not invent conditions.`;
 }
 
 function findingLine(f: Finding): string {
@@ -141,9 +146,13 @@ export function buildComposeUserPrompt(
 ): string {
   const blocks = groups.map((g, i) => {
     const lines = g.findings.map(findingLine).join("\n");
+    const items = sectionItems(g.section);
+    const itemsLine = items.length
+      ? `\nAVAILABLE ITEMS: ${items.join(" | ")}`
+      : "";
     return `SECTION ${i} — ${g.section} (${g.findings.length} finding${
       g.findings.length === 1 ? "" : "s"
-    })\n${lines}`;
+    })${itemsLine}\n${lines}`;
   });
   const instrBlock = instructions && instructions.trim()
     ? `INSPECTOR INSTRUCTIONS (honor any grouping/wording directions in here; do NOT treat these as new defects):\n"""\n${instructions.trim()}\n"""\n\n`
@@ -165,6 +174,7 @@ export const COMPOSE_OUTPUT_SCHEMA = {
         additionalProperties: false,
         properties: {
           section: { type: "string" },
+          item: { type: "string" },
           heading: { type: "string" },
           body: { type: "string" },
           severity: {
@@ -172,7 +182,7 @@ export const COMPOSE_OUTPUT_SCHEMA = {
             enum: ["safety", "recommendation", "maintenance"],
           },
         },
-        required: ["section", "heading", "body", "severity"],
+        required: ["section", "item", "heading", "body", "severity"],
       },
     },
   },

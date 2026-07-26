@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
       const section = getSection(secName)?.section || secName;
       const itemHint = parts.slice(1).join(" ").trim();
       const item =
+        (g.item && getItem(section, g.item)?.item) ||
         (itemHint && getItem(section, itemHint)?.item) ||
         placementItemFor(section);
       const severity =
