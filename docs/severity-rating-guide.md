@@ -1,158 +1,545 @@
-# How Trever Rates Write-Ups — Learned From His Reports
+# How Trever Rates Write-Ups — Learned From His Report Archive
 
-Source: 131 rated write-ups extracted from ten of his published Spectora reports
-(Pauline Ct, Kirby Rd, W St SE, Midlothian Pl, Frasier Fir Ln, Wilton Oaks Dr,
-Terrapin Hills Ct, Prince Frederick Rd, Ivybridge Ct, 303 Charter Oak Ave).
-Chip counts were cross-checked against each report's own summary page.
+Source: 770 rated write-ups extracted from the 48 most recent published
+reports in his Google Drive archive (May 2024 – July 2026, including 303 Charter
+Oak Ave and the other reports shared earlier). Ratings were read from each
+write-up's chip in the PDF and cross-checked against the reports' own summary
+pages.
 
-The distilled rules live in `src/lib/houseStyle.ts` / `src/lib/compose.ts` (SEVERITY
-RATING section of the compose prompt) — that is what the app actually applies.
-This file is the evidence behind those rules; extend it as more reports are shared.
+The distilled rules live in the SEVERITY RATING section of the compose prompt
+(`src/lib/compose.ts`) — that is what the app applies. This file is the evidence
+behind those rules; regenerate it as more reports are added.
 
 ## Distribution
 
-- Recommendation: 91 (~69%) — his default
-- Maintenance Item: 29 (~22%)
-- Safety Hazard/Major Defects: 11 (~8%) — 0–1 per typical report, 4 max on a heavily-defective house
+- Recommendation: 537 (~70%) — the default
+- Maintenance Item: 145 (~19%)
+- Safety Hazard/Major Defects: 88 (~11%) — typically 1–4 per report; a distressed property can carry 17
 
-## The full labeled dataset
+## Key insight
 
-### Safety Hazard/Major Defects
+The red chip means Safety Hazard **or Major Defect**. Trever uses it for two
+different things: (1) danger to occupants, and (2) big-ticket failing systems —
+a missing sump pump, a dead or end-of-life furnace/AC/water heater/roof,
+whole-house window failure, system-wide electrical or plumbing deficiencies —
+even when nobody is in immediate danger.
 
-- **Active Moisture Intrusion, Water Damage &** — Basements & Crawlspaces *(Pauline Ct)*
-- **Hvac System Deficiencies** — Equipment *(Pauline Ct)*
-- **Plumbing System Deficiencies** — Plumbing General *(Pauline Ct)*
-- **Water Management & Suspected Crawl Space** — Basements & Crawlspaces *(Kirby Rd)*
-- **Outdated Detectors (More Than 10 Years Old)** — Smoke Detectors *(Midlothian)*
-- **Damaged Stair Tread** — Stairs, Steps, Stoops, Stairways & Ramps *(Terrapin Hills)*
-- **Damaged/Broken Window** — Exterior Windows *(Prince Frederick)*
-- **Structural Movement Concerns** — Structural General *(Charter Oak)*
-- **Water Heater Deficiencies** — Hot Water Systems, Controls, Flues & Ven *(Charter Oak)*
-- **Plumbing System Deficiencies** — Plumbing General *(Charter Oak)*
-- **Gas Range Safety Hazard** — Range/Oven/Cooktop *(Charter Oak)*
+## Safety Hazard/Major Defects — every title he used
 
-### Maintenance Item
+- Sump Pump Missing (×5)
+- Outdated Detectors (More Than 10 Years Old) (×4)
+- Electrical Deficiencies (×3)
+- Plumbing System Deficiencies (×3)
+- Moisture Intrusion Throughout Basement (×3)
+- Not Self-Closing (×2)
+- Hvac System Deficiencies (×2)
+- Electrical System Deficiencies (×2)
+- Near End Of Life Expectancy (×2)
+- Original And/Or Lower Quality Units (×2)
+- Evidence Of Substandard Renovation Work (×2)
+- Roof, Chimneys, And Drainage Systems
+- Cooling System Installation Concern
+- Active Moisture Intrusion, Water Damage &
+- Hvac System And Duct Deficiencies
+- Loose Connection At Fixture
+- Significant Attic Deficiencies
+- Damaged/Broken Window
+- Damaged Stair Tread
+- Water Heater Failure
+- Auto Reverse Sensor
+- High Moisture Levels Noted Along Foundation Wall
+- Structural Movement
+- Active Dishwasher Leak
+- Kitchen Sink Plumbing & Electrical Hazards
+- Loose Guardrail
+- Furnace Flue Installation Deficiencies
+- Aerator Missing/Damaged
+- Excessive Fogging At Sliding Glass Door Noted
+- Broken Exterior Glass Pane
+- Aged Roofing System
+- Basement Moisture Concerns
+- Significant Plumbing Deficiencies
+- Electrical System Upgrades
+- Inoperable
+- Failed Window Seals
+- Plumbing Deficiencies
+- Worn Out Surface
+- Previous Water Intrusion
+- Floor Structural Damage
+- Water Damage At Subfloor
+- Subfloor Structural Integrity Concerns
+- Heating Equipment Beyond Life Expectancy
+- Failed To Produce Cold Air
+- System Beyond Expected Service Life
+- Active Leaking Drain Pipe
+- Improper Installation And Old Plumbing Systems
+- Moisture Damage
+- Distribution System Deficiencies
+- Flickering Or Pulsating Lights
+- Low Voltage Readings
+- Faulty And Improperly Wired Gfci
+- Improper Structural Modifications
+- Improper Plumbing Installation
+- Low Water Pressure
+- Failing Windows
+- Heat Pump Performance Concerns
+- Hvac Performance Concerns
+- Inoperable Smoke Detector
+- Major Deficiencies And Professional Evaluation
+- Structural Concerns
+- Water Intrusion Damage
+- Window Deficiencies
+- Widespread Renovation Deficiencies
+- Permitting Verification
+- Limited Airflow
+- Multiple Electrical Deficiencies
+- Garage Door Inoperable
+- Federal Pacific Breaker Failure
 
-- **Exterior Maintenance Deficiencies** — Exterior General *(Kirby Rd)*
-- **Loose Connection At Fixture** — Sinks, Tubs & Showers *(W St SE)*
-- **Improper Window Sealing** — Sinks, Tubs & Showers *(W St SE)*
-- **Sink, Tub Or Shower Slow To** — Sinks, Tubs & Showers *(Midlothian)*
-- **Window Well Cover Missing** — Exterior Windows *(Frasier Fir)*
-- **Filter Dirty** — Equipment *(Frasier Fir)*
-- **Previous Leaking Cleanout** — Drain, Waste, & Vent Systems *(Frasier Fir)*
-- **Strike Plate Misalignment** — Doors *(Frasier Fir)*
-- **Missing Door Stopper** — Doors *(Frasier Fir)*
-- **Did Not Turn On** — Garbage Disposal *(Frasier Fir)*
-- **Vegetation Contacting Structure - Shrubs / Bushes** — Vegetation, Grading, Drainage & Retainin *(Wilton Oaks)*
-- **Light Bulb Inoperable** — Switches, Fixtures & Receptacles *(Wilton Oaks)*
-- **Unit Not Leveled** — Cooling Equipment *(Terrapin Hills)*
-- **Damaged Wall Covering Material** — Siding, Flashing & Trim *(Prince Frederick)*
-- **Missing Window Screens** — Exterior Windows *(Prince Frederick)*
-- **Filter Dirty** — Equipment *(Prince Frederick)*
-- **Toilet Loose Connection To Floor** — Water Supply, Distribution Systems & Fix *(Prince Frederick)*
-- **Bulb Missing** — Lighting Fixtures, Switches & Receptacle *(Prince Frederick)*
-- **Noticeable Gap** — Doors *(Prince Frederick)*
-- **Interior-Keyed Deadbolt** — Doors *(Prince Frederick)*
-- **Active Water Leak** — Sinks, Tubs & Showers *(Prince Frederick)*
-- **Loose Connection At Fixture** — Sinks, Tubs & Showers *(Prince Frederick)*
-- **Aerator Missing/Damaged** — Sinks, Tubs & Showers *(Prince Frederick)*
-- **Defect At Mounting Unit** — Dishwasher *(Prince Frederick)*
-- **Condensate Drain Line** — Cooling Equipment *(Ivybridge)*
-- **Missing/Damaged Window Screen** — Windows *(Ivybridge)*
-- **Stopper Missing** — Sinks, Tubs & Showers *(Ivybridge)*
-- **Deteriorating Caulking And Discoloration Noted** — Sinks, Tubs & Showers *(Ivybridge)*
-- **Cooling System Deficiencies** — Cooling Equipment *(Charter Oak)*
+## Maintenance Item — every title he used
 
-### Recommendation
+- Missing/Damaged Window Screen (×5)
+- Loose Connection At Fixture (×5)
+- Noticeable Gap (×5)
+- Unattached Closet Doors (×4)
+- Stopper Missing (×3)
+- Overview (×3)
+- Filter Dirty (×3)
+- Damaged Wall Covering Material (×3)
+- Unsealed Opening (×3)
+- Vegetation Contacting Structure - Shrubs / Bushes (×3)
+- Missing/Damaged Window (×3)
+- Exterior Improvements Recommended (×2)
+- Deteriorating Caulking And Discoloration Noted (×2)
+- Debris In Gutters (×2)
+- Did Not Turn On (×2)
+- Toilet Loose Connection To Floor (×2)
+- Bulb Missing (×2)
+- Defect At Mounting Unit (×2)
+- Concrete Slab- Minor Cracks (×2)
+- Light Bulb Inoperable (×2)
+- Loose Railing Component (×2)
+- Protective Cover Missing (×2)
+- Loose Receptacle (×2)
+- Rotted Wood Trim & Paint Failure On Exterior (×2)
+- Driveway Cracking - Minor (×2)
+- Caulking Loose/Deteriorated
+- Loose Protective Cover
+- Excessive Ceiling Fan Movement
+- Damaged Drywall
+- Loose Sink Fixture Connection
+- Draft Hood Exhaust Seal
+- Aging Condenser
+- Sink, Tub Or Shower Slow To
+- Condensate Drain Line
+- Plumbing Improvements
+- Window Well Cover Missing
+- Previous Leaking Cleanout
+- Strike Plate Misalignment
+- Missing Door Stopper
+- Missing Window Screens
+- Interior-Keyed Deadbolt
+- Active Water Leak
+- Aerator Missing/Damaged
+- Improper Window Sealing
+- Unit Not Leveled
+- Damaged Oven Door
+- Previous Moisture Intrusion
+- Garage Slab Crack
+- Light Did Not Turn On
+- Downspout Loose Connection
+- Deteriorated Exterior Caulking
+- Service Furnace
+- Inoperable Remote Control
+- Damaged/Missing Door Hardware
+- Wasp Nest
+- Improper Installation Of Flooring
+- Cabinet Door Clearance
+- Rusted Chimney Cap
+- Improper Access Opening
+- Interior Finish Defects
+- Dim/Failing Refrigerator Lights
+- Damaged Supply Cover
+- Defect At Fixture
+- Door Adjustment Needed
+- Improper Toilet Seal
+- Minor Roof Shingle Damage
+- Damaged Downspout
+- Damaged Wall Covering
+- Repoint Needed
+- Walkway Cracking - Minor
+- Pavers Loose And/Or Damaged
+- Side Door Adjustment
+- Cracked Walkway
+- Damaged Utility Room Insulation
+- Loose Shower Trim Components
+- Improper Dryer Exhaust Duct
+- Damaged And Off-Track Sliding Door Screen
+- Common Foundation Cracks
+- Missing Protective Bulb Cover
+- Filter Missing
+- Hose Bib Damaged
+- Damaged Door
+- Closet Doors Not Installed
+- Ice Maker Non-Functional
+- Return Register Grille Loose
+- Vegetation Contacting
+- Damaged/Missing Door
+- Fogged / Broken Seals
+- Limited Shower Access
+- Water Staining On Subfloor Structure
+- Interior Door Closure And Latch Issues
+- Door With Minor Damage
+- Window Caulk Deterioration
+- Downspouts Drain Too Close To
+- Landing/Concrete Slab Cracks -
+- Multiple Fence And Gate Defects
+- Improper Gas Connection
+- Deck Weathering
+- Vent Obstructions
+- Corrosion On Main Shut-Off And Supply Lines
+- Caulking Missing
+- Hairline Tile Cracks
 
-- **Near End Of Life Expectancy** — Coverings *(Pauline Ct)*
-- **Fire Sprinkler System Deficiencies** — Water Supply, Distribution Systems & Fix *(Pauline Ct)*
-- **Electrical System Deficiencies** — Main & Subpanels, Service & Grounding, M *(Pauline Ct)*
-- **Aging & Inoperable Windows** — Windows *(Pauline Ct)*
-- **Prior Water Penetration Observed** — Structural Components & Observations in *(Pauline Ct)*
-- **Roofing System** — Coverings *(Kirby Rd)*
-- **Hvac Installation & Moisture Concerns** — HVAC General *(Kirby Rd)*
-- **Plumbing Deficiencies** — Plumbing General *(Kirby Rd)*
-- **Electrical Safety Deficiencies** — Electrical General *(Kirby Rd)*
-- **Aging & Defective Windows** — Windows *(Kirby Rd)*
-- **Cracked Glass Pane** — Doors *(W St SE)*
-- **Prior Water Penetration Observed** — Structural Components & Observations in *(W St SE)*
-- **Compromised Party Wall** — Structural Components & Observations in *(W St SE)*
-- **Missing Fan** — Bathroom Exhaust Fan / Window *(W St SE)*
-- **Roof Coverings Wear Noted** — Coverings *(Midlothian)*
-- **Inoperable Light Fixtures** — Lighting Fixtures, Switches & Receptacle *(Midlothian)*
-- **Aging Double-Pane Windows** — Windows *(Midlothian)*
-- **Previous Water Damage On Ceiling Noted** — Floors, Walls, Ceilings *(Midlothian)*
-- **Missing Smoke Detector** — Presence of Smoke and CO Detectors *(Midlothian)*
-- **Active Water Leak At Toilet** — Bathroom Toilets *(Midlothian)*
-- **Shower Diverter Damaged** — Sinks, Tubs & Showers *(Midlothian)*
-- **Deteriorating Caulking And Discoloration Noted** — Sinks, Tubs & Showers *(Midlothian)*
-- **Gfci Improperly Wired** — GFCI & Electric in Bathroom *(Midlothian)*
-- **Downspouts Drain Too Close To Property** — Roof Drainage Systems *(Frasier Fir)*
-- **Loose And Damaged Pavers** — Walkways, Patios & Driveways *(Frasier Fir)*
-- **Corrosion** — Hot Water Systems, Controls, Flues & Ven *(Frasier Fir)*
-- **Temporary Wiring Used For Permanent Setup** — Branch Wiring Circuits, Breakers & Fuses *(Frasier Fir)*
-- **Excessive Noise From Ceiling Fan** — Lighting Fixtures, Switches & Receptacle *(Frasier Fir)*
-- **Loose Connection At Fixture** — Sinks, Tubs & Showers *(Frasier Fir)*
-- **Sink, Tub Or Shower Slow To Drain** — Sinks, Tubs & Showers *(Frasier Fir)*
-- **Deteriorating Caulking And Discoloration Noted** — Sinks, Tubs & Showers *(Frasier Fir)*
-- **Cracked Tiles** — Cabinetry, Ceiling, Walls & Floor *(Frasier Fir)*
-- **Slow To Drain** — Kitchen Sink *(Frasier Fir)*
-- **Burner Not Lighting** — Range/Oven/Cooktop *(Frasier Fir)*
-- **Downspouts Drain Too Close To Property** — Roof Drainage Systems *(Wilton Oaks)*
-- **Gutter(S) Loose** — Roof Drainage Systems *(Wilton Oaks)*
-- **Rotted Wood Trim & Paint Failure On Exterior** — Siding, Flashing & Trim *(Wilton Oaks)*
-- **Unsealed Opening** — Siding, Flashing & Trim *(Wilton Oaks)*
-- **Substandard Paint Preparation And Finish** — Decks, Balconies, Porches & Steps *(Wilton Oaks)*
-- **Service Heat Pump** — Equipment *(Wilton Oaks)*
-- **Aging Condenser** — Cooling Equipment *(Wilton Oaks)*
-- **Missing Sewer Cleanout Access** — Drain, Waste, & Vent Systems *(Wilton Oaks)*
-- **Sewer Scope** — Drain, Waste, & Vent Systems *(Wilton Oaks)*
-- **No Expansion Tank** — Hot Water Systems, Controls, Flues & Ven *(Wilton Oaks)*
-- **Dated Electrical Panel Noted** — Main & Subpanels, Service & Grounding, M *(Wilton Oaks)*
-- **Inspect Chimney, And Sweep If Needed Before Using** — Cleanout Doors & Frames *(Wilton Oaks)*
-- **Missing Fireplace Screen** — Cleanout Doors & Frames *(Wilton Oaks)*
-- **Damaged Exhaust Connection** — Bathroom Exhaust Fan / Window *(Wilton Oaks)*
-- **No Action Needed** — Results *(Wilton Oaks)*
-- **Downspouts Drain Too Close To Property** — Roof Drainage Systems *(Terrapin Hills)*
-- **Rotted Wood Trim & Paint Failure On Exterior** — Siding, Flashing & Trim *(Terrapin Hills)*
-- **Aging Sliding Glass Doors** — Exterior Doors *(Terrapin Hills)*
-- **Improper Deck Construction Practices** — Decks, Balconies, Porches & Steps *(Terrapin Hills)*
-- **Aging System Observed** — Equipment *(Terrapin Hills)*
-- **Corrosion On Main Shut-Off And Supply Lines** — Main Water Shut-o Device *(Terrapin Hills)*
-- **Damaged Sewer Cleanout With** — Drain, Waste, & Vent Systems *(Terrapin Hills)*
-- **Plumbing Deficiencies** — Water Supply, Distribution Systems & Fix *(Terrapin Hills)*
-- **Near End Of Life Expectancy** — Hot Water Systems, Controls, Flues & Ven *(Terrapin Hills)*
-- **Temporary Wiring Used For Permanent Setup** — Branch Wiring Circuits, Breakers & Fuses *(Terrapin Hills)*
-- **Protective Cover Missing** — Lighting Fixtures, Switches & Receptacle *(Terrapin Hills)*
-- **Inspect Chimney, And Sweep If** — Cleanout Doors & Frames *(Terrapin Hills)*
-- **Noticeable Gap** — Doors *(Terrapin Hills)*
-- **Broken Seal Sliding Glass Door** — Doors *(Terrapin Hills)*
-- **Fogged / Broken Seals** — Windows *(Terrapin Hills)*
-- **Aging Double-Pane Windows** — Windows *(Terrapin Hills)*
-- **Previous Water Damage Evidence** — Floors, Walls, Ceilings *(Terrapin Hills)*
-- **Refrigerator Deficiencies** — Refrigerator *(Terrapin Hills)*
-- **Downspouts Drain Too Close To Property** — Roof Drainage Systems *(Prince Frederick)*
-- **Crawlspace Improvements Recommended** — Basements & Crawlspaces *(Prince Frederick)*
-- **Uneven Cooling Performance** — Distribution System *(Prince Frederick)*
-- **Tpr Discharge Valve Improper** — Hot Water Systems, Controls, Flues & Ven *(Prince Frederick)*
-- **Rust At Electrical Panel** — Main & Subpanels, Service & Grounding, M *(Prince Frederick)*
-- **Gfci Not Testing As Functional** — GFCI & Electric in Bathroom *(Prince Frederick)*
-- **Near End Of Life Expectancy** — Coverings *(Ivybridge)*
-- **Driveway Cracking - Minor** — Walkways, Patios & Driveways *(Ivybridge)*
-- **Inspect Chimney, And Sweep If Needed Before Using** — Cleanout Doors & Frames *(Ivybridge)*
-- **Active Water Leak** — Clothes Washer *(Ivybridge)*
-- **Informe En Español — Haga Clic En El Enlace Abajo** — VER EL INFORME EN ESPAÑOL / VIEW THE SPA *(Charter Oak)*
-- **Roof And Chimney Deficiencies** — Roong General *(Charter Oak)*
-- **Exterior Concrete Deficiencies** — Walkways, Patios & Driveways *(Charter Oak)*
-- **Exterior Stairway And Guardrail Deficiencies** — Decks, Balconies, Porches & Steps *(Charter Oak)*
-- **Fence And Gate Deficiencies** — Vegetation, Grading, Drainage & Retainin *(Charter Oak)*
-- **Exterior Drainage Deficiencies** — Vegetation, Grading, Drainage & Retainin *(Charter Oak)*
-- **Window, Door And Exterior Trim Deficiencies** — Windows & Doors *(Charter Oak)*
-- **Basement Walkout Retaining Wall Movement** — Basement Walkout *(Charter Oak)*
-- **Basement Moisture Deficiencies** — Basements & Crawlspaces *(Charter Oak)*
-- **Wood-Destroying Insect Damage** — Basements & Crawlspaces *(Charter Oak)*
-- **Sump Pump Deficiencies** — Sump Pump *(Charter Oak)*
-- **Abandoned Electrical Service Wiring** — Service Entrance Conductors *(Charter Oak)*
-- **Electrical System Deficiencies** — Main & Subpanels, Service & Grounding, M *(Charter Oak)*
-- **Attic Insulation And Moisture Deficiencies** — Structural Components & Observations in *(Charter Oak)*
+## Recommendation — every title he used
+
+- Prior Water Penetration Observed (×12)
+- Near End Of Life Expectancy (×8)
+- Inspect Chimney, And Sweep If (×7)
+- Downspouts Drain Too Close To Foundation (×7)
+- Plumbing Deficiencies (×6)
+- Loose Railing Component (×6)
+- Copy & Paste Url Into Your Browser (×6)
+- Rotted Wood Trim & Paint Failure On Exterior (×6)
+- Fogged / Broken Seals (×6)
+- Previous Water Damage (×5)
+- Inspect Chimney, And Sweep If Needed Before Using (×5)
+- Dishwasher Operation Issue (×5)
+- Additional Insulation Recommended (×5)
+- Loose Connection At Fixture (×5)
+- Broken Seal Sliding Glass Door (×5)
+- Exterior Deficiencies (×4)
+- Aging Double-Pane Windows (×4)
+- Active Water Leak (×4)
+- Difficult To Operate (×4)
+- Missing Handrail (×4)
+- Old Plumbing System (×4)
+- Interior-Keyed Deadbolt (×4)
+- Tub/Shower Slow To Drain (×4)
+- Missing Gfci Protection (×4)
+- Negative Grading (×4)
+- Driveway Cracking (×4)
+- Water Dispensar Inoperable (×4)
+- Burner Not Lighting (×3)
+- Roof Coverings Wear Noted (×3)
+- Missing Smoke Detector (×3)
+- Deteriorating Caulking And Discoloration Noted (×3)
+- Gfci Improperly Wired (×3)
+- Storage/Debris In Attic (×3)
+- Downspouts Drain Too Close To Property (×3)
+- Temporary Wiring Used For Permanent Setup (×3)
+- Tpr Discharge Valve Improper (×3)
+- Gfci Not Testing As Functional (×3)
+- Protective Cover Missing (×3)
+- Uneven Floors Throughout Property (×3)
+- Unsealed Opening (×3)
+- No Expansion Tank (×3)
+- Aging Condenser (×3)
+- Loose Receptacle (×3)
+- Toilet Loose Connection To Floor (×3)
+- Overview (×3)
+- Deteriorated Condition At Deck (×3)
+- Bath Fan Did Not Turn On (×3)
+- Possible Asbestos Siding (×2)
+- Hvac System Deficiencies (×2)
+- Electrical System Deficiencies (×2)
+- Attic Insulation Deficiencies (×2)
+- Heating System Deficiencies (×2)
+- Interior Repairs Needed (×2)
+- Inoperable Light Fixtures (×2)
+- Shower Diverter Damaged (×2)
+- Driveway Cracking - Minor (×2)
+- Aging Windows (×2)
+- Active Leak At Hvac Unit (×2)
+- Unit Not Leveled (×2)
+- Corrosion (×2)
+- Missing Fan (×2)
+- Aging System Observed (×2)
+- Noticeable Gap (×2)
+- Ice Maker Non-Functional (×2)
+- Cracking (×2)
+- Moisture Intrusion (×2)
+- Defect At Discharge Hose (×2)
+- Vulnerability To Water Penetration (×2)
+- Inoperable Ceiling Fan Noted (×2)
+- Uneven Floors (×2)
+- Termite Damage (×2)
+- Caulking Loose/Deteriorated (×2)
+- Receptacle Inoperative (×2)
+- Domestic Water Too Hot (×2)
+- Dated Electrical Panel (×2)
+- Deck Structural Concerns (×2)
+- Window Well Cover Missing (×2)
+- Corrosion/Rust (×2)
+- Handrail Missing (×2)
+- Light Bulb Inoperable (×2)
+- Poor Patching (×2)
+- Improper Gas Connection (×2)
+- No Waste Line Access (×2)
+- Loose Stair Nosing (×2)
+- Downspouts Drain Too Close To (×2)
+- Soil Erosion (×2)
+- Sump Pump Missing (×2)
+- Tree Too Close (×2)
+- Range Clearance Limitation (×2)
+- Window & Door Deficiencies
+- Hvac Deficiencies
+- Attic, Insulation & Ventilation
+- Loose Guardrail(S)
+- Hole At Sewer Cap
+- Bathroom Electrical Deficiencies
+- Damaged Garage Door With Gaps
+- Roofing & Water Intrusion Concerns
+- Deck & Exterior Safety Deficiencies
+- Moisture Intrusion & Basement Conditions
+- Water Heater Deficiencies
+- Plumbing System Deficiencies
+- Interior Finish Deficiencies
+- Fire & Life Safety Deficiencies
+- Click On Link To Review Punch-List Portal
+- Basement Moisture & Systems Concerns
+- Attic Deficiencies
+- Previous Water Damage On Ceiling Noted
+- Active Water Leak At Toilet
+- Fire Sprinkler System Deficiencies
+- Aging & Inoperable Windows
+- Roof Covering Age Estimate
+- Exterior Improvements
+- Basement Walkout Moisture Conditions
+- Loose Rear Handrail
+- Bathroom Fixture Deficiencies
+- Door Doesn'T Latch
+- Uneven Flooring
+- Active Roach Infestation
+- Roof, Chimneys, And Drainage Systems
+- No Hot Water
+- Aging Windows / Dining Room Window
+- Loose And Damaged Pavers
+- Excessive Noise From Ceiling Fan
+- Sink, Tub Or Shower Slow To Drain
+- Cracked Tiles
+- Slow To Drain
+- Exterior Drainage & Settlement
+- Previous Moisture Damage At Window
+- Damaged Range Control Display
+- Basement Moisture Concerns
+- Cooling System Installation Concern
+- Bathroom Fixture Repairs Needed
+- Crawlspace Improvements Recommended
+- Uneven Cooling Performance
+- Rust At Electrical Panel
+- Cracked Glass Pane
+- Compromised Party Wall
+- Aging Sliding Glass Doors
+- Improper Deck Construction Practices
+- Corrosion On Main Shut-Off And Supply Lines
+- Damaged Sewer Cleanout With
+- Previous Water Damage Evidence
+- Refrigerator Deficiencies
+- Aged Roofing
+- Exterior Deferred Maintenance
+- Electric Baseboard Heaters
+- Cooling System Failure
+- Electrical Deficiencies
+- Interior Door Deficiencies
+- Window Deficiencies
+- Laundry Appliances
+- Aged Roof Covering
+- Retaining Wall Bowing/Movement
+- Cracked And Displaced Retaining Wall
+- Improper Exterior Repairs
+- Improper Installation
+- Missing Sump Pump
+- Evaluate 100 Amp Electrical Service
+- Stairway Illumination
+- Inadequate Refrigerator Clearance
+- Poor Ventilation
+- Moderate Wear And Tear (Flat Roof)
+- Foundation Cracks
+- Temperature Imbalance
+- Water Service Penetration And Main Shutoff Valve
+- Modified Drain, Waste, And Vent Piping
+- Window Performance Issues
+- Loose Guardrail
+- Unfinished Addition Underside
+- Foundation Moisture Concerns
+- Aging Hvac Equipment
+- Dated Electrical Panel Noted
+- Wood Rot At Door
+- Damaged/Dated Door Hardware Observed
+- Defect At Fixture
+- Moisture Staining
+- Evidence Of Water Intrusion
+- Corroded Plumbing Sections
+- Rusted Meter Box
+- Non-Water-Resistant Floor
+- Cracked/Broken Glass
+- Exterior Safety & Structural Concerns
+- Aged Hvac Equipment
+- Exterior Rehabilitation
+- Plumbing System Updates
+- Garage/Fire Separation
+- Window Maintenance
+- Interior Rehabilitation
+- Bathroom Improvements
+- Debris/Vegetation In Gutters
+- Loose And Deteriorated Caulking
+- Deteriorating Concrete And Brick Damage Noted
+- Previous Water Intrusion
+- Service Furnace
+- Aging Condensers
+- Green Discoloration At Copper Joints
+- Flue Obstruction
+- Difficult Sliding Door
+- Damaged And Loose Handrails And Guardrails
+- Damaged Or Misaligned Oven Drawer
+- Evidence Of Previous Leak
+- Sump Pump Servicing
+- Hvac Performance Deficiencies
+- Structural Movement
+- Aging Plumbing Modifications
+- Sump Pump Deficiencies
+- Service Upgrade Concerns
+- Garage Fire Separation
+- Inoperable Door Security
+- Underground Downspout Extension
+- Settlement At Concrete Steps
+- Not Level/Trip Hazard
+- Tree Overhang
+- Retaining Wall Cracking And/Or Damaged
+- Drain Dirty/Clogged
+- Guard Opening Was Too Large
+- Cracks, Displacement, And Moisture Intrusion In Retaining
+- Thermostat Inoperable
+- Missing Sewer Cap
+- Moderate Wear
+- Worn Floor Finishes
+- Toilet Did Not Flush
+- Faulty Gfci Outlet
+- Damaged Oven
+- Damaged Cabinet
+- Missing Glass Pane In Exterior
+- Deck Stairs Out Of Plumb With Structural Issues
+- Damaged Hose Bib With Active Leak
+- Excessive Noise And Vibration In Hot Water System
+- Damaged Door
+- Sliding Glass Door Latch Not
+- Pest Activity
+- Caulking Missing
+- Faulty And Improperly Wired Gfci Outlet Noted
+- Gutter Damage
+- Downspout Discharge Too Close
+- Exterior Trim And Siding
+- Driveway And Walkways
+- Deck Railings Defects
+- Window Trim Gaps
+- Foundation Walls Defects
+- Masonry Wall Movement
+- Elevated Moisture Levels
+- Main Water Shutoff Access
+- Aging Cast Iron Drainage
+- Electrical Installation Deficiencies
+- Non-Listed Smoke Detectors
+- Wall Movement Indicators
+- Uneven Floor Surfaces
+- Active Pest Activity
+- Improper Dryer Venting
+- Missing Dishwasher High-Loop
+- Gutters Missing
+- Pest Infestation In Exterior Cracks And Siding
+- Corrosion On Sprinkler Main Shut-Off And Supply Lines
+- Loose Toilet Mounting
+- Missing Component At Fixture
+- Downspout Deficiencies
+- Corroded Roof Penetration
+- Covered Deck Construction Concerns
+- Deteriorated Fencing
+- Tree Contact With Roof
+- Missing Sump Pump & Elevated Moisture
+- Improper Furnace Gas
+- Damaged Refrigerant Line
+- Limited Waste Line Acces
+- Improper Hose Bib Installation
+- Water Heater Jacket Distortion
+- Uncapped Gas Branch Line
+- Missing Outlet Covers
+- Smoke/Co Alarm Verification
+- Dated Kitchen Window
+- Cosmetic Punchlist Pictures
+- Displaced Attic Insulation
+- Exterior Maintenance Items
+- Sump Pump Concerns
+- Missing Weatherproof Exterior
+- Attic Ventilation Concerns
+- Corroded Chimney Chase Cap
+- Deteriorated Concrete Steps
+- Porch Foundation Movement
+- Cellar Door Moisture Intrusion
+- Subfloor Moisture Damage At Foundation Perimeter
+- Subfloor Moisture Damage At Sliding Door
+- Service Condenser
+- Corrosion At Water Service Components
+- Leaking Pipe
+- Toilet Drainage Leak
+- Aging Water Heater
+- Exposed Wires
+- Window Locking Deficiencies
+- Cover Plates Missing Or Damaged
+- Receptacle Is Not Gfci Protected
+- Improper Dryer Vent
+- Dishwasher Operation Issue Noted
+- Utility Limitations
+- Trim Weathering
+- Masonry Separation
+- Sliding Glass Door - Damaged
+- Foundation Vent Obstruction
+- Crawlspace Conditions
+- Aged Furnace And Venting Concerns
+- Questionable Ductwork Modifications
+- No Access To Dwv Stack
+- Concealed Sewer Cleanout Access
+- Water Distribution Pipes Corroded
+- Active Plumbing Leak
+- Weatherproof Outlet Cover
+- Outdated Smoke Detectors
+- Cracked Glass
+- Missing Plumbing Access Panel
+- Abnormal Gfci Circuit Condition
+- Range Exhaust Missing
+- Countertop Support Deficiency
+- Lintel Deterioration
+- Masonry Cracking
+- Concrete Deterioration
+- Moderate Moisture Levels In Basement
+- Foul Odors At Fixtures
+- Water Stains On Floor
+- Gas Shut-Off Valve Closed
+- Trip Hazard
+- Landing/Concrete Slab Cracks -
+- Damaged/Missing Siding
+- Deck - Rotted Wood Members
+- Basement Stairwell Drainage Concerns
+- Sump Pump With Standing Water
+- Garage Door Damage
+- Loose Sink Connection
+- Dishwasher Drainage Backup
+- Centralized Mechanical Systems
+- Damaged/Missing Door Hardware
+- Damaged / Missing Hardware At Window
+- Original And/Or Lower Quality Units
+- Video Of Sewer Line
+- Backwater Valve Restriction
+- Roof Covering Wear
+- Improper Drain Configuration
+- Missing Dishwasher High Loop
+- Damaged Burner Knob
