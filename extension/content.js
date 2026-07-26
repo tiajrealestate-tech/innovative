@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.7.8
+ * Spectora Autofill — v0.7.9
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -250,6 +250,10 @@
   // "Skylights, Chimneys & Other Roof Penetrations"). Resolve the wanted name
   // to the closest on-screen nav label; null when nothing is close enough,
   // so the caller can fall back rather than click something wrong.
+  // Section names must never be candidates when we're hunting an ITEM —
+  // "Exterior" sits inside "Exterior General" and would hijack it, sending the
+  // write-up into whatever item happened to be open (a real bug we hit).
+  const SECTION_NORMS = new Set(REPORT_MAP.map(([s]) => norm(s)));
   function resolveNavText(name) {
     const t = norm(name);
     if (!t) return null;
@@ -266,16 +270,17 @@
       const n = norm(txt);
       if (!n || seen.has(n)) continue;
       seen.add(n);
+      if (SECTION_NORMS.has(n) && n !== t) continue;
       const have = new Set(n.split(" ").filter(Boolean));
       let hit = 0;
       for (const w of want) if (have.has(w)) hit++;
       let score = hit / Math.max(want.length, have.size);
       // One name containing the other is a strong signal, but only when the
-      // shorter is a big piece of the longer — otherwise a tiny generic label
-      // ("Service & Grounding") hijacks a longer target that merely includes it.
+      // shorter is a big piece of the longer — otherwise a short generic label
+      // hijacks a longer target that merely includes it.
       const shorter = Math.min(n.length, t.length);
       const longer = Math.max(n.length, t.length);
-      if ((n.includes(t) || t.includes(n)) && shorter / longer >= 0.5) {
+      if ((n.includes(t) || t.includes(n)) && shorter / longer > 0.55) {
         score = Math.max(score, 0.75);
       }
       if (score > bestScore) {
@@ -648,23 +653,70 @@
     return false;
   }
 
-  // The modal's rating defaults to "Recommendation". For anything else, click
-  // the matching rating option inside the dialog; if no such control is
-  // visible the comment still saves at the default — never a reason to fail.
-  function pickSeverity(modal, severity) {
+  // The dialog's "Category" field is the rating (it shows the orange
+  // Recommendation pill by default). For safety/maintenance we either set the
+  // native <select> or open the dropdown and click the matching option. If no
+  // control is found the comment still saves at the default — never a reason
+  // to fail the whole placement.
+  async function pickSeverity(modal, severity) {
     const want =
       severity === "safety"
-        ? /safety\s*hazard/i
+        ? /safety\s*hazard|major\s*defect/i
         : severity === "maintenance"
-        ? /maintenance\s*item/i
+        ? /maintenance/i
         : null;
     if (!want) return false;
-    const opt = [...modal.querySelectorAll('button,[role="button"],label,span,a,div,li')].find(
+
+    // 1) A native <select> whose options include the rating names.
+    for (const sel of modal.querySelectorAll("select")) {
+      const opt = [...sel.options].find((o) => want.test(o.textContent || ""));
+      if (opt) {
+        sel.value = opt.value;
+        sel.dispatchEvent(new Event("input", { bubbles: true }));
+        sel.dispatchEvent(new Event("change", { bubbles: true }));
+        return true;
+      }
+    }
+
+    // 2) An already-visible option (some layouts show the three pills inline).
+    let opt = [...modal.querySelectorAll('button,[role="button"],label,span,a,div,li')].find(
       (el) => el.children.length === 0 && want.test(trimText(el)) && el.offsetParent !== null
     );
-    if (!opt) return false;
-    clickOnce(opt);
-    return true;
+    if (opt) {
+      clickOnce(opt);
+      await sleep(250);
+      return true;
+    }
+
+    // 3) A custom dropdown: click the control on the "Category" row, wait for
+    // the options to render (they may portal outside the dialog), pick ours.
+    const catLabel = [...modal.querySelectorAll("label,div,span")].find(
+      (el) => el.children.length === 0 && /^category$/i.test(trimText(el))
+    );
+    let trigger = null;
+    if (catLabel) {
+      const row = catLabel.closest("div");
+      trigger =
+        (row &&
+          (row.querySelector('[role="button"],button,[class*="select"],[class*="chip"],[class*="categ"]') ||
+            row.nextElementSibling)) ||
+        catLabel.nextElementSibling;
+    }
+    if (!trigger) return false;
+    clickOnce(trigger);
+    await sleep(450);
+    opt = [...document.querySelectorAll("li,div,span,button,a")].find(
+      (el) => el.children.length === 0 && want.test(trimText(el)) && el.offsetParent !== null
+    );
+    if (opt) {
+      clickOnce(opt);
+      await sleep(250);
+      return true;
+    }
+    // Close the dropdown we opened so it can't swallow the Save click.
+    document.body.click();
+    await sleep(150);
+    return false;
   }
 
   async function addCustomComment(heading, body, severity) {
@@ -711,8 +763,9 @@
         : setFieldValue(bodyEl, text);
     }
 
+    let severitySet = false;
     if (severity && severity !== "recommendation") {
-      pickSeverity(modal, severity);
+      severitySet = await pickSeverity(modal, severity);
       await sleep(250);
     }
 
@@ -735,11 +788,29 @@
     await sleep(400);
     if (collapseOpen()) await sleep(200);
 
+    // Trust but verify: the saved comment's title should now exist somewhere
+    // in the current item's comment list. A save that "succeeded" into the
+    // wrong place (or into nothing) is exactly the failure that's invisible in
+    // the final report until too late.
+    let verified = true;
+    if (closed && heading) {
+      const frag = heading.toLowerCase().slice(0, 40);
+      verified = await waitFor(
+        () =>
+          [...document.querySelectorAll("div,span,p,td,h1,h2,h3")].some(
+            (el) => el.children.length === 0 && trimText(el).toLowerCase().includes(frag)
+          ),
+        3000
+      );
+    }
+
     return {
       ok: (titleFilled || bodyFilled) && closed,
       titleFilled,
       bodyFilled,
       saved: closed,
+      verified,
+      severitySet,
       reason: closed ? "" : "clicked Save but the dialog stayed open",
     };
   }
@@ -892,8 +963,17 @@
       }
       const tabOk = await openTab("Defects");
       const r = await addCustomComment(b.heading, b.body, b.severity);
-      if (r.ok) done++;
-      else
+      if (r.ok) {
+        done++;
+        if (r.verified === false)
+          problems.push(
+            `${b.section} › ${sel.item || b.item || "?"}: saved, but "${b.heading}" is NOT visible in this item afterwards — it may have landed in the wrong place. Check it in Spectora.`
+          );
+        if (b.severity && b.severity !== "recommendation" && !r.severitySet)
+          problems.push(
+            `${b.section} › ${sel.item || b.item || "?"}: couldn't set the ${b.severity} rating — it saved as the default Recommendation. Change the Category by hand.`
+          );
+      } else
         problems.push(
           `${b.section} › ${sel.item || b.item || "?"}: ${r.reason || "couldn't fill the comment"}` +
             (tabOk ? "" : " (the Defects tab never opened)")
