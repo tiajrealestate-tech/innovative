@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.8.2
+ * Spectora Autofill — v0.8.3
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -689,6 +689,15 @@
     }
     return row ? [...row.children] : null;
   }
+  // The selected segment is tinted (orange); unselected cells are white or
+  // transparent. That's our only readable signal of which rating is active.
+  function cellSelected(cell) {
+    const els = [cell, ...cell.querySelectorAll("*")];
+    return els.some((el) => {
+      const bg = getComputedStyle(el).backgroundColor || "";
+      return bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "rgb(255, 255, 255)" && !/^rgba\(255, 255, 255/.test(bg);
+    });
+  }
   async function pickSeverity(modal, severity) {
     const idx = SEVERITY_INDEX[severity];
     if (idx == null || severity === "recommendation") return false;
@@ -701,18 +710,21 @@
     );
     if (labeled) {
       clickOnce(labeled);
-      await sleep(250);
+      await sleep(300);
       return true;
     }
 
-    // 2) The three-cell Category row, by position.
+    // 2) The three-cell Category row, by position — and VERIFY the highlight
+    // moved; a click Spectora ignored must not be reported as success.
     const cells = severityCells(modal);
-    if (cells && cells[idx]) {
-      clickOnce(cells[idx]);
-      await sleep(250);
-      return true;
-    }
-    return false;
+    if (!cells || !cells[idx]) return false;
+    const target = cells[idx].querySelector('button,[role="button"],svg,i') || cells[idx];
+    clickOnce(target);
+    await sleep(350);
+    if (cellSelected(cells[idx])) return true;
+    fireClick(target); // stronger: full sequence + native click
+    await sleep(350);
+    return cellSelected(cells[idx]);
   }
 
   async function addCustomComment(heading, body, severity) {
