@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.8.0
+ * Spectora Autofill — v0.8.1
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -658,69 +658,60 @@
     return false;
   }
 
-  // The dialog's "Category" field is the rating (it shows the orange
-  // Recommendation pill by default). For safety/maintenance we either set the
-  // native <select> or open the dropdown and click the matching option. If no
-  // control is found the comment still saves at the default — never a reason
-  // to fail the whole placement.
-  async function pickSeverity(modal, severity) {
-    const want =
-      severity === "safety"
-        ? /safety\s*hazard|major\s*defect/i
-        : severity === "maintenance"
-        ? /maintenance/i
-        : null;
-    if (!want) return false;
-
-    // 1) A native <select> whose options include the rating names.
-    for (const sel of modal.querySelectorAll("select")) {
-      const opt = [...sel.options].find((o) => want.test(o.textContent || ""));
-      if (opt) {
-        sel.value = opt.value;
-        sel.dispatchEvent(new Event("input", { bubbles: true }));
-        sel.dispatchEvent(new Event("change", { bubbles: true }));
-        return true;
-      }
-    }
-
-    // 2) An already-visible option (some layouts show the three pills inline).
-    let opt = [...modal.querySelectorAll('button,[role="button"],label,span,a,div,li')].find(
-      (el) => el.children.length === 0 && want.test(trimText(el)) && el.offsetParent !== null
-    );
-    if (opt) {
-      clickOnce(opt);
-      await sleep(250);
-      return true;
-    }
-
-    // 3) A custom dropdown: click the control on the "Category" row, wait for
-    // the options to render (they may portal outside the dialog), pick ours.
-    const catLabel = [...modal.querySelectorAll("label,div,span")].find(
+  // The dialog's "Category" field is the rating: a row of THREE icon-only
+  // buttons — wrench = Maintenance Item, minus = Recommendation (orange, the
+  // default), warning triangle = Safety Hazard/Major Defects. The names exist
+  // only as hover tooltips, so we select by aria/title when present and by
+  // POSITION otherwise. If nothing is found the comment still saves at the
+  // default — never a reason to fail the whole placement.
+  const SEVERITY_INDEX = { maintenance: 0, recommendation: 1, safety: 2 };
+  function severityCells(modal) {
+    const catLabel = [...modal.querySelectorAll("label,div,span,p")].find(
       (el) => el.children.length === 0 && /^category$/i.test(trimText(el))
     );
-    let trigger = null;
-    if (catLabel) {
-      const row = catLabel.closest("div");
-      trigger =
-        (row &&
-          (row.querySelector('[role="button"],button,[class*="select"],[class*="chip"],[class*="categ"]') ||
-            row.nextElementSibling)) ||
-        catLabel.nextElementSibling;
+    // Any container of exactly three icon-bearing cells that sits after the
+    // Category label (or anywhere in the modal when the label isn't found).
+    const rows = [...modal.querySelectorAll("div")].filter((d) => {
+      if (d.children.length !== 3) return false;
+      const kids = [...d.children];
+      return kids.every(
+        (c) =>
+          c.querySelector('svg,i,img,[class*="icon"]') ||
+          (c.children.length === 0 && !trimText(c))
+      );
+    });
+    let row = rows[0] || null;
+    if (catLabel && rows.length > 1) {
+      row =
+        rows.find(
+          (r) => catLabel.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING
+        ) || row;
     }
-    if (!trigger) return false;
-    clickOnce(trigger);
-    await sleep(450);
-    opt = [...document.querySelectorAll("li,div,span,button,a")].find(
-      (el) => el.children.length === 0 && want.test(trimText(el)) && el.offsetParent !== null
+    return row ? [...row.children] : null;
+  }
+  async function pickSeverity(modal, severity) {
+    const idx = SEVERITY_INDEX[severity];
+    if (idx == null || severity === "recommendation") return false;
+
+    // 1) A cell that names its rating via aria-label/title.
+    const want =
+      severity === "safety" ? /safety\s*hazard|major\s*defect/i : /maintenance/i;
+    const labeled = [...modal.querySelectorAll("[aria-label],[title]")].find((el) =>
+      want.test(el.getAttribute("aria-label") || el.getAttribute("title") || "")
     );
-    if (opt) {
-      clickOnce(opt);
+    if (labeled) {
+      clickOnce(labeled);
       await sleep(250);
       return true;
     }
-    // Close the dropdown we opened so it can't swallow the Save click.
-    document.body.click();
-    await sleep(150);
+
+    // 2) The three-cell Category row, by position.
+    const cells = severityCells(modal);
+    if (cells && cells[idx]) {
+      clickOnce(cells[idx]);
+      await sleep(250);
+      return true;
+    }
     return false;
   }
 
