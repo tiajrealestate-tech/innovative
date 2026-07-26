@@ -83,10 +83,21 @@ GROUPING CONTROL: you decide the grouping — a section may become one write-up 
 
 PROPERTY CONDITIONS OVERVIEW: a short, balanced summary of the ESTABLISHED findings — identify the most important systems requiring attention. Do NOT repeat every recommendation, introduce new findings, name contractors, declare the property safe or structurally sound, give negotiation advice, or over-praise.
 
-SEVERITY RATING: every write-up carries a "severity" — the Spectora chip it is filed under.
-- "safety" (Safety Hazard/Major Defects): gas leaks or gas odors, carbon monoxide / combustion-venting hazards, structural movement concerns, major electrical shock or fire hazards, active sewage, conditions an occupant could be hurt by. When the numbered list contains even one such condition, the whole write-up is "safety".
-- "maintenance" (Maintenance Item): routine upkeep with no defect urgency (servicing, cleaning, minor caulking).
-- "recommendation" for everything else — this is the default and by far the most common.
+SEVERITY RATING: every write-up carries a "severity" — the Spectora chip it is filed under. These rules were learned from 131 write-ups across ten of this inspector's real reports; follow his calibration, not generic instinct.
+
+- "safety" (Safety Hazard/Major Defects) — reserved and rare: most of his reports carry 0–1, a heavily-defective house at most 4. Used when an occupant could be harmed or a major system is failing:
+  * gas odor or suspected gas leak at an appliance ("Gas Range Safety Hazard")
+  * combustion/carbon-monoxide venting problems — damaged, dated, or improper water-heater or furnace exhaust ("Water Heater Deficiencies" when the flue is bad)
+  * significant structural movement — bulging/displaced walls, significant uneven floors, cracking at critical points ("Structural Movement Concerns")
+  * active moisture intrusion WITH water damage or chronic water management failure ("Active Moisture Intrusion, Water Damage & Structural Concerns")
+  * system-wide plumbing deficiencies — significant supply corrosion, improper shut-off connections, aged mixed drainage ("Plumbing System Deficiencies" rated safety twice in his reports)
+  * fall or injury hazards — damaged stair tread, broken window glass
+  * smoke/CO detectors outdated (>10 years) or otherwise unreliable
+  If the numbered list contains even one such condition, the whole write-up is "safety".
+
+- "maintenance" (Maintenance Item) — routine, low-cost upkeep a homeowner or handyman handles; no contractor diagnosis needed: dirty filters, inoperable bulbs, missing screens or window-well covers, deteriorating caulk, slow drains, missing stoppers/aerators, minor drips or loose connections at a fixture, door hardware (strike plates, stoppers, noticeable gaps), condensate line flushing, vegetation touching the structure, cosmetic siding damage, an unleveled condenser. A grouped write-up whose EVERY numbered condition is this kind of upkeep is "maintenance" (his "Exterior Maintenance Deficiencies" group).
+
+- "recommendation" — the default, roughly 70% of his ratings: genuine defects that need a qualified contractor to evaluate or repair but pose no immediate danger — aging/near-end-of-life systems and roofs, corrosion, moisture EVIDENCE or history (without active damage), wood-destroying insect damage, GFCI/wiring corrections, panel rust, fogged window seals, trim rot, drainage and grading corrections.
 
 OUTPUT: plain text only — no markdown, bold, italics, or decorative bullets. Return ONLY the structured object requested: property_overview (string) and groups (array of {section, heading, body, severity}). In each group, "section" must be EXACTLY one of the section names given in the input (e.g. "Roof", "Exterior") — never an item name, and never a combined "Section › Item" string; the tool decides which item each write-up lands in. Use ONLY the findings provided; do not invent conditions.`;
 }
