@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.7.9
+ * Spectora Autofill — v0.8.0
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -436,8 +436,13 @@
         continue;
       }
       if (!(await selectItem(grp.item))) {
-        problems.push(`Item not found: ${grp.item} (in ${grp.section})`);
-        continue;
+        // It may be an optional item this report hasn't added yet.
+        if ((await addOptionalItem(grp.item)) && (await selectItem(grp.item))) {
+          log(`  Added optional item "${grp.item}" to ${grp.section}.`);
+        } else {
+          problems.push(`Item not found: ${grp.item} (in ${grp.section})`);
+          continue;
+        }
       }
       if (!(await openTab(grp.tab))) {
         problems.push(`Tab not found: ${grp.tab} (in ${grp.section} › ${grp.item})`);
@@ -839,6 +844,62 @@
     return null;
   }
 
+  // ---- optional items ------------------------------------------------------
+  // Items like "Structural General", "Plumbing General" or "Range/Oven/Cooktop"
+  // often aren't in a report until added: the section's "+ ITEM" opens a New
+  // Item dialog whose "ADD AN OPTIONAL ITEM" list carries the template's
+  // optional items. The inspector adds these by hand when he needs them — do
+  // the same before falling back to a different item.
+
+  // The innermost visible element whose text satisfies `pred` (a container
+  // matching the same text as its child is skipped).
+  function deepestByText(pred) {
+    const all = [...document.querySelectorAll("button,[role='button'],a,span,div,h1,h2,h3,label,li,p")].filter(
+      (el) =>
+        el.offsetParent !== null &&
+        pred(trimText(el)) &&
+        ![...el.children].some((c) => pred(trimText(c)))
+    );
+    return all[0] || null;
+  }
+
+  async function addOptionalItem(itemName) {
+    const plus = deepestByText((t) => /^\+?\s*item$/i.test(t));
+    if (!plus) return false;
+    clickOnce(plus);
+    const isDlg = (t) => /^add an optional item$/i.test(t);
+    if (!(await waitFor(() => !!deepestByText(isDlg), 5000))) return false;
+    const wanted = (t) => norm(t) === norm(itemName);
+    // The optional list may start collapsed — clicking its header expands it.
+    let entry = deepestByText(wanted);
+    if (!entry) {
+      clickOnce(deepestByText(isDlg));
+      await sleep(500);
+      entry = deepestByText(wanted);
+    }
+    if (!entry) {
+      const cancel = deepestByText((t) => /^cancel$/i.test(t));
+      if (cancel) clickOnce(cancel);
+      await sleep(300);
+      return false;
+    }
+    // Tick the row's checkbox (or the label itself when no input is nearby).
+    let box = null;
+    let node = entry;
+    for (let i = 0; i < 4 && node && !box; i++) {
+      box = node.querySelector ? node.querySelector('input[type="checkbox"]') : null;
+      node = node.parentElement;
+    }
+    clickOnce(box || entry);
+    await sleep(300);
+    const addBtn = deepestByText((t) => /^add optional items?$/i.test(t));
+    if (!addBtn) return false;
+    clickOnce(addBtn);
+    await waitFor(() => !deepestByText(isDlg), 5000);
+    await sleep(800); // let the item list refresh
+    return true;
+  }
+
   // Debug: click "Add" and report exactly what appears, so we can target the
   // real comment editor instead of guessing.
   async function debugClickAdd() {
@@ -925,6 +986,14 @@
   async function selectItemWithFallback(section, item, log) {
     if (!item) return { ok: true, item: "" };
     if (await selectItem(item)) return { ok: true, item };
+    // The item may be an OPTIONAL item of this section (that's how his
+    // template ships "… General" items) — add it, then select it.
+    if (await addOptionalItem(item)) {
+      if (await selectItem(item)) {
+        log(`  Added optional item "${item}" to ${section}.`);
+        return { ok: true, item };
+      }
+    }
     const entry = REPORT_MAP.find(([s]) => norm(s) === norm(section));
     const list = entry ? entry[1] : [];
     const ordered = [
