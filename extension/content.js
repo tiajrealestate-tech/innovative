@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.8.1
+ * Spectora Autofill — v0.8.2
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -716,13 +716,23 @@
   }
 
   async function addCustomComment(heading, body, severity) {
+    await closeAnyDialog();
     if (!clickByTextOnce("Add") && !clickByTextOnce("+ Add")) {
       return { ok: false, reason: "'Add' control not found" };
     }
 
-    const modal = (await waitFor(() => !!findAddCommentModal(), 6000))
+    let modal = (await waitFor(() => !!findAddCommentModal(), 6000))
       ? findAddCommentModal()
       : null;
+    if (!modal) {
+      // A stray overlay may have eaten the click — clear it and try once more.
+      await closeAnyDialog();
+      await sleep(400);
+      clickByTextOnce("Add") || clickByTextOnce("+ Add");
+      modal = (await waitFor(() => !!findAddCommentModal(), 5000))
+        ? findAddCommentModal()
+        : null;
+    }
     if (!modal) return { ok: false, reason: "'Add a new Comment' dialog did not open" };
     // Spectora uses Froala; its contenteditable surface (.fr-element) is created
     // a moment AFTER the dialog appears. Writing before it exists lands in the
@@ -854,7 +864,26 @@
     return all[0] || null;
   }
 
+  // Any modal we know of still on screen? A half-closed "New Item" dialog
+  // blocks every later click (the exact cascade that cost three write-ups in
+  // one run), so flows close strays before and after doing their work.
+  function dialogOpen() {
+    return !!deepestByText((t) => /^(add a new comment|new item)$/i.test(t));
+  }
+  async function closeAnyDialog() {
+    if (!dialogOpen()) return;
+    const cancel = deepestByText((t) => /^cancel$/i.test(t));
+    if (cancel) clickOnce(cancel);
+    for (const target of [document, document.body]) {
+      target.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", keyCode: 27, bubbles: true })
+      );
+    }
+    await sleep(500);
+  }
+
   async function addOptionalItem(itemName) {
+    await closeAnyDialog();
     const plus = deepestByText((t) => /^\+?\s*item$/i.test(t));
     if (!plus) return false;
     clickOnce(plus);
@@ -886,7 +915,8 @@
     const addBtn = deepestByText((t) => /^add optional items?$/i.test(t));
     if (!addBtn) return false;
     clickOnce(addBtn);
-    await waitFor(() => !deepestByText(isDlg), 5000);
+    await waitFor(() => !dialogOpen(), 6000);
+    await closeAnyDialog(); // a stuck dialog here poisons every later step
     await sleep(800); // let the item list refresh
     return true;
   }
