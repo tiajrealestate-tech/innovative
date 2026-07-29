@@ -76,16 +76,66 @@ export async function POST(req: NextRequest) {
         .filter((i) => !seen.has(i));
     };
 
+    // Naming a hazardous material IS the finding. Consolidation can mark a
+    // finding "covered" while generalising the term out of the prose —
+    // suspected polybutylene became "a mixture of piping materials" on one
+    // run — so the words themselves are checked, not just the indexes.
+    const HAZARD_TERMS = [
+      "polybutylene",
+      "asbestos",
+      "lead",
+      "radon",
+      "termite",
+      "wood-destroying",
+      "wdi",
+      "carbon monoxide",
+      "gas odor",
+      "gas leak",
+      "mold-like",
+      "aluminum wiring",
+      "knob and tube",
+      "federal pacific",
+      "zinsco",
+    ];
+    const droppedTerms = (p: Omit<ComposedReport, "style">) => {
+      const text = (p.groups || [])
+        .map((g) => `${g.heading} ${g.body}`)
+        .join(" ")
+        .toLowerCase();
+      const out = new Set<string>();
+      for (const f of ordered) {
+        const hay = `${f.title} ${f.comment}`.toLowerCase();
+        for (const t of HAZARD_TERMS)
+          if (hay.includes(t) && !text.includes(t)) out.add(t);
+      }
+      return [...out];
+    };
+
     let parsed = await runCompose(basePrompt);
     let missing = uncovered(parsed);
-    if (missing.length) {
-      const list = missing
-        .map((i) => `[F${i}] ${ordered[i].title}: ${ordered[i].comment}`)
-        .join("\n");
+    let dropped = droppedTerms(parsed);
+    if (missing.length || dropped.length) {
+      const parts: string[] = [];
+      if (missing.length)
+        parts.push(
+          `These findings were LEFT OUT entirely — fold each into the write-up where it belongs, or give it its own:\n` +
+            missing
+              .map((i) => `[F${i}] ${ordered[i].title}: ${ordered[i].comment}`)
+              .join("\n")
+        );
+      if (dropped.length)
+        parts.push(
+          `These terms appear in the findings but were generalised out of the write-ups: ${dropped.join(
+            ", "
+          )}. Naming the material IS the finding — state each one explicitly, and rate a suspected material hazard the way he does.`
+        );
       parsed = await runCompose(
-        `${basePrompt}\n\nA previous attempt LEFT OUT the findings below. Produce the complete report again with every finding covered, these included — fold each into the write-up where it belongs, or give it its own:\n${list}`
+        `${basePrompt}\n\nA previous attempt had problems. Produce the complete report again, fixing them.\n\n${parts.join(
+          "\n\n"
+        )}`
       );
       missing = uncovered(parsed);
+      dropped = droppedTerms(parsed);
     }
     // Consolidated write-ups belong in the section's "… General" item, which is
     // where Trever's real reports put them (and why those items carry no
@@ -153,6 +203,7 @@ export async function POST(req: NextRequest) {
         comment: ordered[i].comment,
         section: ordered[i].section,
       })),
+      droppedTerms: dropped,
     });
   } catch (error) {
     return NextResponse.json(

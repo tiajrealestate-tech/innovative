@@ -680,6 +680,7 @@ function EntryTab({
   const [missing, setMissing] = useState<
     { title: string; comment: string; section: string }[]
   >([]);
+  const [droppedTerms, setDroppedTerms] = useState<string[]>([]);
   const [composeError, setComposeError] = useState<string | null>(null);
 
   function copy(text: string, id: string) {
@@ -704,6 +705,7 @@ function EntryTab({
         if (!res.ok) throw new Error(data?.error || "Could not write up the report.");
         setComposed(data.composed as ComposedReportData);
         setMissing(Array.isArray(data.missing) ? data.missing : []);
+        setDroppedTerms(Array.isArray(data.droppedTerms) ? data.droppedTerms : []);
       } catch (e) {
         setComposeError((e as Error).message);
       } finally {
@@ -743,6 +745,15 @@ function EntryTab({
         </div>
         {composing && <p className="text-sm text-gray-500">Writing up the report…</p>}
         {composeError && <p className="text-sm text-red-600">{composeError}</p>}
+        {droppedTerms.length > 0 && (
+          <div className="rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-900">
+            <span className="font-semibold">
+              Named in your findings but missing from the write-ups:
+            </span>{" "}
+            {droppedTerms.join(", ")}. Add the term explicitly — naming the material is
+            the finding.
+          </div>
+        )}
         {missing.length > 0 && (
           <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
             <div className="text-sm font-semibold text-amber-900">
