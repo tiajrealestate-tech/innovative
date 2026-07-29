@@ -36,15 +36,32 @@ export const HAZARD_TERMS = [
 ] as const;
 
 /**
+ * The subset safe to check against a RAW TRANSCRIPT. "Galvanized" and
+ * "cast iron" are routinely dictated as pipe/drain MATERIALS (information, not
+ * findings), so checking them against the transcript forces a retry that can
+ * never succeed — which is exactly how a 6th St extraction ran two full passes
+ * and timed out. They stay in the full list, which is only compared against
+ * finding text, where their presence really does mean a deficiency mentioned
+ * them.
+ */
+export const CRITICAL_HAZARD_TERMS = HAZARD_TERMS.filter(
+  (t) => t !== "galvanized" && t !== "cast iron"
+);
+
+/**
  * Terms the source text mentions that the produced text does not. Matching is
  * plain substring on lowercased text — these are distinctive words, so that is
  * precise enough and cannot silently fail the way a model self-check can.
  */
-export function droppedHazardTerms(source: string, produced: string): string[] {
+export function droppedHazardTerms(
+  source: string,
+  produced: string,
+  terms: readonly string[] = HAZARD_TERMS
+): string[] {
   const src = (source || "").toLowerCase();
   const out = (produced || "").toLowerCase();
   const missing: string[] = [];
-  for (const term of HAZARD_TERMS) {
+  for (const term of terms) {
     if (src.includes(term) && !out.includes(term)) missing.push(term);
   }
   return missing;

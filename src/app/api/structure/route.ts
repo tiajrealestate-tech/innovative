@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompt";
-import { droppedHazardTerms } from "@/lib/hazardTerms";
+import { CRITICAL_HAZARD_TERMS, droppedHazardTerms } from "@/lib/hazardTerms";
 import {
   CLAUDE_OUTPUT_SCHEMA,
   ClaudeRawOutput,
@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
     // Structure ONE chunk of transcript into raw findings + details. Opus with
     // medium effort — the house-style rules (CYA wording, forbidden terms,
     // consolidation) reward careful reading, and the Pro 300s budget affords it.
+    const startedAt = Date.now();
     async function structureChunk(text: string): Promise<ClaudeRawOutput> {
       // Streamed: the SDK requires streaming once max_tokens is large enough that
       // a request could run long. finalMessage() still yields the whole result.
@@ -127,8 +128,12 @@ export async function POST(req: NextRequest) {
       const findingsText = (parsed.findings || [])
         .map((f: any) => `${f.title} ${f.comment} ${f.source_text || ""}`)
         .join(" ");
-      const lost = droppedHazardTerms(text, findingsText);
+      // Critical terms only against a raw transcript (materials dictated as
+      // information would force a retry that can never succeed), and no retry
+      // when there isn't time left for a second full pass.
+      const lost = droppedHazardTerms(text, findingsText, CRITICAL_HAZARD_TERMS);
       if (!lost.length) return parsed;
+      if (Date.now() - startedAt > 130_000) return parsed;
 
       const retry = await anthropic.messages.stream({
         model: "claude-opus-5",

@@ -15,7 +15,7 @@ import {
   getSection,
   placementItemFor,
 } from "@/lib/catalog";
-import { droppedHazardTerms } from "@/lib/hazardTerms";
+import { CRITICAL_HAZARD_TERMS, droppedHazardTerms } from "@/lib/hazardTerms";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // seconds (Vercel Pro)
@@ -84,15 +84,19 @@ export async function POST(req: NextRequest) {
     // Checked against the FINDINGS *and* the raw transcript: if extraction had
     // already generalised the word away, no finding would carry it and this
     // check would have nothing to fire on.
-    const sourceText = [
-      ordered.map((f) => `${f.title} ${f.comment}`).join(" "),
-      instructions,
-    ].join(" ");
-    const droppedTerms = (p: Omit<ComposedReport, "style">) =>
-      droppedHazardTerms(
-        sourceText,
-        (p.groups || []).map((g) => `${g.heading} ${g.body}`).join(" ")
-      );
+    const findingsText = ordered.map((f) => `${f.title} ${f.comment}`).join(" ");
+    const droppedTerms = (p: Omit<ComposedReport, "style">) => {
+      const prose = (p.groups || []).map((g) => `${g.heading} ${g.body}`).join(" ");
+      // Full list against the findings (a term there always belongs in the
+      // report); critical subset only against the raw transcript, where words
+      // like "galvanized" are routinely just dictated pipe materials.
+      return [
+        ...new Set([
+          ...droppedHazardTerms(findingsText, prose),
+          ...droppedHazardTerms(instructions, prose, CRITICAL_HAZARD_TERMS),
+        ]),
+      ];
+    };
 
     let parsed = await runCompose(basePrompt);
     let missing = uncovered(parsed);
