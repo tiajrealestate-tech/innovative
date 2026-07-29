@@ -97,6 +97,9 @@ export async function POST(req: NextRequest) {
     let parsed = await runCompose(basePrompt);
     let missing = uncovered(parsed);
     let dropped = droppedTerms(parsed);
+    const retryReasons: string[] = [];
+    if (missing.length) retryReasons.push(`${missing.length} finding(s) left out`);
+    if (dropped.length) retryReasons.push(`terms generalised: ${dropped.join(", ")}`);
     if (missing.length || dropped.length) {
       const parts: string[] = [];
       if (missing.length)
@@ -120,6 +123,34 @@ export async function POST(req: NextRequest) {
       missing = uncovered(parsed);
       dropped = droppedTerms(parsed);
     }
+    const retried = retryReasons.length > 0;
+
+    // Last resort: if a named hazard STILL isn't in the prose after the retry,
+    // stop asking and append the finding as its own write-up. Losing
+    // "polybutylene" because a model kept paraphrasing it is not an acceptable
+    // outcome, and a plain write-up is better than a missing one.
+    const appended: string[] = [];
+    for (const term of [...dropped]) {
+      const f = ordered.find((x) =>
+        `${x.title} ${x.comment}`.toLowerCase().includes(term)
+      );
+      if (!f) continue; // said in the transcript but never became a finding
+      (parsed.groups ||= []).push({
+        section: f.section,
+        heading: f.title,
+        body: f.comment,
+        severity:
+          f.severity === "safety_major"
+            ? "safety"
+            : f.severity === "maintenance"
+            ? "maintenance"
+            : "recommendation",
+        box_label: null,
+        finding_indexes: [],
+      });
+      appended.push(term);
+    }
+    dropped = droppedTerms(parsed);
     // Consolidated write-ups belong in the section's "… General" item, which is
     // where Trever's real reports put them (and why those items carry no
     // library checkboxes). The model sometimes returns a combined
@@ -187,6 +218,13 @@ export async function POST(req: NextRequest) {
         section: ordered[i].section,
       })),
       droppedTerms: dropped,
+      // Visible proof of what the safeguards actually did on this run.
+      checks: {
+        findings: ordered.length,
+        retried,
+        retryReasons,
+        appendedTerms: appended,
+      },
     });
   } catch (error) {
     return NextResponse.json(

@@ -681,6 +681,12 @@ function EntryTab({
     { title: string; comment: string; section: string }[]
   >([]);
   const [droppedTerms, setDroppedTerms] = useState<string[]>([]);
+  const [checks, setChecks] = useState<{
+    findings: number;
+    retried: boolean;
+    retryReasons: string[];
+    appendedTerms: string[];
+  } | null>(null);
   const [composeError, setComposeError] = useState<string | null>(null);
 
   function copy(text: string, id: string) {
@@ -706,6 +712,7 @@ function EntryTab({
         setComposed(data.composed as ComposedReportData);
         setMissing(Array.isArray(data.missing) ? data.missing : []);
         setDroppedTerms(Array.isArray(data.droppedTerms) ? data.droppedTerms : []);
+        setChecks(data.checks ?? null);
       } catch (e) {
         setComposeError((e as Error).message);
       } finally {
@@ -745,6 +752,17 @@ function EntryTab({
         </div>
         {composing && <p className="text-sm text-gray-500">Writing up the report…</p>}
         {composeError && <p className="text-sm text-red-600">{composeError}</p>}
+        {checks && (
+          <p className="text-xs text-gray-500">
+            Coverage check: {checks.findings} findings ·{" "}
+            {checks.retried
+              ? `re-run once (${checks.retryReasons.join("; ")})`
+              : "passed first time"}
+            {checks.appendedTerms.length
+              ? ` · added back by the tool: ${checks.appendedTerms.join(", ")}`
+              : ""}
+          </p>
+        )}
         {droppedTerms.length > 0 && (
           <div className="rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-900">
             <span className="font-semibold">
