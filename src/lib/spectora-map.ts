@@ -237,6 +237,8 @@ You get the inspector's walkthrough transcript and the list of Information check
 
 RULES
 - Select a checkbox ONLY when the transcript actually states or clearly implies that fact. Never guess a brand, material, size, or location that was not mentioned.
+- A LATER STATEMENT OVERRIDES AN EARLIER ONE. Inspectors correct themselves as they go ("roof inspection method drone" … later "update: from the ground"; "entry door fiberglass" … later "it's actually solid wood"; "three gable vents" … later "update, only two"). Select only the corrected fact, never the superseded one. When he says to remove or delete something, do not select it at all.
+- Ignore blunt or informal narration, conversation with the client, and anything dictated for a separate document; select only descriptive facts about the property.
 - Copy each label EXACTLY as written in the candidate list, along with its section and item.
 - Multiple boxes may apply to one item (e.g. both a material and a fuel type).
 - Selecting nothing for an item is correct when the transcript says nothing about it.

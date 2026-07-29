@@ -30,6 +30,25 @@ For each finding:
 3. Assign a SEVERITY tier and a RECOMMENDATION TYPE.
 4. Capture inspection-level details if mentioned (property address, client, client's agent, inspection date, inspector name); return null for anything not mentioned.
 
+WHAT IN THE TRANSCRIPT IS AND IS NOT A FINDING
+A dictated walkthrough is mostly not findings. Classify every passage before writing anything.
+
+WRITE UP:
+- Dictated observations of a condition ("observed rust and corrosion at the metal flue liner").
+- A real condition mentioned in passing while he is talking to somebody else. If he explains to the client "this door is supposed to be self-closing, we just have to replace this hinge", the finding is that the garage occupant door is not self-closing.
+
+DO NOT WRITE UP:
+- RETRACTIONS AND CORRECTIONS. A later statement always overrides an earlier one. When he withdraws something ("take that out of the report", "disregard that", "update — it was actually adequate"), the earlier condition must NOT appear anywhere in the output. When he corrects a fact — the roof inspection method, a count, a material — only the corrected version survives.
+- LAYMAN'S TERMS, EDITORIALISING AND PROFANITY. He often narrates bluntly to convey how bad something is ("this is a hot mess", "lipstick on a pig", "we're not sugarcoating this one"). That is CONTEXT, never content. Let it inform how serious the finding is, how broad its scope is, and whether concealed damage is likely enough to warrant explicit CYA language — then state the condition in professional observation language. Never quote or paraphrase his informal wording, and never carry profanity or slang into any field.
+- TEACHING AND SMALL TALK. Explaining to the client how a system works, why something matters, insurance or process talk, and asides ("one second… okay, got it") are not findings. Pull out any actual condition named inside them and drop the explanation.
+- INSTRUCTIONS TO THE REPORT WRITER. "Name this recommendation building envelope deficiencies", "make that all one recommendation", "add that to the window recommendation", "clean that up as necessary" are directions to obey later — never conditions to report. Do not turn one into a finding.
+- ITEMS DICTATED FOR A SEPARATE DELIVERABLE. When he assembles a list for another document — a VA appraisal list, an FHA advisory, a note for the agent — those belong to that document, not to these findings. Skip the list itself; each condition in it was already observed somewhere else in the walkthrough and is captured there.
+- INFORMATION. Materials, brands, capacities, locations and "X was inspected" statements are descriptive facts, not deficiencies. They are collected by a separate pass; do not make them findings.
+
+FLAG, DO NOT ASSERT:
+- When he explicitly defers judgment ("confirm this before writing it up", "double check whether that applies to electric", "I believe this is inadequate but verify"), still create the finding so it cannot be lost, but lower "confidence", add "needs_confirmation" to "flags", and word the comment as something to be verified rather than an established defect.
+- Where the transcript is marked unclear or inaudible, never guess at the missing content.
+
 REPORT TAXONOMY (use these exact section names; pick the closest subsection):
 ${taxonomyForPrompt()}
 

@@ -184,7 +184,13 @@ export function buildComposeUserPrompt(
     })${itemsLine}${boxLines}\n${lines}`;
   });
   const instrBlock = instructions && instructions.trim()
-    ? `INSPECTOR INSTRUCTIONS (honor any grouping/wording directions in here; do NOT treat these as new defects):\n"""\n${instructions.trim()}\n"""\n\n`
+    ? `INSPECTOR INSTRUCTIONS — his raw walkthrough. Read it for DIRECTIONS ONLY; the findings above are the conditions to write up, and nothing here is a new defect.
+- OBEY explicit directions about the report: what to name a recommendation ("name this one building envelope deficiencies"), what to combine ("make that all one recommendation", "add that to the window recommendation"), and what to keep separate. These override the default grouping.
+- HONOUR RETRACTIONS. A later statement beats an earlier one. Anything he took back ("take that out of the report") must not appear, and a corrected fact replaces the original.
+- His blunt, informal narration ("hot mess", "lipstick on a pig", profanity) is CONTEXT for how serious and how broad a write-up should be and whether concealed damage warrants explicit CYA language. Never quote or echo that wording — write in his professional report voice.
+- Conversation with the client, teaching, and asides are not content.
+- Items he dictates for a SEPARATE deliverable (VA appraisal list, FHA advisory, a note for the agent) belong to that document. Do not create a write-up for the list itself.
+"""\n${instructions.trim()}\n"""\n\n`
     : "";
   return `${instrBlock}Write the Property Overview, then the write-ups in Trever's 2026 style. Group the findings sensibly — a section may become one write-up or several, and you may split out any item the inspector asked to keep separate.\n\n${blocks.join(
     "\n\n"
