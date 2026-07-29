@@ -38,7 +38,12 @@ function mergeDetails(
 // consolidate findings it sees together. With Opus on the Pro 300s budget,
 // virtually every real walkthrough fits in one call; chunking is a safety net
 // for extreme transcripts only.
-function chunkTranscript(t: string, targetChars = 24000, maxChunks = 3): string[] {
+// 14k chars: a 21k multi-unit walkthrough (80+ findings) timed out twice as a
+// single pass — the model cannot write that many findings inside the 300s
+// budget. Two parallel ~11k chunks finish in roughly half the wall-clock time.
+// Chunks split at paragraph boundaries, and stitched Plaud transcripts label
+// each recording with its unit, so per-chunk unit context survives the split.
+function chunkTranscript(t: string, targetChars = 14000, maxChunks = 3): string[] {
   const trimmed = t.trim();
   if (trimmed.length <= targetChars) return [trimmed];
   // Grow the target so we never produce more than ~maxChunks chunks (this also

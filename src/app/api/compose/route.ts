@@ -98,13 +98,17 @@ export async function POST(req: NextRequest) {
       ];
     };
 
+    const startedAt = Date.now();
     let parsed = await runCompose(basePrompt);
     let missing = uncovered(parsed);
     let dropped = droppedTerms(parsed);
     const retryReasons: string[] = [];
     if (missing.length) retryReasons.push(`${missing.length} finding(s) left out`);
     if (dropped.length) retryReasons.push(`terms generalised: ${dropped.join(", ")}`);
-    if (missing.length || dropped.length) {
+    // No retry without time for one: a big multi-unit report can spend most of
+    // the 300s budget on its first pass, and a timeout loses everything while
+    // the append-fallback below still guarantees named hazards survive.
+    if ((missing.length || dropped.length) && Date.now() - startedAt < 140_000) {
       const parts: string[] = [];
       if (missing.length)
         parts.push(
