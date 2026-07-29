@@ -15,6 +15,7 @@ import {
   getSection,
   placementItemFor,
 } from "@/lib/catalog";
+import { droppedHazardTerms } from "@/lib/hazardTerms";
 
 export const runtime = "nodejs";
 export const maxDuration = 300; // seconds (Vercel Pro)
@@ -80,36 +81,18 @@ export async function POST(req: NextRequest) {
     // finding "covered" while generalising the term out of the prose —
     // suspected polybutylene became "a mixture of piping materials" on one
     // run — so the words themselves are checked, not just the indexes.
-    const HAZARD_TERMS = [
-      "polybutylene",
-      "asbestos",
-      "lead",
-      "radon",
-      "termite",
-      "wood-destroying",
-      "wdi",
-      "carbon monoxide",
-      "gas odor",
-      "gas leak",
-      "mold-like",
-      "aluminum wiring",
-      "knob and tube",
-      "federal pacific",
-      "zinsco",
-    ];
-    const droppedTerms = (p: Omit<ComposedReport, "style">) => {
-      const text = (p.groups || [])
-        .map((g) => `${g.heading} ${g.body}`)
-        .join(" ")
-        .toLowerCase();
-      const out = new Set<string>();
-      for (const f of ordered) {
-        const hay = `${f.title} ${f.comment}`.toLowerCase();
-        for (const t of HAZARD_TERMS)
-          if (hay.includes(t) && !text.includes(t)) out.add(t);
-      }
-      return [...out];
-    };
+    // Checked against the FINDINGS *and* the raw transcript: if extraction had
+    // already generalised the word away, no finding would carry it and this
+    // check would have nothing to fire on.
+    const sourceText = [
+      ordered.map((f) => `${f.title} ${f.comment}`).join(" "),
+      instructions,
+    ].join(" ");
+    const droppedTerms = (p: Omit<ComposedReport, "style">) =>
+      droppedHazardTerms(
+        sourceText,
+        (p.groups || []).map((g) => `${g.heading} ${g.body}`).join(" ")
+      );
 
     let parsed = await runCompose(basePrompt);
     let missing = uncovered(parsed);

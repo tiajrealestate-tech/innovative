@@ -1,0 +1,51 @@
+// =============================================================================
+// HAZARD TERMS — words whose presence IS the finding.
+// -----------------------------------------------------------------------------
+// "Possible polybutylene supply piping" carries the whole weight of a plumbing
+// write-up: the material's failure history is why the inspector rates it a
+// safety hazard and titles the write-up after it. Generalising it to "a mixture
+// of piping materials" keeps the sentence and destroys the finding — and no
+// coverage check based on counting findings can see that happen.
+//
+// So these specific terms are tracked by NAME from the transcript all the way
+// through to the composed write-ups. If the inspector said one and the output
+// doesn't, something was lost and the step is retried.
+// =============================================================================
+
+export const HAZARD_TERMS = [
+  "polybutylene",
+  "poly-b",
+  "asbestos",
+  "lead paint",
+  "lead pipe",
+  "radon",
+  "termite",
+  "wood-destroying",
+  "wdi",
+  "carbon monoxide",
+  "gas odor",
+  "gas leak",
+  "mold-like",
+  "aluminum wiring",
+  "knob and tube",
+  "federal pacific",
+  "zinsco",
+  "kitec",
+  "galvanized",
+  "cast iron",
+] as const;
+
+/**
+ * Terms the source text mentions that the produced text does not. Matching is
+ * plain substring on lowercased text — these are distinctive words, so that is
+ * precise enough and cannot silently fail the way a model self-check can.
+ */
+export function droppedHazardTerms(source: string, produced: string): string[] {
+  const src = (source || "").toLowerCase();
+  const out = (produced || "").toLowerCase();
+  const missing: string[] = [];
+  for (const term of HAZARD_TERMS) {
+    if (src.includes(term) && !out.includes(term)) missing.push(term);
+  }
+  return missing;
+}

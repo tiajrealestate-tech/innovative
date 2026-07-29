@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { buildSystemPrompt, buildUserPrompt } from "@/lib/prompt";
+import { droppedHazardTerms } from "@/lib/hazardTerms";
 import {
   CLAUDE_OUTPUT_SCHEMA,
   ClaudeRawOutput,
@@ -118,7 +119,43 @@ export async function POST(req: NextRequest) {
           "This walkthrough produced more findings than fit in one response. Try splitting the transcript into two shorter passes."
         );
       }
-      return JSON.parse(textBlock.text) as ClaudeRawOutput;
+      const parsed = JSON.parse(textBlock.text) as ClaudeRawOutput;
+
+      // A named hazardous material must survive extraction by name. Losing
+      // "polybutylene" here is invisible to every later check, because nothing
+      // downstream knows the word was ever said.
+      const findingsText = (parsed.findings || [])
+        .map((f: any) => `${f.title} ${f.comment} ${f.source_text || ""}`)
+        .join(" ");
+      const lost = droppedHazardTerms(text, findingsText);
+      if (!lost.length) return parsed;
+
+      const retry = await anthropic.messages.stream({
+        model: "claude-opus-5",
+        max_tokens: 32000,
+        system: buildSystemPrompt(),
+        messages: [
+          {
+            role: "user",
+            content:
+              buildUserPrompt(text, typed) +
+              `\n\nA previous extraction of this same transcript LOST these terms: ${lost.join(
+                ", "
+              )}. The inspector named them, and naming the material IS the finding. Extract again, keeping a finding for each that states the term explicitly and preserves any uncertainty he expressed about it.`,
+          },
+        ],
+        output_config: {
+          format: { type: "json_schema", schema: CLAUDE_OUTPUT_SCHEMA },
+          effort: "medium",
+        },
+      } as any).finalMessage();
+      const retryBlock = (retry.content as any[]).find((b) => b.type === "text");
+      if (!retryBlock?.text) return parsed;
+      try {
+        return JSON.parse(retryBlock.text) as ClaudeRawOutput;
+      } catch {
+        return parsed;
+      }
     }
 
     // Long transcripts blow the 60s limit as a single call. Split into chunks
