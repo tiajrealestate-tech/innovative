@@ -42,6 +42,13 @@ export default function ReviewPage() {
     setLoaded(true);
   }, []);
 
+  // Write-ups belong to the report they were written from. When a different
+  // transcript is loaded, drop them rather than showing the previous house's.
+  const reportStamp = report?.meta?.generated_at ?? "";
+  useEffect(() => {
+    setComposed(null);
+  }, [reportStamp]);
+
   function update(next: InspectionReport) {
     const reindexed = reindex(next);
     setReport(reindexed);
@@ -696,16 +703,18 @@ function EntryTab({
     });
   }
 
-  async function selectStyle(next: "standard" | "trever-2026") {
-    setStyle(next);
-    if (next === "trever-2026" && !composed && !composing) {
+  async function runCompose(force = false) {
+    if (composing || (composed && !force)) return;
+    {
       setComposing(true);
       setComposeError(null);
       try {
         const res = await fetch("/api/compose", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ report }),
+          // A forced re-write must not be answered from any cache along the way.
+          cache: "no-store",
+          body: JSON.stringify({ report, nonce: force ? Date.now() : undefined }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || "Could not write up the report.");
@@ -719,6 +728,11 @@ function EntryTab({
         setComposing(false);
       }
     }
+  }
+
+  function selectStyle(next: "standard" | "trever-2026") {
+    setStyle(next);
+    if (next === "trever-2026") void runCompose();
   }
 
   const StyleToggle = (
@@ -752,6 +766,18 @@ function EntryTab({
         </div>
         {composing && <p className="text-sm text-gray-500">Writing up the report…</p>}
         {composeError && <p className="text-sm text-red-600">{composeError}</p>}
+        <div className="flex items-center justify-between gap-3">
+          <button
+            onClick={() => void runCompose(true)}
+            disabled={composing}
+            className="text-xs rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 px-3 py-1.5"
+          >
+            {composing ? "Re-writing…" : "Re-write from scratch"}
+          </button>
+          <span className="text-[11px] text-gray-400">
+            Write-ups are kept until you re-write or reload.
+          </span>
+        </div>
         {checks && (
           <p className="text-xs text-gray-500">
             Coverage check: {checks.findings} findings ·{" "}
