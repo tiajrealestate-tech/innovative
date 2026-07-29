@@ -32,6 +32,10 @@ export default function ReviewPage() {
   const [tab, setTab] = useState<Tab>("review");
   const [loaded, setLoaded] = useState(false);
   const [approved, setApproved] = useState(false);
+  // Lifted so the Spectora tab can tick the boxes the composer chose for
+  // stand-alone deficiencies (his method: group the like-kind ones into a
+  // write-up, tick the library box for a lone one).
+  const [composed, setComposed] = useState<ComposedReportData | null>(null);
 
   useEffect(() => {
     setReport(loadReport());
@@ -177,9 +181,11 @@ export default function ReviewPage() {
             onAddFinding={addFinding}
           />
         )}
-        {tab === "entry" && <EntryTab report={report} />}
+        {tab === "entry" && (
+          <EntryTab report={report} composed={composed} setComposed={setComposed} />
+        )}
         {tab === "punch" && <PunchTab report={report} counts={counts} />}
-        {tab === "spectora" && <SpectoraTab report={report} />}
+        {tab === "spectora" && <SpectoraTab report={report} composed={composed} />}
       </div>
     </main>
   );
@@ -201,7 +207,13 @@ interface MappedRow {
   needs_review: boolean;
 }
 
-function SpectoraTab({ report }: { report: InspectionReport }) {
+function SpectoraTab({
+  report,
+  composed,
+}: {
+  report: InspectionReport;
+  composed: ComposedReportData | null;
+}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<MappedRow[] | null>(null);
@@ -210,6 +222,7 @@ function SpectoraTab({ report }: { report: InspectionReport }) {
   const [mode, setMode] = useState<"trever" | "standard">("trever");
   const [infoCount, setInfoCount] = useState(0);
   const [includeDefectBoxes, setIncludeDefectBoxes] = useState(false);
+  const [standaloneCount, setStandaloneCount] = useState(0);
 
   const titleById = useMemo(() => {
     const m = new Map<string, string>();
@@ -230,7 +243,16 @@ function SpectoraTab({ report }: { report: InspectionReport }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Mapping failed.");
       setRows(data.mapped as MappedRow[]);
-      setLines(data.lines as string);
+      // His method combines both: the like-kind deficiencies go in as grouped
+      // write-ups, while a lone deficiency that a library box already covers is
+      // ticked here so his own stored wording carries it.
+      const standalone = (composed?.groups || [])
+        .filter((g) => g.box_label && g.item)
+        .map((g) => `${g.section} > ${g.item} > Defects > ${g.box_label}`);
+      setStandaloneCount(standalone.length);
+      setLines(
+        [data.lines as string, standalone.join("\n")].filter(Boolean).join("\n")
+      );
       setInfoCount(typeof data.infoCount === "number" ? data.infoCount : 0);
     } catch (e) {
       setError((e as Error).message);
@@ -302,8 +324,11 @@ function SpectoraTab({ report }: { report: InspectionReport }) {
               <span className="font-medium">Trever method:</span> checks{" "}
               <span className="font-medium">Information, Limitations and Defects</span> boxes.
               Information boxes (materials, brands, amperage, locations) are read straight from
-              the transcript. Defects with no good box are fine &mdash; the consolidated
-              write-ups (Report entry → Trever 2026) carry them.
+              the transcript. Two or more like-kind deficiencies become one grouped write-up;
+              a <span className="font-medium">stand-alone</span> deficiency that a library box
+              already covers is ticked here instead, so your own stored wording carries it.
+              Open <span className="font-medium">Report entry → Trever 2026</span> first so
+              those stand-alone boxes are included.
             </>
           ) : (
             <>
@@ -330,6 +355,9 @@ function SpectoraTab({ report }: { report: InspectionReport }) {
               <h3 className="font-semibold text-sm">
                 Build list — {matched.length} of {rows.length} findings matched
                 {infoCount > 0 ? ` · ${infoCount} Information box${infoCount === 1 ? "" : "es"}` : ""}
+                {standaloneCount > 0
+                  ? ` · ${standaloneCount} stand-alone defect box${standaloneCount === 1 ? "" : "es"}`
+                  : ""}
               </h3>
               <button
                 onClick={copyLines}
@@ -593,6 +621,8 @@ interface ComposedGroupRow {
   item?: string;
   /** Spectora rating chip: safety | recommendation | maintenance. */
   severity?: string;
+  /** Library checkbox that covers this stand-alone deficiency, if any. */
+  box_label?: string | null;
 }
 interface ComposedReportData {
   style: string;
@@ -624,6 +654,9 @@ function buildExtensionPayload(
     return [...m.entries()].sort((a, b) => b[1] - a[1])[0][0];
   };
   return composed.groups
+    // Stand-alone deficiencies matched to a library checkbox are ticked in the
+    // Build-report pass instead — typing them here too would duplicate them.
+    .filter((g) => !g.box_label)
     .map(
       (g) =>
         `@@SECTION: ${g.section}\n@@ITEM: ${g.item || fallbackItem(g.section)}\n@@SEVERITY: ${g.severity || "recommendation"}\n@@HEADING: ${g.heading}\n@@BODY\n${g.body}\n@@END`
@@ -631,11 +664,18 @@ function buildExtensionPayload(
     .join("\n\n");
 }
 
-function EntryTab({ report }: { report: InspectionReport }) {
+function EntryTab({
+  report,
+  composed,
+  setComposed,
+}: {
+  report: InspectionReport;
+  composed: ComposedReportData | null;
+  setComposed: (c: ComposedReportData | null) => void;
+}) {
   const groups = useMemo(() => groupBySection(report.findings), [report.findings]);
   const [copied, setCopied] = useState<string | null>(null);
   const [style, setStyle] = useState<"standard" | "trever-2026">("standard");
-  const [composed, setComposed] = useState<ComposedReportData | null>(null);
   const [composing, setComposing] = useState(false);
   const [composeError, setComposeError] = useState<string | null>(null);
 
@@ -740,6 +780,11 @@ function EntryTab({ report }: { report: InspectionReport }) {
                     {g.severity === "maintenance" && (
                       <span className="text-[10px] font-semibold uppercase tracking-wide rounded-full bg-sky-100 text-sky-700 px-2 py-0.5">
                         Maintenance
+                      </span>
+                    )}
+                    {g.box_label && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wide rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5">
+                        Checkbox
                       </span>
                     )}
                   </div>

@@ -16,7 +16,7 @@ import { Finding, InspectionReport } from "./schema";
 import { severityLabel } from "./severity";
 import { sectionOrderIndex } from "./taxonomy";
 import { HOUSE_STYLE } from "./houseStyle";
-import { sectionItems } from "./catalog";
+import { candidateBoxes, sectionItems } from "./catalog";
 
 export type ReportStyle = "standard" | "trever-2026";
 
@@ -28,6 +28,12 @@ export interface ComposedGroup {
   item?: string;
   /** Spectora rating chip: safety | recommendation | maintenance. */
   severity?: "safety" | "recommendation" | "maintenance";
+  /**
+   * Set only for a STAND-ALONE deficiency that an existing library checkbox
+   * already covers. When present the tool ticks that box (which pulls in the
+   * inspector's own stored wording) instead of typing a custom comment.
+   */
+  box_label?: string | null;
 }
 export interface ComposedReport {
   style: ReportStyle;
@@ -111,11 +117,16 @@ SEVERITY RATING: every write-up carries a "severity" — the Spectora chip it is
 
 - "recommendation" — the default (~70%): genuine defects needing a qualified contractor to evaluate or repair, without immediate danger and short of major-system failure — aging (but working) systems, roof wear with life left, corrosion, moisture EVIDENCE or history without active damage, wood-destroying insect damage, isolated wiring corrections, panel rust, a few fogged window seals, trim rot, drainage and grading corrections.
 
+STAND-ALONE DEFICIENCIES THAT ALREADY HAVE A CHECKBOX ("box_label") — this is how he really works:
+- His template holds a library of pre-written defect checkboxes. When a STAND-ALONE deficiency (one condition, no numbered list) matches one of the AVAILABLE DEFECT CHECKBOXES listed for its section, he simply ticks that box and lets his own stored wording carry it — he does NOT retype it. Examples of library boxes he ticks this way: "Downspouts Drain Too Close to Property", "Filter Dirty", "Missing Door Stopper", "Bulb Missing", "Loose Connection at Fixture", "Cracked Tiles".
+- So for each STAND-ALONE group, if one of that section's AVAILABLE DEFECT CHECKBOXES genuinely matches the condition, set "box_label" to that label copied EXACTLY, and set "item" to the item that box belongs to. Still write the heading and body (they are shown for review), but the tool will tick the box rather than type the comment.
+- Set box_label to null when: the write-up is GROUPED (a numbered list of 2+ conditions — those are always custom write-ups, never boxes), or no listed checkbox genuinely matches. Never invent a label, and never force a weak match — a wrong box pulls in the wrong recommendation.
+
 PLACEMENT ("item"): every group also carries an "item" — the Spectora item the write-up is filed under, chosen EXACTLY from that section's AVAILABLE ITEMS list given in the input (copy the name verbatim). HIS RULE, in his own words: two or more deficiencies of like kind stay GROUPED together and are filed in the general category; a stand-alone deficiency is the one that gets singled out under its specific defect item.
 - GROUPED write-up (a numbered list of 2+ like-kind conditions): file it in the section's "... General" item when the list has one ("Roofing General", "Plumbing General", "Electrical General", "Structural General", "HVAC General", "Exterior General"). When a section covers distinct areas (Exterior especially), group by area and file each group in that area's item — his real placements: exterior concrete -> "Walkways, Patios & Driveways"; exterior stairs/guardrails -> "Decks, Balconies, Porches & Steps"; drainage/fences/grading -> "Vegetation, Grading, Drainage & Retaining Walls"; windows/doors/trim -> "Windows & Doors".
 - STAND-ALONE write-up (one deficiency on its own): file it under the specific item where that defect lives — gas range -> "Range/Oven/Cooktop"; water heater -> "Hot Water Systems, Controls, Flues & Vents"; sump pump -> "Sump Pump"; chimney -> the Skylights/Chimneys item; basement walkout -> "Basement Walkout".
 
-OUTPUT: plain text only — no markdown, bold, italics, or decorative bullets. Return ONLY the structured object requested: property_overview (string) and groups (array of {section, heading, body, severity, item}). In each group, "section" must be EXACTLY one of the section names given in the input (e.g. "Roof", "Exterior") — never an item name, and never a combined "Section › Item" string. Use ONLY the findings provided; do not invent conditions.`;
+OUTPUT: plain text only — no markdown, bold, italics, or decorative bullets. Return ONLY the structured object requested: property_overview (string) and groups (array of {section, item, heading, body, severity, box_label}). In each group, "section" must be EXACTLY one of the section names given in the input (e.g. "Roof", "Exterior") — never an item name, and never a combined "Section › Item" string. Use ONLY the findings provided; do not invent conditions.`;
 }
 
 function findingLine(f: Finding): string {
@@ -151,9 +162,26 @@ export function buildComposeUserPrompt(
     const itemsLine = items.length
       ? `\nAVAILABLE ITEMS: ${items.join(" | ")}`
       : "";
+    // The section's library defect checkboxes, so a stand-alone deficiency can
+    // be ticked rather than retyped.
+    const boxes = candidateBoxes(g.section, null, {
+      tabs: ["Defects"],
+      sectionFallback: true,
+    });
+    const byItem = new Map<string, string[]>();
+    for (const b of boxes) {
+      if (!byItem.has(b.item)) byItem.set(b.item, []);
+      byItem.get(b.item)!.push(b.label);
+    }
+    const boxLines = byItem.size
+      ? "\nAVAILABLE DEFECT CHECKBOXES:\n" +
+        [...byItem.entries()]
+          .map(([item, labels]) => `  [${item}] ${labels.join(" | ")}`)
+          .join("\n")
+      : "";
     return `SECTION ${i} — ${g.section} (${g.findings.length} finding${
       g.findings.length === 1 ? "" : "s"
-    })${itemsLine}\n${lines}`;
+    })${itemsLine}${boxLines}\n${lines}`;
   });
   const instrBlock = instructions && instructions.trim()
     ? `INSPECTOR INSTRUCTIONS (honor any grouping/wording directions in here; do NOT treat these as new defects):\n"""\n${instructions.trim()}\n"""\n\n`
@@ -182,8 +210,9 @@ export const COMPOSE_OUTPUT_SCHEMA = {
             type: "string",
             enum: ["safety", "recommendation", "maintenance"],
           },
+          box_label: { type: ["string", "null"] },
         },
-        required: ["section", "item", "heading", "body", "severity"],
+        required: ["section", "item", "heading", "body", "severity", "box_label"],
       },
     },
   },
