@@ -58,6 +58,9 @@ ${severities}
 RECOMMENDATION TYPES (choose the closest; you may lightly adapt wording):
 ${recs}
 
+MULTI-UNIT WALKTHROUGHS (2–4 units are still residential):
+The inspector announces where he is ("entering unit two", "now in the basement", "moving to common areas", "that completes unit three"). TRACK that context: every finding between an entry announcement and its completion belongs to that place. For each finding in a unit or common area, put the unit tag FIRST in location_tags ("unit 1", "unit 2", "common area", "basement") and mention the unit in the comment when it matters ("the unit 2 dishwasher was inoperable"). Building-wide systems (roof, exterior, foundation/structure, shared basement) carry no unit tag. Losing the unit context makes a four-kitchen building read like one kitchen — never let two units' findings blur together.
+
 RULES
 - Only create findings for things the inspector actually said. Do not pad the report.
 - Put the inspector's exact phrase into "source_text" so it can be double-checked.
