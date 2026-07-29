@@ -34,6 +34,8 @@ export interface ComposedGroup {
    * inspector's own stored wording) instead of typing a custom comment.
    */
   box_label?: string | null;
+  /** Indexes of the [F#] findings this write-up covers — lets the server verify none were lost. */
+  finding_indexes?: number[];
 }
 export interface ComposedReport {
   style: ReportStyle;
@@ -75,7 +77,7 @@ A finished report for an entire house contains roughly SIX TO TEN recommendation
   Kitchen › Range/Oven/Cooktop: "Gas Range Safety Hazard"
   Note how related conditions merge into one titled write-up per area, and how a section may carry two write-ups when the conditions are genuinely distinct.
 - CROSS-CUTTING SAFETY GROUP. Safety devices and fall protection are scattered around a house and belong to no single system, so they are the findings most often lost when consolidating. Collect them into ONE write-up titled "Safety Deficiencies" and place it in "Interior (General)" — loose or missing handrails and guardrails, outdated/missing/inoperable smoke and CO detectors, a garage occupant door that is not self-closing, obstructed or painted fire-sprinkler heads, missing fire separation. Rate it "safety". This is his real pattern; on one house his Safety Deficiencies group held exactly those four things. Never drop one of these because it doesn't fit a system section.
-- COVERAGE IS ABSOLUTE. Every finding you were given must appear in exactly one write-up — inside a numbered list or as its own stand-alone. Consolidating means FEWER WRITE-UPS, NEVER FEWER CONDITIONS. Before you return, walk the finding list once more and confirm each one is present somewhere; a dropped finding is the worst failure this tool can make, worse than a clumsy grouping. If a finding fits nowhere else, put it in the section's General item rather than losing it.
+- COVERAGE IS ABSOLUTE AND IS CHECKED. Every finding is numbered [F0], [F1], … Each write-up must list in "finding_indexes" the numbers of the findings it covers, and EVERY number must appear in exactly one write-up. The tool verifies this and rejects the answer if any number is missing, so a dropped finding costs a full retry. Consolidating means FEWER WRITE-UPS, NEVER FEWER CONDITIONS. If a finding fits nowhere else, put it in the section's General item rather than losing it. Suspected material hazards (possible polybutylene or similar piping, asbestos-like or lead-suspect materials) are never dropped and never softened — they are the findings that matter most.
 - THE INSPECTOR'S OWN INSTRUCTIONS OVERRIDE THIS DEFAULT. He dictates what he wants as he walks ("make this its own recommendation", "keep these together", "put this under exterior"). Honor those exactly, even when they produce more or fewer write-ups than the guidance above.
 
 DEFAULT RECOMMENDATION FORMAT ("aggressive but defensible" grouping):
@@ -157,12 +159,21 @@ export function groupForCompose(report: InspectionReport): ComposeGroupInput[] {
     .sort((a, b) => sectionOrderIndex(a.section) - sectionOrderIndex(b.section));
 }
 
+/**
+ * The findings in the exact order they are numbered for the model, so the
+ * server can verify afterwards that every one survived into a write-up.
+ */
+export function flattenForCompose(groups: ComposeGroupInput[]): Finding[] {
+  return groups.flatMap((g) => g.findings);
+}
+
 export function buildComposeUserPrompt(
   groups: ComposeGroupInput[],
   instructions?: string
 ): string {
+  let n = 0;
   const blocks = groups.map((g, i) => {
-    const lines = g.findings.map(findingLine).join("\n");
+    const lines = g.findings.map((f) => `[F${n++}] ${findingLine(f)}`).join("\n");
     const items = sectionItems(g.section);
     const itemsLine = items.length
       ? `\nAVAILABLE ITEMS: ${items.join(" | ")}`
@@ -222,8 +233,17 @@ export const COMPOSE_OUTPUT_SCHEMA = {
             enum: ["safety", "recommendation", "maintenance"],
           },
           box_label: { type: ["string", "null"] },
+          finding_indexes: { type: "array", items: { type: "integer" } },
         },
-        required: ["section", "item", "heading", "body", "severity", "box_label"],
+        required: [
+          "section",
+          "item",
+          "heading",
+          "body",
+          "severity",
+          "box_label",
+          "finding_indexes",
+        ],
       },
     },
   },

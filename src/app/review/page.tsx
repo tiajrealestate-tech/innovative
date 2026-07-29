@@ -677,6 +677,9 @@ function EntryTab({
   const [copied, setCopied] = useState<string | null>(null);
   const [style, setStyle] = useState<"standard" | "trever-2026">("standard");
   const [composing, setComposing] = useState(false);
+  const [missing, setMissing] = useState<
+    { title: string; comment: string; section: string }[]
+  >([]);
   const [composeError, setComposeError] = useState<string | null>(null);
 
   function copy(text: string, id: string) {
@@ -700,6 +703,7 @@ function EntryTab({
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || "Could not write up the report.");
         setComposed(data.composed as ComposedReportData);
+        setMissing(Array.isArray(data.missing) ? data.missing : []);
       } catch (e) {
         setComposeError((e as Error).message);
       } finally {
@@ -739,6 +743,22 @@ function EntryTab({
         </div>
         {composing && <p className="text-sm text-gray-500">Writing up the report…</p>}
         {composeError && <p className="text-sm text-red-600">{composeError}</p>}
+        {missing.length > 0 && (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
+            <div className="text-sm font-semibold text-amber-900">
+              {missing.length} finding{missing.length === 1 ? "" : "s"} did not make it into
+              a write-up — add {missing.length === 1 ? "it" : "them"} by hand
+            </div>
+            <ul className="mt-2 space-y-1 text-sm text-amber-900 list-disc pl-5">
+              {missing.map((m, i) => (
+                <li key={i}>
+                  <span className="font-medium">{m.title}</span>
+                  {m.section ? ` — ${m.section}` : ""}: {m.comment}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {composed && (
           <>
             <div className="rounded-2xl border border-purple-200 bg-purple-50 p-4 flex items-center justify-between">

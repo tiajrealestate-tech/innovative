@@ -7,6 +7,7 @@ import {
   COMPOSE_OUTPUT_SCHEMA,
   ComposedReport,
   groupForCompose,
+  flattenForCompose,
 } from "@/lib/compose";
 import {
   candidateBoxes,
@@ -44,23 +45,48 @@ export async function POST(req: NextRequest) {
 
   try {
     const anthropic = new Anthropic({ apiKey });
-    const message = await anthropic.messages.stream({
-      model: "claude-opus-5",
-      max_tokens: 24000,
-      system: buildComposeSystemPrompt(),
-      messages: [
-        { role: "user", content: buildComposeUserPrompt(groups, instructions) },
-      ],
-      output_config: {
-        format: { type: "json_schema", schema: COMPOSE_OUTPUT_SCHEMA },
-        effort: "medium",
-      },
-    } as any).finalMessage();
+    const ordered = flattenForCompose(groups);
+    const basePrompt = buildComposeUserPrompt(groups, instructions);
 
-    const textBlock = (message.content as any[]).find((b) => b.type === "text");
-    if (!textBlock?.text) throw new Error("The AI returned an empty response.");
+    const runCompose = async (userContent: string) => {
+      const message = await anthropic.messages.stream({
+        model: "claude-opus-5",
+        max_tokens: 24000,
+        system: buildComposeSystemPrompt(),
+        messages: [{ role: "user", content: userContent }],
+        output_config: {
+          format: { type: "json_schema", schema: COMPOSE_OUTPUT_SCHEMA },
+          effort: "medium",
+        },
+      } as any).finalMessage();
+      const textBlock = (message.content as any[]).find((b) => b.type === "text");
+      if (!textBlock?.text) throw new Error("The AI returned an empty response.");
+      return JSON.parse(textBlock.text) as Omit<ComposedReport, "style">;
+    };
 
-    const parsed = JSON.parse(textBlock.text) as Omit<ComposedReport, "style">;
+    // Which findings never made it into a write-up. Consolidation silently
+    // drops findings from run to run — a real polybutylene hazard vanished on
+    // one pass and survived on another — so this is verified, not trusted.
+    const uncovered = (p: Omit<ComposedReport, "style">) => {
+      const seen = new Set<number>();
+      for (const g of p.groups || [])
+        for (const i of g.finding_indexes || []) seen.add(i);
+      return ordered
+        .map((_, i) => i)
+        .filter((i) => !seen.has(i));
+    };
+
+    let parsed = await runCompose(basePrompt);
+    let missing = uncovered(parsed);
+    if (missing.length) {
+      const list = missing
+        .map((i) => `[F${i}] ${ordered[i].title}: ${ordered[i].comment}`)
+        .join("\n");
+      parsed = await runCompose(
+        `${basePrompt}\n\nA previous attempt LEFT OUT the findings below. Produce the complete report again with every finding covered, these included — fold each into the write-up where it belongs, or give it its own:\n${list}`
+      );
+      missing = uncovered(parsed);
+    }
     // Consolidated write-ups belong in the section's "… General" item, which is
     // where Trever's real reports put them (and why those items carry no
     // library checkboxes). The model sometimes returns a combined
@@ -118,7 +144,16 @@ export async function POST(req: NextRequest) {
       ...parsed,
       groups: placedGroups,
     };
-    return NextResponse.json({ composed });
+    // Anything still uncovered after the retry is surfaced rather than hidden,
+    // so it can be added by hand instead of silently missing from the report.
+    return NextResponse.json({
+      composed,
+      missing: missing.map((i) => ({
+        title: ordered[i].title,
+        comment: ordered[i].comment,
+        section: ordered[i].section,
+      })),
+    });
   } catch (error) {
     return NextResponse.json(
       { error: (error as Error).message || "Could not write up the report." },
