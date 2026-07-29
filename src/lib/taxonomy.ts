@@ -107,6 +107,7 @@ export const TAXONOMY: TaxonomySection[] = [
       "Stairs, Steps, Stoops, Stairways & Ramps",
       "Switches, Fixtures & Receptacles",
       "Presence of Smoke and CO Detectors",
+      "Interior (General)",
     ],
   },
   {

@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.8.3
+ * Spectora Autofill — v0.8.4
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -46,7 +46,7 @@
     ["Plumbing", ["Main Water Shut-off Device", "Water Supply, Distribution Systems & Fixtures", "Drain, Waste, & Vent Systems", "Hot Water Systems, Controls, Flues & Vents", "Fuel Storage & Distribution", "Sump Pump", "Plumbing General"]],
     ["Electrical", ["Service Entrance Conductors", "Service & Grounding", "Main & Subpanels, Service & Grounding, Main Overcurrent Device", "Branch Wiring Circuits, Breakers & Fuses", "Lighting Fixtures, Switches & Receptacles", "GFCI & AFCI", "Smoke & CO Detectors", "Electrical General"]],
     ["Fireplace", ["Cleanout Doors & Frames", "Fireplace", "Chimney"]],
-    ["Doors, Windows & Interior", ["Doors", "Windows", "Floors, Walls, Ceilings", "Stairs, Steps, Stoops, Stairways & Ramps", "Switches, Fixtures & Receptacles", "Presence of Smoke and CO Detectors"]],
+    ["Doors, Windows & Interior", ["Doors", "Windows", "Floors, Walls, Ceilings", "Stairs, Steps, Stoops, Stairways & Ramps", "Switches, Fixtures & Receptacles", "Presence of Smoke and CO Detectors", "Interior (General)"]],
     ["Attic, Insulation & Ventilation", ["Structural Components & Observations in Attic", "Insulation", "Ventilation", "Exhaust Systems"]],
     ["Bathrooms", ["Sinks, Tubs & Showers", "Bathroom Toilets", "Cabinetry, Ceiling, Walls & Floor", "Bathroom Exhaust Fan / Window", "GFCI & Electric in Bathroom"]],
     ["Laundry", ["Clothes Washer", "Dryer", "Ventilation", "Plumbing & Hookups"]],
