@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import { emptyDetails, InspectionDetails } from "@/lib/schema";
+import type { SpectoraJob } from "./api/inspections/route";
 import { saveReport } from "@/lib/storage";
 
 type Stage = "idle" | "uploading" | "transcribing" | "structuring" | "error";
@@ -35,6 +36,37 @@ export default function UploadPage() {
   const [pastedTranscript, setPastedTranscript] = useState("");
   const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState("");
+  const [jobs, setJobs] = useState<SpectoraJob[]>([]);
+  const [pickedJob, setPickedJob] = useState<string>("");
+
+  // The inspector's real Spectora jobs, so the address/client/agent/date don't
+  // have to be retyped. Silently absent when no API key is configured.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/inspections")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled && d?.configured && Array.isArray(d.jobs)) setJobs(d.jobs);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function applyJob(id: string) {
+    setPickedJob(id);
+    const job = jobs.find((j) => j.id === id);
+    if (!job) return;
+    setDetails((d) => ({
+      ...d,
+      property_address: job.address || d.property_address,
+      client_name: job.client || d.client_name,
+      client_agent: job.agent || d.client_agent,
+      inspector_name: job.inspector || d.inspector_name,
+      inspection_date: job.date ? job.date.slice(0, 10) : d.inspection_date,
+    }));
+  }
 
   function setField(key: keyof InspectionDetails, value: string) {
     setDetails((d) => ({ ...d, [key]: value || null }));
@@ -185,6 +217,30 @@ export default function UploadPage() {
             Optional — fill these in only if they aren&apos;t mentioned in the
             recording. Anything you type here overrides what the AI hears.
           </p>
+          {jobs.length > 0 && (
+            <div className="mb-4 rounded-xl border border-brand-200 bg-brand-50 p-3">
+              <label className="block text-xs font-semibold text-brand-900 mb-1">
+                Pull from your Spectora schedule
+              </label>
+              <select
+                value={pickedJob}
+                onChange={(e) => applyJob(e.target.value)}
+                className="w-full rounded-lg border border-brand-300 bg-white px-3 py-2 text-sm"
+              >
+                <option value="">Choose an inspection…</option>
+                {jobs.map((j) => (
+                  <option key={j.id} value={j.id}>
+                    {j.date_label ? `${j.date_label} — ` : ""}
+                    {j.address || "(no address)"}
+                    {j.client ? ` — ${j.client}` : ""}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-brand-800 mt-1">
+                Fills in the address, client, agent and date below. You can still edit them.
+              </p>
+            </div>
+          )}
           <div className="grid sm:grid-cols-2 gap-4">
             <Field
               label="Property address"
