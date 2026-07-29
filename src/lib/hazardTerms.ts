@@ -53,6 +53,18 @@ export const CRITICAL_HAZARD_TERMS = HAZARD_TERMS.filter(
  * plain substring on lowercased text — these are distinctive words, so that is
  * precise enough and cannot silently fail the way a model self-check can.
  */
+// Synonym groups: naming ANY member in the output satisfies the whole group.
+// Without this, prose that says "termite (wood-destroying insect)" still
+// "misses" the acronym WDI — which appended a duplicate write-up on a real run.
+const TERM_GROUPS: string[][] = [
+  ["termite", "wood-destroying", "wdi"],
+  ["gas odor", "gas leak"],
+  ["polybutylene", "poly-b"],
+];
+function groupFor(term: string): string[] {
+  return TERM_GROUPS.find((g) => g.includes(term)) || [term];
+}
+
 export function droppedHazardTerms(
   source: string,
   produced: string,
@@ -61,8 +73,15 @@ export function droppedHazardTerms(
   const src = (source || "").toLowerCase();
   const out = (produced || "").toLowerCase();
   const missing: string[] = [];
+  const reported = new Set<string>();
   for (const term of terms) {
-    if (src.includes(term) && !out.includes(term)) missing.push(term);
+    if (!src.includes(term)) continue;
+    const group = groupFor(term);
+    if (group.some((g) => out.includes(g))) continue;
+    const key = group[0];
+    if (reported.has(key)) continue;
+    reported.add(key);
+    missing.push(term);
   }
   return missing;
 }
