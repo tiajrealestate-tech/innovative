@@ -1,5 +1,5 @@
 /* ==========================================================================
- * Spectora Autofill — v0.8.4
+ * Spectora Autofill — v0.8.5
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -715,16 +715,27 @@
     }
 
     // 2) The three-cell Category row, by position — and VERIFY the highlight
-    // moved; a click Spectora ignored must not be reported as success.
+    // moved; a click Spectora ignored must not be reported as success. Escalate
+    // through targets and click strengths until the tint moves.
     const cells = severityCells(modal);
     if (!cells || !cells[idx]) return false;
-    const target = cells[idx].querySelector('button,[role="button"],svg,i') || cells[idx];
-    clickOnce(target);
-    await sleep(350);
-    if (cellSelected(cells[idx])) return true;
-    fireClick(target); // stronger: full sequence + native click
-    await sleep(350);
-    return cellSelected(cells[idx]);
+    const cell = cells[idx];
+    const inner = cell.querySelector('button,[role="button"],svg,i') || cell;
+    const attempts = [
+      () => clickOnce(inner),
+      () => clickOnce(cell),
+      () => fireClick(inner),
+      () => fireClick(cell),
+    ];
+    for (const attempt of attempts) {
+      try {
+        if (cell.scrollIntoView) cell.scrollIntoView({ block: "center" });
+      } catch (e) {}
+      attempt();
+      await sleep(400);
+      if (cellSelected(cell)) return true;
+    }
+    return false;
   }
 
   async function addCustomComment(heading, body, severity) {
@@ -737,13 +748,27 @@
       ? findAddCommentModal()
       : null;
     if (!modal) {
-      // A stray overlay may have eaten the click — clear it and try once more.
+      // A stray overlay may have eaten the click — clear it and try once more,
+      // scrolled into view, and with the stronger double-activation click as
+      // the final resort (a duplicate dialog open is harmless; we only fill
+      // and save one).
       await closeAnyDialog();
-      await sleep(400);
+      await sleep(800);
+      const addLeaf = deepestByText((t) => /^\+?\s*add$/i.test(t));
+      try {
+        if (addLeaf && addLeaf.scrollIntoView) addLeaf.scrollIntoView({ block: "center" });
+      } catch (e) {}
+      await sleep(200);
       clickByTextOnce("Add") || clickByTextOnce("+ Add");
       modal = (await waitFor(() => !!findAddCommentModal(), 5000))
         ? findAddCommentModal()
         : null;
+      if (!modal) {
+        clickByText("Add") || clickByText("+ Add");
+        modal = (await waitFor(() => !!findAddCommentModal(), 5000))
+          ? findAddCommentModal()
+          : null;
+      }
     }
     if (!modal) return { ok: false, reason: "'Add a new Comment' dialog did not open" };
     // Spectora uses Froala; its contenteditable surface (.fr-element) is created
@@ -1016,15 +1041,32 @@
   // item first (that's where consolidated write-ups live), then the rest in
   // template order — and say in the log where it actually went so it can be
   // moved inside Spectora if needed.
-  async function selectItemWithFallback(section, item, log) {
+  async function selectItemWithFallback(section, item, log, resCache) {
     if (!item) return { ok: true, item: "" };
-    if (await selectItem(item)) return { ok: true, item };
+    // Resolved this section›item before? Go straight there — re-probing a
+    // missing item re-opens the New Item dialog every time, which is what
+    // destabilised runs with several write-ups aimed at the same item.
+    const cacheKey = norm(section) + "||" + norm(item);
+    if (resCache && resCache.has(cacheKey)) {
+      const known = resCache.get(cacheKey);
+      if (known && (await selectItem(known))) {
+        return { ok: true, item: known };
+      }
+      // A cached answer that stopped working falls through to full resolution.
+    }
+    const remember = (resolved) => {
+      if (resCache) resCache.set(cacheKey, resolved);
+      return resolved
+        ? { ok: true, item: resolved }
+        : { ok: false, item: "" };
+    };
+    if (await selectItem(item)) return remember(item);
     // The item may be an OPTIONAL item of this section (that's how his
     // template ships "… General" items) — add it, then select it.
     if (await addOptionalItem(item)) {
       if (await selectItem(item)) {
         log(`  Added optional item "${item}" to ${section}.`);
-        return { ok: true, item };
+        return remember(item);
       }
     }
     const entry = REPORT_MAP.find(([s]) => norm(s) === norm(section));
@@ -1037,10 +1079,40 @@
       if (norm(cand) === norm(item)) continue;
       if (await selectItem(cand)) {
         log(`  Couldn't open "${item}" in ${section} — placed in "${cand}" instead (move it in Spectora if needed).`);
-        return { ok: true, item: cand };
+        return remember(cand);
       }
     }
-    return { ok: false, item: "" };
+    return remember("");
+  }
+
+  // One attempt at one block. Returns { ok, problem, warning }.
+  async function placeOneWriteup(b, log, resCache) {
+    if (!(await selectSection(b.section))) {
+      return { ok: false, problem: "Section not found: " + b.section };
+    }
+    const sel = await selectItemWithFallback(b.section, b.item, log, resCache);
+    if (!sel.ok) {
+      return {
+        ok: false,
+        problem: `Item not found: ${b.item} (in ${b.section} — no other item there would open either)`,
+      };
+    }
+    const tabOk = await openTab("Defects");
+    const r = await addCustomComment(b.heading, b.body, b.severity);
+    if (!r.ok) {
+      return {
+        ok: false,
+        problem:
+          `${b.section} › ${sel.item || b.item || "?"}: ${r.reason || "couldn't fill the comment"}` +
+          (tabOk ? "" : " (the Defects tab never opened)"),
+      };
+    }
+    let warning = null;
+    if (r.verified === false)
+      warning = `${b.section} › ${sel.item || b.item || "?"}: saved, but "${b.heading}" is NOT visible in this item afterwards — it may have landed in the wrong place. Check it in Spectora.`;
+    else if (b.severity && b.severity !== "recommendation" && !r.severitySet)
+      warning = `${b.section} › ${sel.item || b.item || "?"}: couldn't set the ${b.severity} rating — it saved as the default Recommendation. Change the Category by hand.`;
+    return { ok: true, warning };
   }
 
   async function placeWriteups(text, log) {
@@ -1051,37 +1123,43 @@
     }
     let done = 0;
     const problems = [];
+    // Remember how each section›item resolved so later blocks skip dead ends —
+    // repeatedly re-probing a missing item re-opens the New Item dialog, which
+    // is exactly what destabilised consecutive placements into the same item.
+    const resCache = new Map();
+    const failed = [];
     for (let i = 0; i < blocks.length; i++) {
       const b = blocks[i];
       log(`(${i + 1}/${blocks.length}) ${b.section} › ${b.item || "?"}…`);
-      if (!(await selectSection(b.section))) {
-        problems.push("Section not found: " + b.section);
-        continue;
-      }
-      const sel = await selectItemWithFallback(b.section, b.item, log);
-      if (!sel.ok) {
-        problems.push(`Item not found: ${b.item} (in ${b.section} — no other item there would open either)`);
-        continue;
-      }
-      const tabOk = await openTab("Defects");
-      const r = await addCustomComment(b.heading, b.body, b.severity);
+      const r = await placeOneWriteup(b, log, resCache);
       if (r.ok) {
         done++;
-        if (r.verified === false)
-          problems.push(
-            `${b.section} › ${sel.item || b.item || "?"}: saved, but "${b.heading}" is NOT visible in this item afterwards — it may have landed in the wrong place. Check it in Spectora.`
-          );
-        if (b.severity && b.severity !== "recommendation" && !r.severitySet)
-          problems.push(
-            `${b.section} › ${sel.item || b.item || "?"}: couldn't set the ${b.severity} rating — it saved as the default Recommendation. Change the Category by hand.`
-          );
-      } else
-        problems.push(
-          `${b.section} › ${sel.item || b.item || "?"}: ${r.reason || "couldn't fill the comment"}` +
-            (tabOk ? "" : " (the Defects tab never opened)")
-        );
+        if (r.warning) problems.push(r.warning);
+      } else {
+        failed.push({ b, problem: r.problem });
+      }
       await sleep(400);
     }
+    // A failed block gets a fresh second attempt automatically — nobody should
+    // be re-placing write-ups by hand because a dialog was slow once.
+    if (failed.length) {
+      log(`Retrying ${failed.length} failed write-up(s)…`);
+      await closeAnyDialog();
+      await sleep(1200);
+      for (const f of [...failed]) {
+        log(`(retry) ${f.b.section} › ${f.b.item || "?"}…`);
+        const r = await placeOneWriteup(f.b, log, resCache);
+        if (r.ok) {
+          done++;
+          if (r.warning) problems.push(r.warning);
+          failed.splice(failed.indexOf(f), 1);
+        } else {
+          f.problem = r.problem;
+        }
+        await sleep(600);
+      }
+    }
+    for (const f of failed) problems.push(f.problem);
     log(
       `Done — placed ${done}/${blocks.length} write-ups.` +
         (problems.length ? `\n\nIssues:\n- ${problems.join("\n- ")}` : "") +
