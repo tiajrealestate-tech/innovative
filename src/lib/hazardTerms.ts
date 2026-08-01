@@ -33,6 +33,10 @@ export const HAZARD_TERMS = [
   "kitec",
   "galvanized",
   "cast iron",
+  // Not a hazardous material, but the same guarantee applies: when the
+  // inspector says it, the report must carry it. His habitual chimney-sweep
+  // recommendation was dropped on two houses when dictated mid-information.
+  "chimney sweep",
 ] as const;
 
 /**

@@ -36,6 +36,7 @@ A dictated walkthrough is mostly not findings. Classify every passage before wri
 WRITE UP:
 - Dictated observations of a condition ("observed rust and corrosion at the metal flue liner").
 - A real condition mentioned in passing while he is talking to somebody else. If he explains to the client "this door is supposed to be self-closing, we just have to replace this hinge", the finding is that the garage occupant door is not self-closing.
+- STANDING RECOMMENDATIONS STATED AS A HABIT, even when dictated in the middle of information facts. "We got a wood-burning fireplace — with these we always recommend a chimney sweep and professional cleaning before use" IS a finding (recommend chimney sweep before use), not information. This exact pattern has been missed before; never treat "always recommend X" as background talk.
 
 DO NOT WRITE UP:
 - RETRACTIONS AND CORRECTIONS. A later statement always overrides an earlier one. When he withdraws something ("take that out of the report", "disregard that", "update — it was actually adequate"), the earlier condition must NOT appear anywhere in the output. When he corrects a fact — the roof inspection method, a count, a material — only the corrected version survives.

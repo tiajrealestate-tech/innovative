@@ -76,3 +76,29 @@ report, and his published reports must still come from Google Drive for learning
 Open question for Trever: should photos attach to the write-up comments themselves,
 or is his current workflow (photos on the item from the mobile app, write-up
 alongside) fine? Nothing we build touches photos today.
+
+## Beta confirmation round — CLOSED (passed), 07/31/2026
+
+Five houses scored against the inspector's own reports:
+
+- Gullivers Trail (held-out): pass — full coverage after safety-group fix.
+- 5234 6th St (held-out, hostile transcript): pass — corrections, retractions,
+  layman filtering, "building envelope" naming all honored.
+- 1104 Indo Pl (held-out): pass — personal-conversation removal, location
+  generalization, no-code-language shower handling, crawlspace consolidation.
+- 1927 St Paul (multi-unit, non-blind): machinery validated — unit tracking,
+  UNIT N RECOMMENDATIONS, Life Safety group.
+- 292 MacKintosh Dr (TRUE FORWARD-BLIND head-to-head): the system covered
+  19/20 dictated findings; the inspector's own independent draft covered ~15/20.
+  He adjudicated: the five absences in his draft WERE misses. The system's one
+  miss (habitual chimney-sweep recommendation) is fixed at both layers.
+  Ratings divergence (ours 3 red / his 0) adjudicated as situational — our
+  calibration stands unchanged by his instruction.
+
+Consistent residual tendency: our reports run ~1.25–1.4x his write-up count
+(we split stand-alones he rolls up). Accepted for now; a consolidation knob is
+available if he wants it tightened.
+
+Next phase: ROADMAP.md Phase 2 (package) — Chrome Web Store, seam removal,
+profiles-not-code, design pass, onboarding wizard. Trever to use the tool on
+live inspections and track edit time.
