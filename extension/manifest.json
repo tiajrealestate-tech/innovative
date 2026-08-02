@@ -1,8 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Spectora Autofill (beta)",
-  "version": "0.8.5",
-  "description": "Builds a Spectora report: checks boxes across all sections/tabs and places the app's 2026 write-ups into each section's comment area.",
+  "version": "0.9.0",
+  "description": "Builds a Spectora report: checks boxes across all sections/tabs and places the app's 2026 write-ups into each section's comment area. Payloads arrive from the report app automatically.",
+  "permissions": [
+    "storage"
+  ],
   "content_scripts": [
     {
       "matches": [
@@ -13,6 +16,15 @@
       ],
       "run_at": "document_idle",
       "all_frames": true
+    },
+    {
+      "matches": [
+        "https://innovative-eight-rosy.vercel.app/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_idle"
     }
   ]
 }

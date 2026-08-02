@@ -1,5 +1,9 @@
 /* ==========================================================================
- * Spectora Autofill — v0.8.5
+ * Spectora Autofill — v0.9.0
+ *
+ * v0.9.0: the copy-paste seam is gone. A bridge script on the report app's
+ * site receives the build list and write-ups and stores them; this panel
+ * pre-fills both boxes from that store automatically. Paste still works.
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -1263,6 +1267,15 @@
       logEl.textContent = "";
     };
 
+    // Handoff status — shows when payloads have arrived from the app.
+    const handoffNote = document.createElement("div");
+    Object.assign(handoffNote.style, {
+      display: "none", background: "#ecfdf5", border: "1px solid #a7f3d0",
+      color: "#065f46", borderRadius: "8px", padding: "8px", fontSize: "12px",
+      marginBottom: "6px",
+    });
+    bodyWrap.appendChild(handoffNote);
+
     bodyWrap.appendChild(mkLabel("Build report — Section > Item > Tab > Label (one per line):"));
     const taReport = mkTextarea(
       "Roof > Coverings > Defects > Shingles Missing\n" +
@@ -1290,7 +1303,7 @@
     bodyWrap.appendChild(row);
 
     bodyWrap.appendChild(
-      mkLabel("Place 2026 write-ups (paste the app's “Copy for extension”):")
+      mkLabel("Place 2026 write-ups (arrives from the app automatically, or paste):")
     );
     const taWriteups = mkTextarea(
       "@@SECTION: Roof\n@@ITEM: Coverings\n@@HEADING: ROOF DEFICIENCIES\n@@BODY\n(paste from the app)\n@@END",
@@ -1301,6 +1314,38 @@
     placeBtn.style.marginTop = "8px";
     placeBtn.style.width = "100%";
     bodyWrap.appendChild(placeBtn);
+
+    // ---- payload handoff from the app (seam removal) ----------------------
+    // The bridge script (on the app's site) stores {buildLines, writeups,
+    // address, updatedAt}; pre-fill both boxes from it and keep them live.
+    const applyHandoff = (h) => {
+      // The panel can be rebuilt (hide/show); ignore callbacks aimed at a
+      // detached copy of the textareas.
+      if (!document.body.contains(taWriteups)) return;
+      if (!h || (!h.buildLines && !h.writeups)) return;
+      if (h.buildLines) taReport.value = h.buildLines;
+      if (h.writeups) taWriteups.value = h.writeups;
+      const when = h.updatedAt ? new Date(h.updatedAt).toLocaleString() : "";
+      handoffNote.style.display = "";
+      handoffNote.textContent =
+        "Loaded from the app" +
+        (h.address ? " — " + h.address : "") +
+        (when ? " (" + when + ")" : "") +
+        (h.buildLines ? " · build list ✓" : "") +
+        (h.writeups ? " · write-ups ✓" : "");
+    };
+    try {
+      chrome.storage.local.get("sa_handoff", (res) => {
+        applyHandoff(res && res.sa_handoff);
+      });
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === "local" && changes.sa_handoff) {
+          applyHandoff(changes.sa_handoff.newValue);
+        }
+      });
+    } catch (e) {
+      /* storage unavailable — manual paste still works */
+    }
 
     bodyWrap.appendChild(logEl);
 

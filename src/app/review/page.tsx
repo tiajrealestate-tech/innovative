@@ -199,6 +199,40 @@ export default function ReviewPage() {
 }
 
 // -----------------------------------------------------------------------------
+// Extension handoff (the seam removal): payloads are posted as window messages;
+// the extension's bridge script — running on this site — stores them and acks,
+// and the Spectora panel pre-fills itself. Copy-paste remains the fallback for
+// when the extension isn't installed.
+// -----------------------------------------------------------------------------
+
+function sendToExtension(data: {
+  buildLines?: string;
+  writeups?: string;
+  address?: string;
+}) {
+  if (typeof window === "undefined") return;
+  window.postMessage(
+    { source: "innovative-app", type: "SA_PAYLOAD", ...data },
+    window.location.origin
+  );
+}
+
+function useExtensionBridge() {
+  const [ackedAt, setAckedAt] = useState(0);
+  useEffect(() => {
+    const onMsg = (ev: MessageEvent) => {
+      if (ev.source !== window) return;
+      const d = ev.data as { source?: string; type?: string } | null;
+      if (!d || d.source !== "innovative-ext") return;
+      if (d.type === "SA_ACK") setAckedAt(Date.now());
+    };
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
+  return ackedAt;
+}
+
+// -----------------------------------------------------------------------------
 // Spectora autofill tab — maps findings to real checkboxes, then gives you the
 // pasteable build list for the browser extension.
 // -----------------------------------------------------------------------------
@@ -236,6 +270,16 @@ function SpectoraTab({
     for (const f of report.findings) m.set(f.id, f.title || f.comment.slice(0, 60));
     return m;
   }, [report.findings]);
+
+  // Hand the build list to the extension the moment it exists (or changes).
+  const ackedAt = useExtensionBridge();
+  useEffect(() => {
+    if (!lines) return;
+    sendToExtension({
+      buildLines: lines,
+      address: report.inspection?.property_address || "",
+    });
+  }, [lines, report.inspection?.property_address]);
 
   async function run() {
     setLoading(true);
@@ -287,9 +331,9 @@ function SpectoraTab({
         <h2 className="font-semibold">Build the Spectora report</h2>
         <p className="text-sm text-gray-600 mt-1">
           This matches findings to the pre-written checkboxes in your Spectora template.
-          Copy the list, open your report in Spectora, and paste it into the{" "}
-          <span className="font-medium">Spectora Autofill</span> extension&rsquo;s &ldquo;Build
-          report&rdquo; box.
+          With the extension installed the list is handed over automatically — open your
+          report in Spectora and the &ldquo;Build report&rdquo; box is already filled.
+          Copy/paste still works as a backup.
         </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -366,13 +410,20 @@ function SpectoraTab({
                   ? ` · ${standaloneCount} stand-alone defect box${standaloneCount === 1 ? "" : "es"}`
                   : ""}
               </h3>
-              <button
-                onClick={copyLines}
-                disabled={!lines}
-                className="text-sm rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 px-3 py-1.5"
-              >
-                {copied ? "Copied ✓" : "Copy list"}
-              </button>
+              <div className="flex items-center gap-2">
+                {ackedAt > 0 && (
+                  <span className="text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1">
+                    Sent to extension ✓
+                  </span>
+                )}
+                <button
+                  onClick={copyLines}
+                  disabled={!lines}
+                  className="text-sm rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 px-3 py-1.5"
+                >
+                  {copied ? "Copied ✓" : "Copy list"}
+                </button>
+              </div>
             </div>
             <textarea
               readOnly
@@ -696,6 +747,16 @@ function EntryTab({
   } | null>(null);
   const [composeError, setComposeError] = useState<string | null>(null);
 
+  // Hand the write-ups to the extension the moment they exist (or change).
+  const ackedAt = useExtensionBridge();
+  useEffect(() => {
+    if (!composed) return;
+    sendToExtension({
+      writeups: buildExtensionPayload(composed, report.findings),
+      address: report.inspection?.property_address || "",
+    });
+  }, [composed, report.findings, report.inspection?.property_address]);
+
   function copy(text: string, id: string) {
     navigator.clipboard?.writeText(text).then(() => {
       setCopied(id);
@@ -818,8 +879,19 @@ function EntryTab({
           <>
             <div className="rounded-2xl border border-purple-200 bg-purple-50 p-4 flex items-center justify-between">
               <div className="text-sm text-purple-900">
-                <span className="font-semibold">Send these write-ups to the extension</span> — copy,
-                then paste into the extension&apos;s “Place write-ups” box in Spectora.
+                {ackedAt > 0 ? (
+                  <>
+                    <span className="font-semibold">Write-ups sent to the extension ✓</span> — open
+                    your report in Spectora; the panel&apos;s “Place write-ups” box is already
+                    filled.
+                  </>
+                ) : (
+                  <>
+                    <span className="font-semibold">Write-ups ready for the extension</span> — they
+                    send automatically when the extension is installed. No extension on this
+                    browser? Copy, then paste into the “Place write-ups” box in Spectora.
+                  </>
+                )}
               </div>
               <button
                 onClick={() => copy(buildExtensionPayload(composed, report.findings), "payload")}

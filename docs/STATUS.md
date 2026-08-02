@@ -102,3 +102,27 @@ available if he wants it tightened.
 Next phase: ROADMAP.md Phase 2 (package) — Chrome Web Store, seam removal,
 profiles-not-code, design pass, onboarding wizard. Trever to use the tool on
 live inspections and track edit time.
+
+## Copy-paste seam removed — v0.9.0, 08/02/2026
+
+The two gray copy/paste boxes are no longer needed. How it works now:
+
+- The review page hands both payloads (build list + write-ups) to the
+  extension automatically the moment they exist, via a window message the
+  extension's new `bridge.js` (running on the app's site) stores in
+  `chrome.storage.local`.
+- The Spectora panel pre-fills its "Build report" and "Place write-ups" boxes
+  from that store, shows a green "Loaded from the app — {address}" line, and
+  live-updates if the app re-sends while the tab is open.
+- The app shows "Sent to extension ✓" once the bridge acks. Copy/paste still
+  works everywhere as the no-extension fallback.
+- Nothing is sent to any server; the handoff happens entirely inside the
+  user's own browser, so it needs no login and is multi-user-safe by design.
+
+One-time step: Trever must remove and re-load the extension once more to get
+v0.9.0 (manifest adds the `storage` permission and the bridge script). After
+the Chrome Web Store listing exists, updates become automatic.
+
+Deliberately deferred (per Tia): product name and custom domain come LAST.
+The bridge is pinned to `innovative-eight-rosy.vercel.app`; adding the real
+domain later is a one-line manifest addition done during the rename.
