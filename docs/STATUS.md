@@ -5,7 +5,7 @@ Innovative Home Inspections (Spectora). Two pieces:
 
 - **Web app** (Next.js on Vercel, `innovative-eight-rosy.vercel.app`) — transcript →
   findings → grouped write-ups in his voice + a Spectora checkbox build list.
-- **Chrome extension** `extension/` ("Spectora Autofill") — drives the live Spectora
+- **Chrome extension** `extension/` ("HyperReports AI", formerly "Spectora Autofill") — drives the live Spectora
   editor: ticks checkboxes, adds write-ups as comments, sets rating chips, and adds
   missing optional items.
 

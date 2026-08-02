@@ -1,4 +1,4 @@
-# Spectora Autofill — browser extension (beta)
+# HyperReports AI — browser extension (beta)
 
 **Goal:** automatically build the Spectora report from our app's findings — navigate to each section/item, open the Defects tab, and check the matching pre-written defects — so you stop doing it by hand.
 
@@ -19,13 +19,13 @@ This is being built in stages. **You're on stage 1.**
    - Go to `chrome://extensions` in the address bar.
    - Turn on **Developer mode** (toggle, top-right).
 3. Click **Load unpacked** and select the **`extension`** folder.
-   - It should now show "Spectora Autofill (beta)".
+   - It should now show "HyperReports AI (beta)".
 
 ### How to run the scan
 
 1. Open a real (or practice) inspection report in Spectora, in the editor.
 2. Click into a section and open a **Defects** tab (e.g. **Roof → Coverings → Defects**).
-3. A small blue panel appears bottom-right: **"Spectora Autofill — scanner v0.1."**
+3. A small blue panel appears bottom-right: **"HyperReports."**
 4. Click **Scan this report**, then **Copy result**.
 5. Paste that result back to me.
 

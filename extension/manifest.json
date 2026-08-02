@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Spectora Autofill (beta)",
-  "version": "0.9.5",
-  "description": "Builds a Spectora report: checks boxes across all sections/tabs and places the app's 2026 write-ups into each section's comment area. Payloads arrive from the report app automatically.",
+  "name": "HyperReports AI (beta)",
+  "version": "1.0.0",
+  "description": "Builds your inspection report for you — checks the boxes and places your write-ups, in your words. Works with Spectora.",
   "permissions": [
     "storage"
   ],
@@ -19,7 +19,9 @@
     },
     {
       "matches": [
-        "https://innovative-eight-rosy.vercel.app/*"
+        "https://innovative-eight-rosy.vercel.app/*",
+        "https://hyperreports.ai/*",
+        "https://www.hyperreports.ai/*"
       ],
       "js": [
         "bridge.js"

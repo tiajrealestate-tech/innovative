@@ -145,7 +145,7 @@ export default function UploadPage() {
             V
           </div>
           <div>
-            <h1 className="text-lg font-semibold leading-tight">Voice-to-Report</h1>
+            <h1 className="text-lg font-semibold leading-tight">HyperReports AI</h1>
             <p className="text-xs text-gray-500">
               Upload a walkthrough voice memo → get Spectora-ready findings
             </p>

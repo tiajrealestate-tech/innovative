@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Voice-to-Report",
+  title: "HyperReports AI",
   description: "Turn inspection voice memos into structured, ready-to-enter report content.",
 };
 

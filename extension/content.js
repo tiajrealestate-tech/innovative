@@ -1,5 +1,10 @@
 /* ==========================================================================
- * Spectora Autofill — v0.9.3
+ * HyperReports AI — v1.0.0 (formerly "Spectora Autofill")
+ *
+ * v1.0.0: renamed to HyperReports AI. Panel branding updated; the bridge now
+ * also listens on hyperreports.ai for when the domain connects.
+ * v0.9.4/0.9.5: customer-ready labels (Step 1/Step 2, Advanced tools
+ * collapsed), Step 2 renamed "Place custom write-ups", green action buttons.
  *
  * v0.9.3: the Property Condition Overview places itself — the app now sends
  * it as the first write-up block, targeted at Inspection Details ›
@@ -1371,7 +1376,7 @@
       fontWeight: "600", display: "flex", justifyContent: "space-between", alignItems: "center",
     });
     header.innerHTML =
-      "<span>Spectora Autofill v" + VERSION + "</span>" +
+      "<span>HyperReports v" + VERSION + "</span>" +
       '<span style="display:flex;gap:10px;align-items:center;">' +
       '<span id="sa-min" title="Minimize" style="cursor:pointer;font-size:18px;line-height:1;">–</span>' +
       '<span id="sa-close" title="Hide" style="cursor:pointer;font-size:16px;line-height:1;">×</span>' +
@@ -1724,8 +1729,8 @@
     if (document.getElementById("spectora-scanner-reopen")) return;
     const b = document.createElement("div");
     b.id = "spectora-scanner-reopen";
-    b.textContent = "SA";
-    b.title = "Show Spectora Autofill";
+    b.textContent = "HR";
+    b.title = "Show HyperReports";
     Object.assign(b.style, {
       position: "fixed", bottom: "16px", right: "16px", zIndex: "2147483647",
       width: "40px", height: "40px", borderRadius: "20px", background: "#2a56d4",

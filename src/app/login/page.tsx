@@ -39,7 +39,7 @@ export default function LoginPage() {
           <div className="w-11 h-11 rounded-xl bg-brand-500 text-white flex items-center justify-center text-xl font-bold mb-4">
             V
           </div>
-          <h1 className="text-xl font-semibold">Voice-to-Report</h1>
+          <h1 className="text-xl font-semibold">HyperReports AI</h1>
           <p className="text-sm text-gray-500 mt-1">
             Enter the shared password to continue.
           </p>
