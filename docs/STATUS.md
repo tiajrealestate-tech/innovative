@@ -145,9 +145,27 @@ domain later is a one-line manifest addition done during the rename.
   one more click); after write-ups, every heading is confirmed present in its
   item. The log ends with "Verified N/N" — "done" now means the page says so.
 
-Audit decisions: photos = closed by design (Spectora mobile attaches to items;
-our write-ups land alongside; photo-AI is redundant when the transcript already
-names the issue). Box-wording mismatches (e.g. stored text says "two or more
-windows", reality was one): chosen fix is level 1 — capture stored wording
+Audit decisions: photos = OFF THE TABLE (per Tia; Spectora mobile attaches to
+items; our write-ups land alongside; photo-AI is redundant when the transcript
+already names the issue). Box-wording mismatches (e.g. stored text says "two or
+more windows", reality was one): chosen fix is level 1 — capture stored wording
 during template scan and route mismatches to write-ups instead of ticking;
-his stored words are never edited. Not yet built.
+his stored words are never edited. NOT YET BUILT — next plugin feature.
+
+## Property Condition Overview auto-places — v0.9.3, 08/02/2026
+
+Researched from his own published reports (no Trever interruption needed):
+in ALL seven reports carrying it (six of texts50 + the Indo Pl beta report),
+the overview lives at **Inspection Details › PROPERTY CONDITION OVERVIEW** as
+a rated comment (Recommendation) — that's what puts it at the top of
+Spectora's auto summary. It is NOT in the trailing "General Overview" section,
+which sits empty in every published report, and it is not a Spectora AI
+feature (their AI = Report Assist comment-matching; their summary page is
+auto-built from rated comments).
+
+Build: the app now prepends the overview as the first @@ payload block
+(heading "Overview" — his comment titles vary Overview/OVERVIEW/Condition
+Overview; most common wins). REPORT_MAP gained Inspection Details. The last
+hand-carried piece of the report is gone. Watch item for the first live run:
+confirm the Inspection Details item accepts the comment flow (its tabs may
+differ from defect items); the log will say precisely if not.

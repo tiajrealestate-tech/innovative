@@ -733,15 +733,22 @@ function buildExtensionPayload(
     if (!m || !m.size) return "";
     return [...m.entries()].sort((a, b) => b[1] - a[1])[0][0];
   };
-  return composed.groups
+  // The Property Condition Overview leads the report. In every published 2026
+  // report it lives in Inspection Details › PROPERTY CONDITION OVERVIEW as a
+  // rated comment (which is what puts it at the top of Spectora's summary) —
+  // NOT in the empty "General Overview" section at the back.
+  const overviewBlock = composed.property_overview?.trim()
+    ? `@@SECTION: Inspection Details\n@@ITEM: PROPERTY CONDITION OVERVIEW\n@@SEVERITY: recommendation\n@@HEADING: Overview\n@@BODY\n${composed.property_overview.trim()}\n@@END`
+    : "";
+  const groupBlocks = composed.groups
     // Stand-alone deficiencies matched to a library checkbox are ticked in the
     // Build-report pass instead — typing them here too would duplicate them.
     .filter((g) => !g.box_label)
     .map(
       (g) =>
         `@@SECTION: ${g.section}\n@@ITEM: ${g.item || fallbackItem(g.section)}\n@@SEVERITY: ${g.severity || "recommendation"}\n@@HEADING: ${g.heading}\n@@BODY\n${g.body}\n@@END`
-    )
-    .join("\n\n");
+    );
+  return [overviewBlock, ...groupBlocks].filter(Boolean).join("\n\n");
 }
 
 function EntryTab({

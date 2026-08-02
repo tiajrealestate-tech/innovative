@@ -1,5 +1,9 @@
 /* ==========================================================================
- * Spectora Autofill — v0.9.2
+ * Spectora Autofill — v0.9.3
+ *
+ * v0.9.3: the Property Condition Overview places itself — the app now sends
+ * it as the first write-up block, targeted at Inspection Details ›
+ * PROPERTY CONDITION OVERVIEW (where every published 2026 report keeps it).
  *
  * v0.9.2: end-of-run verification sweeps. After a build, every line is
  * re-walked and its checkbox state read off the page (unticked boxes get one
@@ -50,6 +54,9 @@
   // If an item here is named slightly differently in Spectora it'll show up as
   // "missing" in the scan summary, which tells us exactly what to fix.
   const REPORT_MAP = [
+    // Section 1 in his reports — home of the Property Condition Overview
+    // comment (his published reports place it here, never in General Overview).
+    ["Inspection Details", ["PROPERTY CONDITION OVERVIEW"]],
     ["Roof", ["Coverings", "Roof Drainage Systems", "Flashings", "Skylights, Chimneys & Other Roof Penetrations", "Roofing General"]],
     ["Exterior", ["Siding, Flashing & Trim", "Exterior Windows", "Exterior Doors", "Decks, Balconies, Porches & Steps", "Walkways, Patios & Driveways", "Eaves, Soffits & Fascia", "Vegetation, Grading, Drainage & Retaining Walls", "Windows & Doors", "Basement Walkout", "Exterior General"]],
     ["Basement, Foundation, Crawlspace & Structure", ["Basements & Crawlspaces", "Foundation", "Structural Components", "Structural General"]],
