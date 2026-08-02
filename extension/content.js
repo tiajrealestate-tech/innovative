@@ -1340,13 +1340,14 @@
     });
     return b;
   }
-  function mkTextarea(value, h) {
+  function mkTextarea(value, h, placeholder) {
     const ta = document.createElement("textarea");
     Object.assign(ta.style, {
       width: "100%", height: h, fontFamily: "monospace", fontSize: "12px",
       border: "1px solid #d0d5dd", borderRadius: "8px", padding: "8px", boxSizing: "border-box",
     });
     ta.value = value;
+    if (placeholder) ta.placeholder = placeholder;
     return ta;
   }
 
@@ -1408,22 +1409,20 @@
     });
     bodyWrap.appendChild(handoffNote);
 
-    bodyWrap.appendChild(mkLabel("Build report — Section > Item > Tab > Label (one per line):"));
+    bodyWrap.appendChild(mkLabel("Step 1 — Check the boxes"));
     const taReport = mkTextarea(
-      "Roof > Coverings > Defects > Shingles Missing\n" +
-        "Roof > Coverings > Information > Architectural Shingles\n" +
-        "Roof > Coverings > Limitations > Unable to See Everything\n" +
-        "Bathrooms > Sinks, Tubs & Showers > Defects > Active Water Leak",
-      "130px"
+      "",
+      "110px",
+      "Fills in automatically from the app when your report is ready.\n(You can also paste a build list here.)"
     );
     bodyWrap.appendChild(taReport);
     const buildBtn = mkBtn("Build report", "#16a34a", "#fff");
     buildBtn.style.marginTop = "8px";
+    buildBtn.style.width = "100%";
     bodyWrap.appendChild(buildBtn);
 
-    bodyWrap.appendChild(mkLabel("…or check just the CURRENT tab (labels, one per line):"));
-    const taItem = mkTextarea("Shingles Missing\nPonding", "70px");
-    bodyWrap.appendChild(taItem);
+    // Current-tab spot-check tools live under Advanced below.
+    const taItem = mkTextarea("", "70px", "Labels to check on the current tab, one per line.");
     const row = document.createElement("div");
     row.style.marginTop = "8px";
     const previewBtn = mkBtn("Preview", "#fff", "#111827");
@@ -1432,14 +1431,12 @@
     checkBtn.style.marginLeft = "8px";
     row.appendChild(previewBtn);
     row.appendChild(checkBtn);
-    bodyWrap.appendChild(row);
 
-    bodyWrap.appendChild(
-      mkLabel("Place 2026 write-ups (arrives from the app automatically, or paste):")
-    );
+    bodyWrap.appendChild(mkLabel("Step 2 — Place the write-ups"));
     const taWriteups = mkTextarea(
-      "@@SECTION: Roof\n@@ITEM: Coverings\n@@HEADING: ROOF DEFICIENCIES\n@@BODY\n(paste from the app)\n@@END",
-      "90px"
+      "",
+      "90px",
+      "Fills in automatically from the app when your report is ready.\n(You can also paste write-ups here.)"
     );
     bodyWrap.appendChild(taWriteups);
     const placeBtn = mkBtn("Place write-ups", "#7c3aed", "#fff");
@@ -1554,7 +1551,7 @@
 
     bodyWrap.appendChild(logEl);
 
-    const copyLogBtn = mkBtn("Copy log", "#fff", "#111827");
+    const copyLogBtn = mkBtn("Copy log — send if something looks wrong", "#fff", "#111827");
     Object.assign(copyLogBtn.style, {
       border: "1px solid #d0d5dd", marginTop: "6px", width: "100%", fontSize: "12px",
     });
@@ -1580,26 +1577,52 @@
       copyLogBtn.textContent = ok
         ? "Copied ✓ — now paste it into the chat"
         : "Copy failed — select the gray text by hand";
-      setTimeout(() => (copyLogBtn.textContent = "Copy log"), 3000);
+      setTimeout(
+        () => (copyLogBtn.textContent = "Copy log — send if something looks wrong"),
+        3000
+      );
     };
     bodyWrap.appendChild(copyLogBtn);
 
-    bodyWrap.appendChild(mkLabel("Catalog the whole report (read-only — checks nothing):"));
-    const scanAllBtn = mkBtn("Scan whole report → file", "#111827", "#fff");
+    // Everything below is setup/support tooling — hidden behind one quiet
+    // toggle so the daily view is just Step 1, Step 2, and the log.
+    const advToggle = document.createElement("div");
+    advToggle.textContent = "Advanced tools ▸";
+    Object.assign(advToggle.style, {
+      marginTop: "12px", fontSize: "12px", color: "#6b7280", cursor: "pointer",
+      userSelect: "none",
+    });
+    bodyWrap.appendChild(advToggle);
+
+    const advWrap = document.createElement("div");
+    advWrap.style.display = "none";
+    bodyWrap.appendChild(advWrap);
+    advToggle.onclick = () => {
+      const open = advWrap.style.display === "none";
+      advWrap.style.display = open ? "" : "none";
+      advToggle.textContent = open ? "Advanced tools ▾" : "Advanced tools ▸";
+    };
+
+    advWrap.appendChild(mkLabel("Spot-check the current tab:"));
+    advWrap.appendChild(taItem);
+    advWrap.appendChild(row);
+
+    advWrap.appendChild(mkLabel("Scan your template (one-time setup — checks nothing):"));
+    const scanAllBtn = mkBtn("Scan template → file", "#111827", "#fff");
     scanAllBtn.style.width = "100%";
-    bodyWrap.appendChild(scanAllBtn);
+    advWrap.appendChild(scanAllBtn);
 
     const scanBtn = mkBtn("Scan (debug)", "#fff", "#6b7280");
     Object.assign(scanBtn.style, { border: "1px solid #e5e7eb", fontSize: "12px", marginTop: "10px" });
-    bodyWrap.appendChild(scanBtn);
+    advWrap.appendChild(scanBtn);
 
     const scanToolsBtn = mkBtn("Scan comment tools (debug)", "#fff", "#6b7280");
     Object.assign(scanToolsBtn.style, { border: "1px solid #e5e7eb", fontSize: "12px", marginTop: "8px" });
-    bodyWrap.appendChild(scanToolsBtn);
+    advWrap.appendChild(scanToolsBtn);
 
     const clickAddBtn = mkBtn("Debug: click Add & report", "#fff", "#6b7280");
     Object.assign(clickAddBtn.style, { border: "1px solid #e5e7eb", fontSize: "12px", marginTop: "8px" });
-    bodyWrap.appendChild(clickAddBtn);
+    advWrap.appendChild(clickAddBtn);
 
     panel.appendChild(header);
     panel.appendChild(bodyWrap);
@@ -1692,7 +1715,7 @@
         log("Scan error: " + (e && e.message ? e.message : e));
       }
       scanAllBtn.disabled = false;
-      scanAllBtn.textContent = "Scan whole report → file";
+      scanAllBtn.textContent = "Scan template → file";
     };
   }
 
