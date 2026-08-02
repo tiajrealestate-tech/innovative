@@ -518,9 +518,26 @@ function ReviewTab({
   onAddFinding: () => void;
 }) {
   const groups = useMemo(() => groupBySection(report.findings), [report.findings]);
+  const secondRead = report.meta?.second_read;
 
   return (
     <div className="space-y-6">
+      {secondRead?.checked && secondRead.added > 0 && (
+        <div className="rounded-2xl border border-blue-300 bg-blue-50 p-4 text-sm text-blue-900">
+          <span className="font-semibold">
+            The second read caught {secondRead.added} finding
+            {secondRead.added === 1 ? "" : "s"} the first pass missed
+          </span>{" "}
+          — marked &ldquo;Caught on second read&rdquo; below. Give {secondRead.added === 1 ? "it" : "them"} a
+          look: this is the double-check working, but it can occasionally re-add
+          something you meant to leave out.
+        </div>
+      )}
+      {secondRead?.checked && secondRead.added === 0 && (
+        <p className="text-xs text-gray-500">
+          Second read: the transcript was re-read against these findings — nothing was missed.
+        </p>
+      )}
       <div className="flex justify-between items-center">
         <p className="text-sm text-gray-500">
           Edit any field, change severity, delete, or add findings. Changes save
@@ -617,6 +634,11 @@ function FindingEditor({
         {finding.flags?.includes("low_confidence") && (
           <span className="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
             Low confidence — check
+          </span>
+        )}
+        {finding.flags?.includes("second_read") && (
+          <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+            Caught on second read — verify
           </span>
         )}
 

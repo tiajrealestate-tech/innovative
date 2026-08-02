@@ -1,5 +1,10 @@
 /* ==========================================================================
- * Spectora Autofill — v0.9.1
+ * Spectora Autofill — v0.9.2
+ *
+ * v0.9.2: end-of-run verification sweeps. After a build, every line is
+ * re-walked and its checkbox state read off the page (unticked boxes get one
+ * more click); after placing write-ups, every heading is confirmed present
+ * in its item. "Done" now means the PAGE says it's done.
  *
  * v0.9.0: the copy-paste seam is gone. A bridge script on the report app's
  * site receives the build list and write-ups and stores them; this panel
@@ -461,9 +466,70 @@
       itemsDone++;
     }
     log(
-      `Done — checked ${totalChecked} box(es) across ${itemsDone}/${groups.length} item-tabs.` +
+      `Checked ${totalChecked} box(es) across ${itemsDone}/${groups.length} item-tabs.` +
         (problems.length ? `\n\nIssues:\n- ${problems.join("\n- ")}` : "")
     );
+
+    // The build is only done when the PAGE says so: re-walk every line and
+    // confirm its box is really checked, re-checking any that aren't.
+    if (itemsDone > 0) {
+      log(`\nVerification sweep — confirming every box on the page…`);
+      const v = await verifySweep(groups, log);
+      log(
+        `Verified ${v.confirmed}/${v.total} boxes` +
+          (v.fixed ? ` (${v.fixed} re-checked during the sweep)` : "") +
+          (v.still.length
+            ? `\n\nSTILL UNCHECKED — do these by hand:\n- ${v.still.join("\n- ")}`
+            : " — everything the list asked for is on the page.")
+      );
+    }
+  }
+
+  // ---- end-of-run verification sweep (build) ------------------------------
+  // Trust nothing from the first pass: revisit every section/item/tab and read
+  // the checkbox state off the page. Anything unticked gets one more click.
+  async function verifySweep(groups, log) {
+    let confirmed = 0;
+    let fixed = 0;
+    let total = 0;
+    const still = [];
+    for (const grp of groups) {
+      total += grp.labels.length;
+      if (
+        !(await selectSection(grp.section)) ||
+        !(await selectItem(grp.item)) ||
+        !(await openTab(grp.tab))
+      ) {
+        grp.labels.forEach((l) =>
+          still.push(`${grp.section} › ${grp.item} › ${grp.tab}: ${l} (couldn't reopen)`)
+        );
+        continue;
+      }
+      if (collapseOpen()) await waitFor(() => allCheckboxes().length > 1, 2000);
+      for (const line of grp.labels) {
+        let m = findCb(line);
+        if (!m) await waitFor(() => !!(m = findCb(line)), 2000);
+        if (m && m.cb.checked) {
+          confirmed++;
+          continue;
+        }
+        if (m) {
+          m.cb.click();
+          const ok = await waitFor(() => {
+            const f = findCb(line);
+            return !!(f && f.cb.checked);
+          }, 3000);
+          if (collapseOpen()) await waitFor(() => allCheckboxes().length > 1, 2000);
+          if (ok) {
+            fixed++;
+            confirmed++;
+            continue;
+          }
+        }
+        still.push(`${grp.section} › ${grp.item} › ${grp.tab}: ${line}`);
+      }
+    }
+    return { total, confirmed, fixed, still };
   }
 
   // ---- scan (debug) -------------------------------------------------------
@@ -1168,10 +1234,66 @@
     }
     for (const f of failed) problems.push(f.problem);
     log(
-      `Done — placed ${done}/${blocks.length} write-ups.` +
-        (problems.length ? `\n\nIssues:\n- ${problems.join("\n- ")}` : "") +
-        `\n\nClick "Copy log" below and paste it into the chat.`
+      `Placed ${done}/${blocks.length} write-ups.` +
+        (problems.length ? `\n\nIssues:\n- ${problems.join("\n- ")}` : "")
     );
+
+    // Final sweep: revisit every item and confirm each heading is really
+    // there. Placement already verified each save, but this reads the finished
+    // report one more time, after everything settled.
+    if (done > 0) {
+      log(`\nVerification sweep — confirming every write-up on the page…`);
+      const v = await verifyWriteups(blocks, log, resCache);
+      log(
+        `Verified ${v.confirmed}/${v.total} write-ups` +
+          (v.missing.length
+            ? `\n\nNOT FOUND ON THE PAGE — check these in Spectora:\n- ${v.missing.join("\n- ")}`
+            : " — every heading is in its item.")
+      );
+    }
+    log(`\nClick "Copy log" below and paste it into the chat.`);
+  }
+
+  // ---- end-of-run verification sweep (write-ups) --------------------------
+  async function verifyWriteups(blocks, log, resCache) {
+    // Group by section+item so each place is visited once.
+    const groups = new Map();
+    for (const b of blocks) {
+      const key = b.section + "||" + (b.item || "");
+      if (!groups.has(key))
+        groups.set(key, { section: b.section, item: b.item, headings: [] });
+      groups.get(key).headings.push(b.heading);
+    }
+    let confirmed = 0;
+    let total = 0;
+    const missing = [];
+    const headingOnPage = (heading) => {
+      const frag = (heading || "").toLowerCase().slice(0, 40);
+      return [...document.querySelectorAll("div,span,p,td,h1,h2,h3")].some(
+        (el) => el.children.length === 0 && trimText(el).toLowerCase().includes(frag)
+      );
+    };
+    for (const g of groups.values()) {
+      total += g.headings.length;
+      if (!(await selectSection(g.section))) {
+        g.headings.forEach((h) => missing.push(`${g.section}: "${h}" (couldn't reopen section)`));
+        continue;
+      }
+      const sel = await selectItemWithFallback(g.section, g.item, log, resCache);
+      if (!sel.ok) {
+        g.headings.forEach((h) =>
+          missing.push(`${g.section} › ${g.item}: "${h}" (couldn't reopen item)`)
+        );
+        continue;
+      }
+      await openTab("Defects");
+      for (const h of g.headings) {
+        const found = headingOnPage(h) || (await waitFor(() => headingOnPage(h), 2000));
+        if (found) confirmed++;
+        else missing.push(`${g.section} › ${sel.item || g.item}: "${h}"`);
+      }
+    }
+    return { total, confirmed, missing };
   }
 
   // Debug: dump the clickable "Add"-type controls and the editable fields on the

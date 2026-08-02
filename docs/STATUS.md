@@ -126,3 +126,28 @@ the Chrome Web Store listing exists, updates become automatic.
 Deliberately deferred (per Tia): product name and custom domain come LAST.
 The bridge is pinned to `innovative-eight-rosy.vercel.app`; adding the real
 domain later is a one-line manifest addition done during the rename.
+
+## Safety features from the pre-launch audit — v0.9.1/v0.9.2 + app, 08/02/2026
+
+- **Wrong-house guard (v0.9.1).** The handoff carries the property address;
+  before Build/Place runs the extension looks for street number + street name
+  on the Spectora page. Match → "house ✓" in the status line. No match → red
+  "⚠ CHECK HOUSE" and a hard confirm naming the house before anything runs.
+- **Second read (app).** After extraction, a fresh pass re-reads the raw
+  transcript against the finished findings list and returns ONLY dictated
+  conditions no finding covers (the chimney-sweep class of miss — never
+  extracted, so invisible to every downstream coverage check). Additions are
+  flagged "second_read", shown with a blue "Caught on second read — verify"
+  badge and a banner on Review & edit. Skipped if the time budget is nearly
+  spent; failures never break extraction.
+- **End-of-run verification sweeps (v0.9.2).** After a build, every line is
+  re-walked and the checkbox state is read off the page (unticked boxes get
+  one more click); after write-ups, every heading is confirmed present in its
+  item. The log ends with "Verified N/N" — "done" now means the page says so.
+
+Audit decisions: photos = closed by design (Spectora mobile attaches to items;
+our write-ups land alongside; photo-AI is redundant when the transcript already
+names the issue). Box-wording mismatches (e.g. stored text says "two or more
+windows", reality was one): chosen fix is level 1 — capture stored wording
+during template scan and route mismatches to write-ups instead of ticking;
+his stored words are never edited. Not yet built.

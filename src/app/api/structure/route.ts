@@ -211,6 +211,68 @@ export async function POST(req: NextRequest) {
         };
       });
 
+    // -------------------------------------------------------------------------
+    // SECOND READ — the check the hazard-term list can't do. The term list only
+    // catches losses of words we thought to put on a list; the chimney-sweep
+    // recommendation was missed because it was never extracted at all, so every
+    // downstream coverage check had nothing to compare against. Here a fresh
+    // pass reads the raw transcript against the finished findings list and
+    // returns ONLY dictated conditions no finding covers. Anything it finds is
+    // appended, flagged "second_read" so the review screen can show its origin.
+    // Verification must never break extraction: failures are swallowed, and it
+    // is skipped when there isn't time budget left for another pass.
+    let secondRead: { checked: boolean; added: number } = { checked: false, added: 0 };
+    if (Date.now() - startedAt < 200_000) {
+      try {
+        const listed = findings
+          .map(
+            (f, i) =>
+              `[${i}] ${f.title} — ${(f.source_text || f.comment || "").slice(0, 200)}`
+          )
+          .join("\n");
+        const verify = await anthropic.messages.stream({
+          model: "claude-opus-5",
+          max_tokens: 16000,
+          system: buildSystemPrompt(),
+          messages: [
+            {
+              role: "user",
+              content:
+                `VERIFICATION PASS. A first extraction of the transcript below produced the ${findings.length} findings listed here:\n\n${listed}\n\n` +
+                `Read the full transcript again and return ONLY dictated conditions that are MISSING from that list — observations or recommendations (including habitual "we always recommend X" statements) that no listed finding covers. ` +
+                `A listed finding covers a condition even when it words it differently, consolidates it with others, or generalizes its location — do NOT return those. ` +
+                `Honor every DO-NOT-WRITE-UP rule: retractions, corrections, layman's editorializing, teaching, small talk, instructions to the report writer, separate deliverables, and information are still not findings. ` +
+                `If nothing is missing, return an empty findings list. Leave every inspection detail null.\n\n` +
+                `Transcript:\n"""\n${transcript}\n"""`,
+            },
+          ],
+          output_config: {
+            format: { type: "json_schema", schema: CLAUDE_OUTPUT_SCHEMA },
+            effort: "medium",
+          },
+        } as any).finalMessage();
+        const block = (verify.content as any[]).find((b) => b.type === "text");
+        if (block?.text && (verify as any).stop_reason !== "max_tokens") {
+          const parsed = JSON.parse(block.text) as ClaudeRawOutput;
+          const missed = (parsed.findings || []).map((f, i) => {
+            const conf = typeof f.confidence === "number" ? f.confidence : null;
+            return {
+              ...f,
+              id: newId(),
+              order_index: findings.length + i,
+              confidence: conf,
+              location_tags: Array.isArray(f.location_tags) ? f.location_tags : [],
+              flags: ["second_read"],
+            };
+          });
+          findings.push(...missed);
+          secondRead = { checked: true, added: missed.length };
+        }
+      } catch {
+        /* second read is best-effort — the first-pass findings stand */
+      }
+    }
+
     const report: InspectionReport = {
       schema_version: "1.0",
       inspection: mergeDetails(mergedDetails, typed),
@@ -219,6 +281,7 @@ export async function POST(req: NextRequest) {
         generated_at: new Date().toISOString(),
         source: "voice-to-report",
         transcript,
+        second_read: secondRead,
       },
     };
 

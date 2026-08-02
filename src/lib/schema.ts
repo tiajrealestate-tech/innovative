@@ -58,6 +58,9 @@ export interface InspectionReport {
     generated_at: string; // ISO timestamp
     source: "voice-to-report";
     transcript?: string;
+    // Result of the second-read verification pass: did it run, and how many
+    // dictated-but-missed findings it added back (flagged "second_read").
+    second_read?: { checked: boolean; added: number };
   };
 }
 
