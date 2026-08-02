@@ -1,9 +1,12 @@
 /* ==========================================================================
- * Spectora Autofill — v0.9.0
+ * Spectora Autofill — v0.9.1
  *
  * v0.9.0: the copy-paste seam is gone. A bridge script on the report app's
  * site receives the build list and write-ups and stores them; this panel
  * pre-fills both boxes from that store automatically. Paste still works.
+ * v0.9.1: wrong-house guard — before Build/Place runs, the payload's address
+ * must be found on the Spectora page, or the inspector must explicitly
+ * confirm. Status line shows "house ✓" or "⚠ CHECK HOUSE".
  * --------------------------------------------------------------------------
  * Builds a Spectora report by checking boxes across ALL sections and ALL
  * three tabs (Information, Limitations, Defects).
@@ -1318,21 +1321,94 @@
     // ---- payload handoff from the app (seam removal) ----------------------
     // The bridge script (on the app's site) stores {buildLines, writeups,
     // address, updatedAt}; pre-fill both boxes from it and keep them live.
+    let lastHandoff = null;
+
+    // ---- wrong-house guard ------------------------------------------------
+    // The payload knows which house it was written for. Before anything runs,
+    // look for that address on the Spectora page; if it isn't there, make the
+    // inspector confirm. At volume, two open inspections is normal — placing
+    // 20 write-ups into the wrong report (with no undo) must not be possible
+    // by accident.
+    const ADDR_SUFFIXES = [
+      "st", "street", "dr", "drive", "rd", "road", "ave", "avenue", "ct",
+      "court", "ln", "lane", "pl", "place", "way", "blvd", "boulevard",
+      "cir", "circle", "ter", "terrace", "trl", "trail", "hwy", "pkwy",
+      "apt", "unit", "ne", "nw", "se", "sw", "n", "s", "e", "w",
+    ];
+    function addrNeedle(addr) {
+      const num = (addr.match(/\d+/) || [""])[0];
+      const word = (addr.toLowerCase().match(/[a-z]+/g) || []).find(
+        (w) => w.length >= 3 && !ADDR_SUFFIXES.includes(w)
+      );
+      if (!num || !word) return null;
+      return num + " " + word;
+    }
+    function pageText() {
+      let t = (document.title || "") + " " + (document.body ? document.body.innerText : "");
+      try {
+        // The editor usually lives in a same-origin frame; the address is
+        // often only in the top page's header/title.
+        if (window.top !== window) {
+          t += " " + (window.top.document.title || "");
+          t += " " + (window.top.document.body ? window.top.document.body.innerText : "");
+        }
+      } catch (e) {
+        /* cross-origin top — use what this frame can see */
+      }
+      return t.toLowerCase().replace(/\s+/g, " ");
+    }
+    function houseVerified(addr) {
+      const needle = addrNeedle(addr || "");
+      if (!needle) return null; // can't verify — no usable address
+      return pageText().includes(needle);
+    }
+    function guardHouse(log) {
+      const addr = lastHandoff && lastHandoff.address;
+      if (!addr) return true; // manual paste / no address on record
+      const ok = houseVerified(addr);
+      if (ok) {
+        log("House check ✓ — this page matches " + addr);
+        return true;
+      }
+      if (ok === null) return true;
+      return window.confirm(
+        "WRONG-HOUSE CHECK\n\nThe loaded payload was written for:\n\n    " +
+          addr +
+          "\n\nbut that address was NOT found on this Spectora page. If this is a different house, STOP — there is no undo.\n\nOnly continue if you are sure this report is " +
+          addr +
+          "."
+      );
+    }
+
     const applyHandoff = (h) => {
       // The panel can be rebuilt (hide/show); ignore callbacks aimed at a
       // detached copy of the textareas.
       if (!document.body.contains(taWriteups)) return;
       if (!h || (!h.buildLines && !h.writeups)) return;
+      lastHandoff = h;
       if (h.buildLines) taReport.value = h.buildLines;
       if (h.writeups) taWriteups.value = h.writeups;
       const when = h.updatedAt ? new Date(h.updatedAt).toLocaleString() : "";
+      const houseOk = h.address ? houseVerified(h.address) : null;
       handoffNote.style.display = "";
+      const houseTag =
+        houseOk === true ? " · house ✓" : houseOk === false ? " · ⚠ CHECK HOUSE" : "";
+      if (houseOk === false) {
+        Object.assign(handoffNote.style, {
+          background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b",
+        });
+      } else {
+        Object.assign(handoffNote.style, {
+          background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46",
+        });
+      }
       handoffNote.textContent =
         "Loaded from the app" +
         (h.address ? " — " + h.address : "") +
         (when ? " (" + when + ")" : "") +
         (h.buildLines ? " · build list ✓" : "") +
-        (h.writeups ? " · write-ups ✓" : "");
+        (h.writeups ? " · write-ups ✓" : "") +
+        houseTag;
     };
     try {
       chrome.storage.local.get("sa_handoff", (res) => {
@@ -1430,6 +1506,10 @@
     };
     buildBtn.onclick = () => {
       resetLog();
+      if (!guardHouse(log)) {
+        log("Stopped — wrong-house check was not confirmed.");
+        return;
+      }
       buildReport(taReport.value, log);
     };
     previewBtn.onclick = () => {
@@ -1459,6 +1539,10 @@
     };
     placeBtn.onclick = async () => {
       resetLog();
+      if (!guardHouse(log)) {
+        log("Stopped — wrong-house check was not confirmed.");
+        return;
+      }
       placeBtn.disabled = true;
       placeBtn.textContent = "Placing… (leave this tab open)";
       try {
