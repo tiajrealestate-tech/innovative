@@ -1432,14 +1432,14 @@
     row.appendChild(previewBtn);
     row.appendChild(checkBtn);
 
-    bodyWrap.appendChild(mkLabel("Step 2 — Place the write-ups"));
+    bodyWrap.appendChild(mkLabel("Step 2 — Place custom write-ups"));
     const taWriteups = mkTextarea(
       "",
       "90px",
       "Fills in automatically from the app when your report is ready.\n(You can also paste write-ups here.)"
     );
     bodyWrap.appendChild(taWriteups);
-    const placeBtn = mkBtn("Place write-ups", "#7c3aed", "#fff");
+    const placeBtn = mkBtn("Place custom write-ups", "#16a34a", "#fff");
     placeBtn.style.marginTop = "8px";
     placeBtn.style.width = "100%";
     bodyWrap.appendChild(placeBtn);
@@ -1703,7 +1703,7 @@
         log("Place error: " + (e && e.message ? e.message : e));
       }
       placeBtn.disabled = false;
-      placeBtn.textContent = "Place write-ups";
+      placeBtn.textContent = "Place custom write-ups";
     };
     scanAllBtn.onclick = async () => {
       resetLog();
