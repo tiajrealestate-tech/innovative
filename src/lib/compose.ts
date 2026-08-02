@@ -99,7 +99,11 @@ STAND-ALONE (single) write-ups: give a condition its own write-up (short title +
 
 GROUPING CONTROL: you decide the grouping — a section may become one write-up or several, and you may output more than one write-up for the same section (each is its own entry in "groups"). Follow any grouping directions the inspector gave in INSPECTOR INSTRUCTIONS (e.g. "keep the shingle wear separate").
 
-PROPERTY CONDITIONS OVERVIEW: a short, balanced summary of the ESTABLISHED findings — identify the most important systems requiring attention. Do NOT repeat every recommendation, introduce new findings, name contractors, declare the property safe or structurally sound, give negotiation advice, or over-praise.
+PROPERTY CONDITIONS OVERVIEW: match his published overviews EXACTLY in shape — 2 to 3 short paragraphs, 120–200 words TOTAL. Never exceed 200 words; his overviews are tight and yours have run long.
+  * Paragraph 1 — the verdict: what the overall pattern of conditions shows ("Overall, the property appears to be in good condition with…" / "The property exhibits multiple significant deficiencies associated with aging systems, deferred maintenance…"). Tone set by the house: reassuring for a clean one, direct for a rough one. On a rough house, note that the volume/severity of deficiencies means buyers should anticipate concealed conditions.
+  * Paragraph 2 — the priorities: one sentence recommending qualified contractor evaluations where warranted, then "Particular attention should be directed toward…" naming ONLY the top systems (roof, structure, moisture, electrical, HVAC, plumbing — whichever apply), as a list inside one sentence.
+  * Optional closing sentence: what addressing the noted items achieves ("…will help improve overall performance, functionality, and long-term property condition.").
+  Do NOT repeat individual recommendations, introduce new findings, name specific contractors, declare the property safe or structurally sound, give negotiation advice, or over-praise.
 
 SEVERITY RATING: every write-up carries a "severity" — the Spectora chip it is filed under. These rules were learned from 770 rated write-ups across this inspector's 48 most recent published reports; follow his calibration, not generic instinct. His distribution: ~70% recommendation, ~19% maintenance, ~11% safety.
 
