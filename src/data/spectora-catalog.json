@@ -1,7 +1,7 @@
 {
   "version": "merged",
   "generatedAt": "2026-07-24T03:42:17.034Z",
-  "source": "union of 2 report scans + Inspection Details seeded from the values published across his 50 most recent reports (the editor scan never captured that section)",
+  "source": "union of 3 report scans (full 990-box scan 08/03/2026) + Inspection Details General seeded from editor screenshots",
   "sections": [
     {
       "section": "Inspection Details",
@@ -260,7 +260,9 @@
             },
             {
               "tab": "Defects",
-              "checkboxes": []
+              "checkboxes": [
+                "Roof and Drainage Deficiencies"
+              ]
             }
           ]
         }
@@ -585,7 +587,9 @@
             },
             {
               "tab": "Defects",
-              "checkboxes": []
+              "checkboxes": [
+                "Exterior Maintenance Deficiencies"
+              ]
             }
           ]
         },
@@ -946,7 +950,9 @@
           "tabs": [
             {
               "tab": "Information",
-              "checkboxes": []
+              "checkboxes": [
+                "Homeowner's Responsibility"
+              ]
             },
             {
               "tab": "Limitations",
@@ -1231,7 +1237,8 @@
                 "Toilet Damage",
                 "Polybutylene Supply Pipes",
                 "Toilet Loose Connection to Floor",
-                "Toilet Leaking"
+                "Toilet Leaking",
+                "Drain System Deficiencies"
               ]
             }
           ]
@@ -1350,7 +1357,10 @@
                 "Solar",
                 "Propane",
                 "Indirect",
-                "Tankless"
+                "Tankless",
+                "Units: 1",
+                "2",
+                "3 & 4"
               ]
             },
             {
@@ -1383,8 +1393,44 @@
         },
         {
           "item": "Fuel Storage & Distribution",
-          "found": false,
-          "tabs": []
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "At Tank",
+                "Basement",
+                "Crawlspace",
+                "Gas Meter",
+                "Unknown",
+                "Utility Room",
+                "No gas in property"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Gas Shut Off",
+                "No access to main shut off valve"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Corrosion/Rust",
+                "Active gas leak",
+                "Improper Installation",
+                "Old oil tank",
+                "Buried oil tank",
+                "Not properly",
+                "Gas Systems and Appliances Testing Incomplete",
+                "Gas Turned Off at Time of Inspection",
+                "Rust Observed on Gas Lines and Gas Meter Noted",
+                "Leak At Oil Line",
+                "Gas Off"
+              ]
+            }
+          ]
         },
         {
           "item": "Plumbing General",
@@ -1412,15 +1458,39 @@
           "tabs": [
             {
               "tab": "Information",
-              "checkboxes": []
+              "checkboxes": [
+                "Basement",
+                "Under Stairs",
+                "Bedroom Closet",
+                "No sump pump in property",
+                "Crawlspace",
+                "Utility Room",
+                "Unknown"
+              ]
             },
             {
               "tab": "Limitations",
-              "checkboxes": []
+              "checkboxes": [
+                "Sump pump sealed",
+                "Not able to inspect"
+              ]
             },
             {
               "tab": "Defects",
-              "checkboxes": []
+              "checkboxes": [
+                "Improper Installation",
+                "Inoperable",
+                "Needs Cleaning",
+                "No Shut-off Valve",
+                "Service sump pump",
+                "Discharge point improper",
+                "Sump pump missing",
+                "No battery back-up present",
+                "Cover missing",
+                "Discharge pipe: Active Leak",
+                "Sump pump defect",
+                "Missing Check Valve"
+              ]
             }
           ]
         }
@@ -1431,8 +1501,34 @@
       "items": [
         {
           "item": "Service & Grounding",
-          "found": false,
-          "tabs": []
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Inspected the Service Grounding & Bonding"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Unable to Confirm Proper Grounding and Bonding"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Ground Rod Not Flush",
+                "Inadequate Ground",
+                "Unable to Confirm Presence of Grounded Conductor",
+                "Missing GEC Grounding Electrode Conductor",
+                "No Ground Wire",
+                "Defect at Rod Connector",
+                "Major Defect",
+                "Material Defect"
+              ]
+            }
+          ]
         },
         {
           "item": "Main & Subpanels, Service & Grounding, Main Overcurrent Device",
@@ -1496,7 +1592,10 @@
                 "Interior",
                 "Mone",
                 "None",
-                "Detached Garage"
+                "Detached Garage",
+                "Units 1",
+                "2",
+                "3 & 4"
               ]
             },
             {
@@ -1621,8 +1720,35 @@
         },
         {
           "item": "Smoke & CO Detectors",
-          "found": false,
-          "tabs": []
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "MD State law smoke detector requirements have been met"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": [
+                "Inaccessible"
+              ]
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Defective",
+                "Inappropriate Location",
+                "Smoke Detector Low Battery",
+                "Outdated Detectors (More than 10 years old)",
+                "Not secured",
+                "Smoke detector missing",
+                "Loose connection",
+                "Single station",
+                "NON-LISTED SMOKE DETECTORS"
+              ]
+            }
+          ]
         },
         {
           "item": "Electrical General",
@@ -1650,15 +1776,38 @@
           "tabs": [
             {
               "tab": "Information",
-              "checkboxes": []
+              "checkboxes": [
+                "Below Ground",
+                "Overhead",
+                "Aluminum",
+                "Copper",
+                "120 Volts",
+                "220 Volts",
+                "240 Volts"
+              ]
             },
             {
               "tab": "Limitations",
-              "checkboxes": []
+              "checkboxes": [
+                "Not able to inspect"
+              ]
             },
             {
               "tab": "Defects",
-              "checkboxes": []
+              "checkboxes": [
+                "Drip Loop Deficiency",
+                "Frayed Sheathing",
+                "Inadequate Support at Conduit",
+                "Mast Improperly Installed",
+                "Not Enough Clearance",
+                "Water Intrusion",
+                "Electrical Deficiencies throughout property",
+                "Incomplete installation of service",
+                "Service Panel/Meter loose",
+                "Improper seal at electrical conduit",
+                "Tree blocking service entry",
+                "Incomplete Electrical Service Upgrade (Heavy-Up)"
+              ]
             }
           ]
         }
@@ -1928,7 +2077,26 @@
         },
         {
           "item": "Interior (General)",
-          "tabs": []
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Safety Deficiencies",
+                "Evidence of Substandard Renovation Work",
+                "Significant Disrepair in Units 1, 2, 3, and Basement Noted",
+                "Surplus storage"
+              ]
+            }
+          ],
+          "found": true
         }
       ]
     },
@@ -2027,7 +2195,8 @@
                 "No Running Water at Fixture",
                 "Hot & Cold Was Reversed",
                 "Inadequate Water Flow at Fixture",
-                "Stopper Missing"
+                "Stopper Missing",
+                "Bathroom Plumbing Deficiencies"
               ]
             }
           ]
@@ -2255,8 +2424,36 @@
         },
         {
           "item": "Cabinets & Countertops",
-          "found": false,
-          "tabs": []
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Inspected Cabinets & Countertops"
+              ]
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Worn Areas at Cabinets",
+                "Worn Areas at Countertops",
+                "Cabinet Door Missing",
+                "Cabinet Missing/Loose",
+                "Cabinet Hinge Loose",
+                "Cabinet Separating From Wall",
+                "Countertop Damaged",
+                "Countertop Not Secured",
+                "Damaged Cabinet",
+                "Caulking loose/Deteriorated",
+                "Damaged Handles",
+                "Cabinet door adjustment needed"
+              ]
+            }
+          ]
         },
         {
           "item": "Garbage Disposal",
@@ -2357,7 +2554,8 @@
                 "Defect at Rollers",
                 "Defect at Spray Arms",
                 "Defect at Soap Dispenser",
-                "Defect at Door Springs"
+                "Defect at Door Springs",
+                "Missing Dishwasher Air Gap"
               ]
             }
           ]
