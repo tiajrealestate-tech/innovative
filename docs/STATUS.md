@@ -1,5 +1,31 @@
 # Where this project stands
 
+## MANUAL ITEMS TRACKER (things needing hands — keep current)
+
+Per Tia 08/03: track everything a human still has to do by hand, per report and
+product-wide. Update this list whenever a run leaves manual work behind.
+
+**Melissa 6002 42nd Ave report (current):**
+1. Fireplace fuel: untick the wrong one of Wood/Gas in Spectora — he never
+   dictated the fireplace's fuel; only Trever knows. (Guessing is now blocked
+   for future reports.)
+2. The two "STILL UNCHECKED" chimney Information lines from the Build log:
+   IGNORE — those boxes don't exist on the live Info tab (stale catalog entry,
+   now removed); the chimney is fully covered by its write-up.
+3. Cosmetic punch list document: creation/format pending — Tia has debris
+   routing and the approved-punch-list format question ON HOLD.
+4. "Add it in both" items (asbestos stoop siding, fireplace, bathroom
+   caulking): in the report ✓; whether they ALSO belong on the punch list is
+   pending Trever's call (dual-listing not built yet).
+
+**Product-wide manual steps that remain by design:**
+- Trever reviews/approves every report before publish (always).
+- Photos: attached via Spectora mobile app (off the table per Tia).
+- Routine "was inspected" boxes: dictation-only by decision — unticked ones
+  he did but didn't narrate get ticked by hand.
+- Extension updates: remove → download → load unpacked until the Chrome Web
+  Store listing exists.
+
 Voice-to-report tool for home inspectors, built around Trever Edelin's
 Innovative Home Inspections (Spectora). Two pieces:
 
