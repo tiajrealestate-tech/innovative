@@ -208,19 +208,7 @@
             {
               "tab": "Information",
               "checkboxes": [
-                "Homeowner's Responsibility",
-                "Chimney Cap Missing",
-                "Flashing Defect",
-                "Chimney Clay Liner Cracked/Damaged",
-                "Chimney Flue Dirty",
-                "Chimney Repoint Needed",
-                "Metal Flue Rust",
-                "Skylight Cracked",
-                "Skylight Water Penetration",
-                "Deteriorated Condition(Chimney)",
-                "Poor seal at roof penetration",
-                "Saddle/Cricket flashing defect",
-                "Deteriorated Chimney Crown and Masonry"
+                "Homeowner's Responsibility"
               ]
             },
             {
