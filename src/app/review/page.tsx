@@ -1467,9 +1467,126 @@ function PunchTab({
   counts: Record<string, number>;
 }) {
   const groups = useMemo(() => groupByRoom(report.findings), [report.findings]);
+  const cosmetic = useMemo(
+    () => report.findings.filter((f) => f.flags?.includes("cosmetic")),
+    [report.findings]
+  );
+  const [plRows, setPlRows] = useState<
+    { sno: string; item: string; description: string }[] | null
+  >(null);
+  const [plBusy, setPlBusy] = useState(false);
+  const [plErr, setPlErr] = useState<string | null>(null);
+  const [plCopied, setPlCopied] = useState(false);
+
+  async function generatePunchList() {
+    if (plBusy) return;
+    setPlBusy(true);
+    setPlErr(null);
+    try {
+      const res = await fetch("/api/punchlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          findings: cosmetic.map((f) => ({
+            title: f.title,
+            comment: f.comment,
+            section: f.section,
+            location_tags: f.location_tags,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Could not build the punch list.");
+      setPlRows(data.rows || []);
+    } catch (e) {
+      setPlErr((e as Error).message);
+    } finally {
+      setPlBusy(false);
+    }
+  }
+
+  async function copyPunchList() {
+    if (!plRows) return;
+    const tsv = plRows
+      .map((r) => `${r.sno}\t${r.item}\t${r.description}`)
+      .join("\n");
+    try {
+      await navigator.clipboard.writeText(tsv);
+      setPlCopied(true);
+      setTimeout(() => setPlCopied(false), 1800);
+    } catch {
+      /* ignore */
+    }
+  }
 
   return (
     <div>
+      {cosmetic.length > 0 && (
+        <div className="mb-6 rounded-2xl border border-purple-200 bg-purple-50 p-5 no-print">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h3 className="font-semibold text-purple-900">
+                Cosmetic punch list — {cosmetic.length} item
+                {cosmetic.length === 1 ? "" : "s"} (investor)
+              </h3>
+              <p className="text-xs text-purple-800 mt-0.5">
+                His approved format: AREA-## · Checklist Item · what the crew should do.
+                Copy pastes straight into the Airtable grid as rows.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={generatePunchList}
+                disabled={plBusy}
+                className="text-sm rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white font-medium px-4 py-2"
+              >
+                {plBusy
+                  ? "Building… (about a minute)"
+                  : plRows
+                  ? "Re-build punch list"
+                  : "Build punch list"}
+              </button>
+              {plRows && (
+                <button
+                  onClick={copyPunchList}
+                  className="text-sm rounded-lg border border-purple-300 hover:bg-purple-100 px-4 py-2 font-medium text-purple-900"
+                >
+                  {plCopied ? "Copied ✓" : "Copy for Airtable"}
+                </button>
+              )}
+            </div>
+          </div>
+          {plErr && <p className="text-sm text-red-600 mt-2">{plErr}</p>}
+          {plRows && (
+            <div className="mt-4 bg-white rounded-xl border border-purple-200 overflow-hidden">
+              <div className="px-4 py-2 border-b border-purple-100 text-sm font-semibold">
+                {(report.inspection.property_address || "PROPERTY").toUpperCase()} PUNCHLIST
+                <span className="text-purple-700 font-normal"> · {plRows.length} rows</span>
+              </div>
+              <div className="max-h-96 overflow-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-left text-xs text-gray-500 sticky top-0">
+                    <tr>
+                      <th className="px-4 py-2">S. No.</th>
+                      <th className="px-4 py-2">Checklist Item</th>
+                      <th className="px-4 py-2">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {plRows.map((r) => (
+                      <tr key={r.sno}>
+                        <td className="px-4 py-1.5 font-mono text-xs whitespace-nowrap">{r.sno}</td>
+                        <td className="px-4 py-1.5 font-medium">{r.item}</td>
+                        <td className="px-4 py-1.5 text-gray-700">{r.description}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       <div className="flex justify-between items-start mb-4 no-print">
         <p className="text-sm text-gray-500">
           A clean summary you can print or save as PDF for the client.
