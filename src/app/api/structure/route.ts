@@ -84,10 +84,18 @@ export async function POST(req: NextRequest) {
 
   let transcript = "";
   let typed: InspectionDetails = emptyDetails();
+  // Addendum mode: the inspector recorded MORE audio for a report that already
+  // exists. `append.findings` is the current findings list; the new transcript
+  // is extracted against it (later statement wins).
+  let append: { findings: Array<{ title: string; source_text?: string | null; comment?: string }> } | null =
+    null;
   try {
     const body = await req.json();
     transcript = String(body?.transcript ?? "").trim();
     if (body?.details) typed = { ...emptyDetails(), ...body.details };
+    if (body?.append?.findings && Array.isArray(body.append.findings)) {
+      append = { findings: body.append.findings };
+    }
   } catch {
     // fall through to validation
   }
@@ -98,6 +106,77 @@ export async function POST(req: NextRequest) {
 
   try {
     const anthropic = new Anthropic({ apiKey });
+
+    // ---- ADDENDUM MODE ------------------------------------------------------
+    if (append) {
+      const APPEND_OUTPUT_SCHEMA: any = {
+        ...(CLAUDE_OUTPUT_SCHEMA as any),
+        properties: {
+          ...(CLAUDE_OUTPUT_SCHEMA as any).properties,
+          removed_indexes: { type: "array", items: { type: "integer" } },
+        },
+        required: [...(CLAUDE_OUTPUT_SCHEMA as any).required, "removed_indexes"],
+      };
+      const listed = append.findings
+        .map(
+          (f, i) =>
+            `[${i}] ${f.title} — ${(f.source_text || f.comment || "").slice(0, 160)}`
+        )
+        .join("\n");
+      const msg = await anthropic.messages.stream({
+        model: "claude-opus-5",
+        max_tokens: 16000,
+        system:
+          buildSystemPrompt() +
+          `
+
+ADDENDUM MODE
+This inspection already has the numbered EXISTING FINDINGS provided in the message. The inspector then recorded MORE audio for the SAME property. Work from the NEW transcript only:
+1. Return ONLY findings the new transcript adds — a condition an existing finding already covers (even worded differently or consolidated) must NOT be returned again.
+2. LATER STATEMENT WINS, absolutely. If the new transcript retracts or supersedes an existing finding ("disregard the roof thing", "take that out"), put that finding's number in "removed_indexes". If it CORRECTS one ("actually it was two windows, not one"), put the old finding's number in "removed_indexes" AND return the corrected finding as a new one.
+3. Every DO-NOT-WRITE-UP rule still applies to the new transcript.
+4. Fill inspection details ONLY if the new transcript states them; otherwise null.
+5. If nothing is added or removed, return empty findings and empty removed_indexes.`,
+        messages: [
+          {
+            role: "user",
+            content: `EXISTING FINDINGS (${append.findings.length}):\n${listed}\n\nNEW (ADDENDUM) TRANSCRIPT:\n"""\n${transcript}\n"""`,
+          },
+        ],
+        output_config: {
+          format: { type: "json_schema", schema: APPEND_OUTPUT_SCHEMA },
+          effort: "medium",
+        },
+      } as any).finalMessage();
+      const block = (msg.content as any[]).find((b) => b.type === "text");
+      if (!block?.text) throw new Error("The AI returned an empty response.");
+      const parsed = JSON.parse(block.text) as ClaudeRawOutput & {
+        removed_indexes?: number[];
+      };
+      const newFindings = (parsed.findings || []).map((f, i) => {
+        const conf = typeof f.confidence === "number" ? f.confidence : null;
+        const flags = ["addendum"];
+        if (conf !== null && conf < 0.5) flags.push("low_confidence");
+        return {
+          ...f,
+          id: newId(),
+          order_index: append!.findings.length + i,
+          confidence: conf,
+          location_tags: Array.isArray(f.location_tags) ? f.location_tags : [],
+          flags,
+        };
+      });
+      const removed = (parsed.removed_indexes || []).filter(
+        (i) => Number.isInteger(i) && i >= 0 && i < append!.findings.length
+      );
+      return NextResponse.json({
+        append: {
+          findings: newFindings,
+          removed_indexes: removed,
+          inspection: parsed.inspection || emptyDetails(),
+        },
+      });
+    }
 
     // Structure ONE chunk of transcript into raw findings + details. Opus with
     // medium effort — the house-style rules (CYA wording, forbidden terms,

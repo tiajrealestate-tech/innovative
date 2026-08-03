@@ -84,6 +84,63 @@ export default function ReviewPage() {
     setTab("review");
   }
 
+  // More audio for the SAME inspection (the detached-garage-from-the-truck
+  // case). New findings append flagged "addendum"; anything the addendum
+  // retracted or corrected is removed (later statement wins) and reported
+  // back so nothing vanishes silently. Edits already made are untouched.
+  async function appendTranscript(
+    text: string
+  ): Promise<{ removedTitles: string[]; added: number }> {
+    if (!report) throw new Error("No report loaded.");
+    const res = await fetch("/api/structure", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        transcript: text,
+        append: {
+          findings: report.findings.map((f) => ({
+            title: f.title,
+            source_text: f.source_text,
+            comment: f.comment,
+          })),
+        },
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || "Could not process the extra recording.");
+    const removedIdx: number[] = data.append?.removed_indexes || [];
+    const removedIds = new Set(
+      removedIdx.map((i) => report.findings[i]?.id).filter(Boolean)
+    );
+    const removedTitles = removedIdx
+      .map((i) => report.findings[i]?.title)
+      .filter(Boolean) as string[];
+    const newFindings: Finding[] = data.append?.findings || [];
+    const details: Partial<InspectionDetails> = data.append?.inspection || {};
+    const filledDetails = Object.fromEntries(
+      Object.entries(details).filter(
+        ([k, v]) => v && !(report.inspection as any)[k]
+      )
+    );
+    update({
+      ...report,
+      inspection: { ...report.inspection, ...filledDetails },
+      findings: [
+        ...report.findings.filter((f) => !removedIds.has(f.id)),
+        ...newFindings,
+      ],
+      meta: {
+        ...report.meta,
+        // New stamp clears stale write-ups; combined transcript keeps the
+        // info pass and hazard checks seeing everything that was said.
+        generated_at: new Date().toISOString(),
+        transcript:
+          (report.meta?.transcript || "") + "\n\n[ADDENDUM]\n" + text,
+      },
+    });
+    return { removedTitles, added: newFindings.length };
+  }
+
   if (!loaded) return null;
 
   if (!report) {
@@ -188,6 +245,7 @@ export default function ReviewPage() {
             onUpdateFinding={updateFinding}
             onDeleteFinding={deleteFinding}
             onAddFinding={addFinding}
+            onAppend={appendTranscript}
             onNext={() => setTab("entry")}
           />
         )}
@@ -624,16 +682,42 @@ function ReviewTab({
   onUpdateFinding,
   onDeleteFinding,
   onAddFinding,
+  onAppend,
   onNext,
 }: {
   report: InspectionReport;
   onUpdateFinding: (id: string, patch: Partial<Finding>) => void;
   onDeleteFinding: (id: string) => void;
   onAddFinding: () => void;
+  onAppend: (text: string) => Promise<{ removedTitles: string[]; added: number }>;
   onNext: () => void;
 }) {
   const groups = useMemo(() => groupBySection(report.findings), [report.findings]);
   const secondRead = report.meta?.second_read;
+  const [addOpen, setAddOpen] = useState(false);
+  const [addText, setAddText] = useState("");
+  const [addBusy, setAddBusy] = useState(false);
+  const [addErr, setAddErr] = useState<string | null>(null);
+  const [addResult, setAddResult] = useState<{
+    removedTitles: string[];
+    added: number;
+  } | null>(null);
+
+  async function runAppend() {
+    if (!addText.trim() || addBusy) return;
+    setAddBusy(true);
+    setAddErr(null);
+    try {
+      const r = await onAppend(addText.trim());
+      setAddResult(r);
+      setAddText("");
+      setAddOpen(false);
+    } catch (e) {
+      setAddErr((e as Error).message);
+    } finally {
+      setAddBusy(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -660,6 +744,12 @@ function ReviewTab({
         </p>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setAddOpen((o) => !o)}
+            className="text-sm rounded-lg bg-white border border-gray-300 hover:bg-gray-50 px-3 py-2 font-medium"
+          >
+            + Add more audio
+          </button>
+          <button
             onClick={onAddFinding}
             className="text-sm rounded-lg bg-white border border-gray-300 hover:bg-gray-50 px-3 py-2 font-medium"
           >
@@ -673,6 +763,58 @@ function ReviewTab({
           </button>
         </div>
       </div>
+
+      {addOpen && (
+        <div className="rounded-2xl border border-gray-300 bg-white p-4">
+          <div className="text-sm font-semibold mb-1">
+            Add more audio to this inspection
+          </div>
+          <p className="text-xs text-gray-600 mb-2">
+            Recorded something after the walkthrough — the garage, a correction from
+            the truck? Paste that transcript here. New findings are added and marked;
+            if the new recording corrects or withdraws something, the later statement
+            wins and you&apos;ll see exactly what was removed. Your edits stay.
+          </p>
+          <textarea
+            value={addText}
+            onChange={(e) => setAddText(e.target.value)}
+            placeholder="Paste the extra transcript here…"
+            className="w-full h-32 text-sm border border-gray-300 rounded-lg p-3 font-mono"
+          />
+          {addErr && <p className="text-sm text-red-600 mt-2">{addErr}</p>}
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={runAppend}
+              disabled={addBusy || !addText.trim()}
+              className="text-sm rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-medium px-4 py-2"
+            >
+              {addBusy ? "Processing… (about a minute)" : "Add to this report"}
+            </button>
+            <button
+              onClick={() => setAddOpen(false)}
+              className="text-sm rounded-lg border border-gray-300 hover:bg-gray-50 px-4 py-2"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {addResult && (
+        <div className="rounded-2xl border border-blue-300 bg-blue-50 p-4 text-sm text-blue-900">
+          <span className="font-semibold">
+            Addendum processed: {addResult.added} finding
+            {addResult.added === 1 ? "" : "s"} added
+          </span>
+          {addResult.added > 0 ? " — marked “From added audio” below." : "."}
+          {addResult.removedTitles.length > 0 && (
+            <div className="mt-1 text-amber-900 bg-amber-50 border border-amber-200 rounded-lg p-2">
+              Removed because the new recording overrode them (later statement wins):{" "}
+              {addResult.removedTitles.join("; ")}
+            </div>
+          )}
+        </div>
+      )}
 
       {report.findings.length === 0 && (
         <div className="text-center text-gray-500 py-12 bg-white rounded-2xl border border-gray-200">
@@ -763,6 +905,11 @@ function FindingEditor({
         {finding.flags?.includes("second_read") && (
           <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-200">
             Caught on second read — verify
+          </span>
+        )}
+        {finding.flags?.includes("addendum") && (
+          <span className="text-xs px-2 py-1 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-200">
+            From added audio
           </span>
         )}
 
