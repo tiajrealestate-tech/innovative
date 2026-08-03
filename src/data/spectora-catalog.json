@@ -1,8 +1,79 @@
 {
   "version": "merged",
   "generatedAt": "2026-07-24T03:42:17.034Z",
-  "source": "union of 2 report scans",
+  "source": "union of 2 report scans + Inspection Details seeded from the values published across his 50 most recent reports (the editor scan never captured that section)",
   "sections": [
+    {
+      "section": "Inspection Details",
+      "items": [
+        {
+          "item": "In Attendance",
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Just the Inspector",
+                "Client",
+                "Client's Agent",
+                "Listing Agent",
+                "Family Of the Client",
+                "Contractors"
+              ]
+            }
+          ]
+        },
+        {
+          "item": "Type of Building",
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Single Family",
+                "Townhouse",
+                "Condominium",
+                "Semi-Detached"
+              ]
+            }
+          ]
+        },
+        {
+          "item": "Weather Conditions",
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Clear",
+                "Cloudy",
+                "Hot",
+                "Humid",
+                "Recent Rain",
+                "Moderate Rain"
+              ]
+            }
+          ]
+        },
+        {
+          "item": "Occupancy",
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": [
+                "Vacant",
+                "Occupied",
+                "Furnished",
+                "Storage in property",
+                "Staged",
+                "Cluttered Condition"
+              ]
+            }
+          ]
+        }
+      ]
+    },
     {
       "section": "Roof",
       "items": [
