@@ -912,6 +912,11 @@ function FindingEditor({
             From added audio
           </span>
         )}
+        {finding.flags?.includes("cosmetic") && (
+          <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
+            Cosmetic — punch list
+          </span>
+        )}
 
         <button
           onClick={onDelete}

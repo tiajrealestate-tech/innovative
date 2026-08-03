@@ -112,6 +112,10 @@ export const CLAUDE_OUTPUT_SCHEMA = {
           location_tags: { type: "array", items: { type: "string" } },
           source_text: { type: ["string", "null"] },
           confidence: { type: ["number", "null"] },
+          // True only for items the inspector dictated FOR THE COSMETIC PUNCH
+          // LIST (appearance-only). They feed that separate document, never
+          // report write-ups.
+          cosmetic: { type: "boolean" },
         },
         required: [
           "section",
@@ -124,6 +128,7 @@ export const CLAUDE_OUTPUT_SCHEMA = {
           "location_tags",
           "source_text",
           "confidence",
+          "cosmetic",
         ],
       },
     },

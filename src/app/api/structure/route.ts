@@ -157,6 +157,7 @@ This inspection already has the numbered EXISTING FINDINGS provided in the messa
         const conf = typeof f.confidence === "number" ? f.confidence : null;
         const flags = ["addendum"];
         if (conf !== null && conf < 0.5) flags.push("low_confidence");
+        if ((f as any).cosmetic) flags.push("cosmetic");
         return {
           ...f,
           id: newId(),
@@ -280,6 +281,7 @@ This inspection already has the numbered EXISTING FINDINGS provided in the messa
         const conf = typeof f.confidence === "number" ? f.confidence : null;
         const flags: string[] = [];
         if (conf !== null && conf < 0.5) flags.push("low_confidence");
+        if ((f as any).cosmetic) flags.push("cosmetic");
         return {
           ...f,
           id: newId(),
@@ -341,7 +343,9 @@ This inspection already has the numbered EXISTING FINDINGS provided in the messa
               order_index: findings.length + i,
               confidence: conf,
               location_tags: Array.isArray(f.location_tags) ? f.location_tags : [],
-              flags: ["second_read"],
+              flags: (f as any).cosmetic
+                ? ["second_read", "cosmetic"]
+                : ["second_read"],
             };
           });
           findings.push(...missed);

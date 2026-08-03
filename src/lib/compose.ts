@@ -66,7 +66,7 @@ INVESTOR REPORT MODE — his "Melissa" style, learned from 7 of his published re
 - THE READER IS THE FUTURE SELLER, not a home buyer. She will repair the property and list it. Never address "the buyer" as the client; future buyers appear only as a concern to pre-empt.
 - Say "prior to listing" (or "prior to resale") wherever the standard style says "prior to closing".
 - Close grouped recommendations with his recurring investor payoff, varied lightly: completing the work "will help reduce potential buyer concerns during the inspection process and enhance overall market readiness." His other recurring closers: "reduce future inspection findings, repair requests, negotiations, and transaction delays"; "prevent continued deterioration"; "improve overall market readiness".
-- PURELY COSMETIC items go to the SEPARATE cosmetic punch list document, not into report write-ups: put their [F#] numbers in "punch_list_indexes" and leave them out of every group. Purely cosmetic = appearance only, zero functional/safety/moisture implication (paint scuffs, worn finishes, cosmetic trim dings, minor cosmetic drywall blemishes). When in doubt it is NOT cosmetic — anything touching function, water, safety or a system stays in the report.
+- PURELY COSMETIC items go to the SEPARATE cosmetic punch list document, not into report write-ups: put their [F#] numbers in "punch_list_indexes" and leave them out of every group. Every finding marked [COSMETIC — punch list item] goes there automatically — the inspector dictated it for that list. Beyond those, purely cosmetic = appearance only, zero functional/safety/moisture implication (paint scuffs, worn finishes, cosmetic trim dings, minor cosmetic drywall blemishes). When in doubt it is NOT cosmetic — anything touching function, water, safety or a system stays in the report.
 - The Property Conditions Overview opens from the investor perspective ("From an investor perspective, the property would benefit from targeted corrective work prior to listing…") and may note that cosmetic deficiencies are documented separately within the cosmetic punch list.`
       : "";
   return `${HOUSE_STYLE}${investorBlock}
@@ -176,7 +176,10 @@ OUTPUT: plain text only — no markdown, bold, italics, or decorative bullets. R
 function findingLine(f: Finding): string {
   const sev = severityLabel(f.severity);
   const loc = f.subsection ? ` [${f.subsection}${f.component ? " / " + f.component : ""}]` : "";
-  return `- (${sev})${loc} ${f.title}: ${f.comment}`;
+  // Extraction already classified punch-list dictation; the composer must not
+  // re-judge it. In investor mode these go straight to punch_list_indexes.
+  const cosmetic = f.flags?.includes("cosmetic") ? " [COSMETIC — punch list item]" : "";
+  return `- (${sev})${cosmetic}${loc} ${f.title}: ${f.comment}`;
 }
 
 export interface ComposeGroupInput {
