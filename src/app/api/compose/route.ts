@@ -220,6 +220,7 @@ export async function POST(req: NextRequest) {
       style: "trever-2026",
       ...parsed,
       groups: placedGroups,
+      audience,
     };
     // Anything still uncovered after the retry is surfaced rather than hidden,
     // so it can be added by hand instead of silently missing from the report.

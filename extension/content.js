@@ -64,7 +64,7 @@
     // Type of Building / Weather checkbox groups — they are groups inside
     // General, NOT items, despite how the published PDF renders them) and
     // the PROPERTY CONDITION OVERVIEW comment item.
-    ["Inspection Details", ["General", "PROPERTY CONDITION OVERVIEW"]],
+    ["Inspection Details", ["General", "PROPERTY CONDITION OVERVIEW", "Cosmetic Punch List Report Link"]],
     ["Roof", ["Coverings", "Roof Drainage Systems", "Flashings", "Skylights, Chimneys & Other Roof Penetrations", "Roofing General"]],
     ["Exterior", ["Siding, Flashing & Trim", "Exterior Windows", "Exterior Doors", "Decks, Balconies, Porches & Steps", "Walkways, Patios & Driveways", "Eaves, Soffits & Fascia", "Vegetation, Grading, Drainage & Retaining Walls", "Windows & Doors", "Basement Walkout", "Exterior General"]],
     ["Basement, Foundation, Crawlspace & Structure", ["Basements & Crawlspaces", "Foundation", "Structural Components", "Structural General"]],

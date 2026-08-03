@@ -47,6 +47,9 @@ export interface ComposedReport {
    * write-ups. Counted as covered by the coverage check.
    */
   punch_list_indexes?: number[];
+  /** Which audience this was composed for — lets the payload builder add
+   *  investor-only pieces (the punch-list portal link). */
+  audience?: ReportAudience;
 }
 
 /** Who the report is written for. "investor" = his Melissa style, learned

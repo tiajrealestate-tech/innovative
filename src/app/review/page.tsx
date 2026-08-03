@@ -989,6 +989,7 @@ interface ComposedGroupRow {
   box_label?: string | null;
 }
 interface ComposedReportData {
+  audience?: "standard" | "investor";
   style: string;
   property_overview: string;
   groups: ComposedGroupRow[];
@@ -1017,6 +1018,14 @@ function buildExtensionPayload(
     if (!m || !m.size) return "";
     return [...m.entries()].sort((a, b) => b[1] - a[1])[0][0];
   };
+  // Investor reports open with the punch-list portal link at 1.1.1, exactly as
+  // his published Melissa reports do. Same standing Airtable URL every time
+  // (per Tia — one portal, filtered per property on their side).
+  const PUNCH_LIST_URL = "https://airtable.com/appI1DwyiHk6f4AiA/pag2hTyRMFrMvqjxY";
+  const punchLinkBlock =
+    composed.audience === "investor"
+      ? `@@SECTION: Inspection Details\n@@ITEM: Cosmetic Punch List Report Link\n@@SEVERITY: recommendation\n@@HEADING: CLICK ON LINK TO REVIEW PUNCH-LIST PORTAL\n@@BODY\nMAKE SURE TO SAVE THE REPORT\nCLICK HERE TO REVIEW PUNCHLIST PORTAL: ${PUNCH_LIST_URL}\n@@END`
+      : "";
   // The Property Condition Overview leads the report. In every published 2026
   // report it lives in Inspection Details › PROPERTY CONDITION OVERVIEW as a
   // rated comment (which is what puts it at the top of Spectora's summary) —
@@ -1032,7 +1041,7 @@ function buildExtensionPayload(
       (g) =>
         `@@SECTION: ${g.section}\n@@ITEM: ${g.item || fallbackItem(g.section)}\n@@SEVERITY: ${g.severity || "recommendation"}\n@@HEADING: ${g.heading}\n@@BODY\n${g.body}\n@@END`
     );
-  return [overviewBlock, ...groupBlocks].filter(Boolean).join("\n\n");
+  return [punchLinkBlock, overviewBlock, ...groupBlocks].filter(Boolean).join("\n\n");
 }
 
 function EntryTab({
