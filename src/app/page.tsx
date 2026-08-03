@@ -154,6 +154,7 @@ export default function UploadPage() {
       </header>
 
       <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+        <HeyHyperCard />
         {/* Audio / transcript input */}
         <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
@@ -342,5 +343,175 @@ function Spinner() {
         d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"
       />
     </svg>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Hey Hyper on the front page — usable mid-inspection with NO transcript or
+// report loaded. Same engine as the Review-screen version; answers only (the
+// add-to-report button lives on the report screen, where a report exists).
+// -----------------------------------------------------------------------------
+function HeyHyperCard() {
+  const [open, setOpen] = useState(false);
+  const [images, setImages] = useState<{ data: string; media_type: string }[]>([]);
+  const [question, setQuestion] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [result, setResult] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function addFiles(files: FileList | null) {
+    if (!files) return;
+    const out: { data: string; media_type: string }[] = [];
+    for (const file of Array.from(files).slice(0, 12)) {
+      const b64 = await new Promise<string>((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+          URL.revokeObjectURL(url);
+          resolve(canvas.toDataURL("image/jpeg", 0.82).split(",")[1]);
+        };
+        img.onerror = reject;
+        img.src = url;
+      });
+      out.push({ data: b64, media_type: "image/jpeg" });
+    }
+    setImages((cur) => [...cur, ...out].slice(0, 12));
+  }
+
+  async function ask() {
+    if (!images.length || busy) return;
+    setBusy(true);
+    setErr(null);
+    setResult(null);
+    try {
+      const res = await fetch("/api/hyper", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images, question: question.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Could not analyze the photos.");
+      setResult(data.result);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="bg-white rounded-2xl border border-teal-300 shadow-sm p-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-semibold">📸 Hey Hyper — quick photo check</h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Not sure about something on site? Photos in, best read out — no
+            transcript needed. Informational only; your inspection, your call.
+          </p>
+        </div>
+        <button
+          onClick={() => setOpen((o) => !o)}
+          className="text-sm rounded-lg border border-teal-300 text-teal-800 hover:bg-teal-50 px-3 py-1.5 font-medium shrink-0 ml-3"
+        >
+          {open ? "Close" : "Open"}
+        </button>
+      </div>
+      {open && (
+        <div className="mt-4">
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => void addFiles(e.target.files)}
+            className="text-sm"
+          />
+          {images.length > 0 && (
+            <p className="text-xs text-teal-700 mt-1">
+              {images.length} photo{images.length === 1 ? "" : "s"} ready{"  "}
+              <button className="underline" onClick={() => setImages([])}>
+                clear
+              </button>
+            </p>
+          )}
+          <textarea
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Your question (optional) — e.g. “How old are these windows?”"
+            className="mt-2 w-full h-16 text-sm border border-gray-300 rounded-lg p-3"
+          />
+          {err && <p className="text-sm text-red-600 mt-2">{err}</p>}
+          <button
+            onClick={ask}
+            disabled={busy || !images.length}
+            className="mt-2 text-sm rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-medium px-4 py-2"
+          >
+            {busy ? "Hyper's looking…" : "Ask Hyper"}
+          </button>
+          {result && (
+            <div className="mt-3 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-gray-900 space-y-2">
+              <div>
+                <span className="font-semibold">{result.component_type}</span>{" "}
+                <span className="text-xs text-teal-700">
+                  (type confidence: {result.type_confidence})
+                </span>
+              </div>
+              <p>{result.assessment}</p>
+              {result.age_statement && (
+                <p>
+                  <span className="font-medium">Age:</span> {result.age_statement}
+                </p>
+              )}
+              {Array.isArray(result.evidence) && result.evidence.length > 0 && (
+                <p className="text-xs text-gray-600">
+                  <span className="font-medium">Based on:</span>{" "}
+                  {result.evidence.join("; ")}
+                </p>
+              )}
+              {result.label && (
+                <p className="text-xs bg-white border border-teal-200 rounded-lg p-2">
+                  <span className="font-medium">Label read:</span>{" "}
+                  {[
+                    result.label.brand,
+                    result.label.model && `Model ${result.label.model}`,
+                    result.label.serial && `Serial ${result.label.serial}`,
+                    result.label.capacity,
+                    result.label.fuel_or_power,
+                    result.label.manufactured && `Mfg ${result.label.manufactured}`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  {result.label.decode_note ? ` — ${result.label.decode_note}` : ""}
+                </p>
+              )}
+              <div className="bg-white border border-teal-200 rounded-lg p-3">
+                <div className="text-xs font-semibold text-teal-800 mb-1">
+                  Report-ready write-up (in your voice):
+                </div>
+                <p className="whitespace-pre-line">{result.finding?.comment}</p>
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard
+                    ?.writeText(result.finding?.comment || "")
+                    .then(() => {
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 1500);
+                    });
+                }}
+                className="text-sm rounded-lg border border-teal-300 text-teal-800 hover:bg-teal-100 px-4 py-2 font-medium"
+              >
+                {copied ? "Copied ✓" : "Copy write-up"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }
