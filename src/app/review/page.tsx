@@ -7,6 +7,7 @@ import {
   InspectionDetails,
   InspectionReport,
   blankFinding,
+  newId,
 } from "@/lib/schema";
 import { loadReport, saveReport } from "@/lib/storage";
 import {
@@ -141,6 +142,35 @@ export default function ReviewPage() {
     return { removedTitles, added: newFindings.length };
   }
 
+  // "Hey Hyper" photo answers: the finding lands flagged for review, and any
+  // read label is appended to the transcript record so the Information pass
+  // can tick the matching boxes (a read label = dictation-equivalent facts).
+  function addHyperResult(
+    finding: Omit<Finding, "id" | "order_index" | "flags" | "source_text" | "confidence" | "cosmetic">,
+    labelLine: string | null
+  ) {
+    if (!report) return;
+    const f: Finding = {
+      ...(finding as any),
+      id: newId(),
+      order_index: report.findings.length,
+      source_text: labelLine || "[photo check]",
+      confidence: null,
+      cosmetic: false,
+      flags: ["hyper_photo"],
+    } as Finding;
+    update({
+      ...report,
+      findings: [...report.findings, f],
+      meta: labelLine
+        ? {
+            ...report.meta,
+            transcript: (report.meta?.transcript || "") + "\n[PHOTO LABEL] " + labelLine,
+          }
+        : report.meta,
+    });
+  }
+
   if (!loaded) return null;
 
   if (!report) {
@@ -246,6 +276,7 @@ export default function ReviewPage() {
             onDeleteFinding={deleteFinding}
             onAddFinding={addFinding}
             onAppend={appendTranscript}
+            onAddHyper={addHyperResult}
             onNext={() => setTab("entry")}
           />
         )}
@@ -691,6 +722,7 @@ function ReviewTab({
   onDeleteFinding,
   onAddFinding,
   onAppend,
+  onAddHyper,
   onNext,
 }: {
   report: InspectionReport;
@@ -698,10 +730,88 @@ function ReviewTab({
   onDeleteFinding: (id: string) => void;
   onAddFinding: () => void;
   onAppend: (text: string) => Promise<{ removedTitles: string[]; added: number }>;
+  onAddHyper: (finding: any, labelLine: string | null) => void;
   onNext: () => void;
 }) {
   const groups = useMemo(() => groupBySection(report.findings), [report.findings]);
   const secondRead = report.meta?.second_read;
+  // ---- Hey Hyper (photo second opinion + label reader) ----
+  const [hyOpen, setHyOpen] = useState(false);
+  const [hyImages, setHyImages] = useState<{ data: string; media_type: string }[]>([]);
+  const [hyQuestion, setHyQuestion] = useState("");
+  const [hyBusy, setHyBusy] = useState(false);
+  const [hyErr, setHyErr] = useState<string | null>(null);
+  const [hyResult, setHyResult] = useState<any>(null);
+
+  async function hyAddFiles(files: FileList | null) {
+    if (!files) return;
+    const out: { data: string; media_type: string }[] = [];
+    for (const file of Array.from(files).slice(0, 12)) {
+      const b64 = await new Promise<string>((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+          // Shrink before upload — phone photos are huge; 1600px is plenty.
+          const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+          URL.revokeObjectURL(url);
+          resolve(canvas.toDataURL("image/jpeg", 0.82).split(",")[1]);
+        };
+        img.onerror = reject;
+        img.src = url;
+      });
+      out.push({ data: b64, media_type: "image/jpeg" });
+    }
+    setHyImages((cur) => [...cur, ...out].slice(0, 12));
+  }
+
+  async function hyAsk() {
+    if (!hyImages.length || hyBusy) return;
+    setHyBusy(true);
+    setHyErr(null);
+    setHyResult(null);
+    try {
+      const res = await fetch("/api/hyper", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images: hyImages, question: hyQuestion.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Could not analyze the photos.");
+      setHyResult(data.result);
+    } catch (e) {
+      setHyErr((e as Error).message);
+    } finally {
+      setHyBusy(false);
+    }
+  }
+
+  function hyLabelLine(): string | null {
+    const l = hyResult?.label;
+    if (!l) return null;
+    const parts = [
+      hyResult.component_type,
+      l.brand && `brand ${l.brand}`,
+      l.model && `model ${l.model}`,
+      l.serial && `serial ${l.serial}`,
+      l.capacity && `capacity ${l.capacity}`,
+      l.fuel_or_power && `${l.fuel_or_power}`,
+      l.manufactured && `manufactured ${l.manufactured}`,
+    ].filter(Boolean);
+    return parts.length > 1 ? parts.join(", ") : null;
+  }
+
+  function hyAdd() {
+    if (!hyResult?.finding) return;
+    onAddHyper(hyResult.finding, hyLabelLine());
+    setHyOpen(false);
+    setHyImages([]);
+    setHyQuestion("");
+    setHyResult(null);
+  }
   const [addOpen, setAddOpen] = useState(false);
   const [addText, setAddText] = useState("");
   const [addBusy, setAddBusy] = useState(false);
@@ -752,6 +862,12 @@ function ReviewTab({
         </p>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setHyOpen((o) => !o)}
+            className="text-sm rounded-lg bg-white border border-teal-300 text-teal-800 hover:bg-teal-50 px-3 py-2 font-medium"
+          >
+            📸 Hey Hyper
+          </button>
+          <button
             onClick={() => setAddOpen((o) => !o)}
             className="text-sm rounded-lg bg-white border border-gray-300 hover:bg-gray-50 px-3 py-2 font-medium"
           >
@@ -771,6 +887,112 @@ function ReviewTab({
           </button>
         </div>
       </div>
+
+      {hyOpen && (
+        <div className="rounded-2xl border border-teal-300 bg-white p-4">
+          <div className="text-sm font-semibold mb-1">
+            Hey Hyper — not sure about something? 📸
+          </div>
+          <p className="text-xs text-gray-600 mb-2">
+            Drop photos of one item (multiple angles welcome, up to 12) and ask your
+            question — or just ask for Hyper&apos;s best read. You&apos;ll get what it is,
+            the visible evidence, an honest age range, and a report-ready write-up to
+            compare against your own call.{" "}
+            <span className="font-medium">
+              Informational only — your inspection, your judgment.
+            </span>
+          </p>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(e) => void hyAddFiles(e.target.files)}
+            className="text-sm"
+          />
+          {hyImages.length > 0 && (
+            <p className="text-xs text-teal-700 mt-1">
+              {hyImages.length} photo{hyImages.length === 1 ? "" : "s"} ready
+              {"  "}
+              <button className="underline" onClick={() => setHyImages([])}>
+                clear
+              </button>
+            </p>
+          )}
+          <textarea
+            value={hyQuestion}
+            onChange={(e) => setHyQuestion(e.target.value)}
+            placeholder="Your question (optional) — e.g. “How old are these windows?” or “Is this mold or staining?”"
+            className="mt-2 w-full h-16 text-sm border border-gray-300 rounded-lg p-3"
+          />
+          {hyErr && <p className="text-sm text-red-600 mt-2">{hyErr}</p>}
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={hyAsk}
+              disabled={hyBusy || !hyImages.length}
+              className="text-sm rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-medium px-4 py-2"
+            >
+              {hyBusy ? "Hyper's looking…" : "Ask Hyper"}
+            </button>
+            <button
+              onClick={() => setHyOpen(false)}
+              className="text-sm rounded-lg border border-gray-300 hover:bg-gray-50 px-4 py-2"
+            >
+              Close
+            </button>
+          </div>
+          {hyResult && (
+            <div className="mt-3 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-gray-900 space-y-2">
+              <div>
+                <span className="font-semibold">{hyResult.component_type}</span>{" "}
+                <span className="text-xs text-teal-700">
+                  (type confidence: {hyResult.type_confidence})
+                </span>
+              </div>
+              <p>{hyResult.assessment}</p>
+              {hyResult.age_statement && (
+                <p>
+                  <span className="font-medium">Age:</span> {hyResult.age_statement}
+                </p>
+              )}
+              {Array.isArray(hyResult.evidence) && hyResult.evidence.length > 0 && (
+                <p className="text-xs text-gray-600">
+                  <span className="font-medium">Based on:</span>{" "}
+                  {hyResult.evidence.join("; ")}
+                </p>
+              )}
+              {hyResult.label && (
+                <p className="text-xs bg-white border border-teal-200 rounded-lg p-2">
+                  <span className="font-medium">Label read:</span>{" "}
+                  {[
+                    hyResult.label.brand,
+                    hyResult.label.model && `Model ${hyResult.label.model}`,
+                    hyResult.label.serial && `Serial ${hyResult.label.serial}`,
+                    hyResult.label.capacity,
+                    hyResult.label.fuel_or_power,
+                    hyResult.label.manufactured &&
+                      `Mfg ${hyResult.label.manufactured}`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  {hyResult.label.decode_note ? ` — ${hyResult.label.decode_note}` : ""}
+                </p>
+              )}
+              <div className="bg-white border border-teal-200 rounded-lg p-3">
+                <div className="text-xs font-semibold text-teal-800 mb-1">
+                  Report-ready write-up (in your voice):
+                </div>
+                <p className="whitespace-pre-line">{hyResult.finding?.comment}</p>
+              </div>
+              <button
+                onClick={hyAdd}
+                className="text-sm rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-medium px-4 py-2"
+              >
+                Add to report as a finding
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {addOpen && (
         <div className="rounded-2xl border border-gray-300 bg-white p-4">
@@ -923,6 +1145,11 @@ function FindingEditor({
         {finding.flags?.includes("cosmetic") && (
           <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
             Cosmetic — punch list
+          </span>
+        )}
+        {finding.flags?.includes("hyper_photo") && (
+          <span className="text-xs px-2 py-1 rounded-full bg-teal-100 text-teal-800 border border-teal-200">
+            From photo check — verify
           </span>
         )}
 
