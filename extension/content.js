@@ -1424,7 +1424,8 @@
       "Fills in automatically from the app when your report is ready.\n(You can also paste a build list here.)"
     );
     bodyWrap.appendChild(taReport);
-    const buildBtn = mkBtn("Build report", "#16a34a", "#fff");
+    // Blue then green: do the blue one first, finish with the green one.
+    const buildBtn = mkBtn("Build report", "#2a56d4", "#fff");
     buildBtn.style.marginTop = "8px";
     buildBtn.style.width = "100%";
     bodyWrap.appendChild(buildBtn);

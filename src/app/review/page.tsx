@@ -161,19 +161,21 @@ export default function ReviewPage() {
             <DetailInput label="Inspector" value={report.inspection.inspector_name} onChange={(v) => updateDetails({ inspector_name: v })} />
           </div>
 
-          {/* Tabs */}
+          {/* The three numbered steps ARE the workflow, in execution order;
+              the punch list is an optional extra deliverable off to the side. */}
           <div className="mt-4 flex gap-1 border-b border-gray-200 -mb-px">
             <TabButton active={tab === "review"} onClick={() => setTab("review")}>
-              Review &amp; edit
+              1 · Review findings
             </TabButton>
             <TabButton active={tab === "entry"} onClick={() => setTab("entry")}>
-              Report entry
-            </TabButton>
-            <TabButton active={tab === "punch"} onClick={() => setTab("punch")}>
-              Client punch list
+              2 · Write the report
             </TabButton>
             <TabButton active={tab === "spectora"} onClick={() => setTab("spectora")}>
-              Spectora autofill
+              3 · Send to Spectora
+            </TabButton>
+            <div className="flex-1" />
+            <TabButton active={tab === "punch"} onClick={() => setTab("punch")}>
+              Punch list (optional)
             </TabButton>
           </div>
         </div>
@@ -186,15 +188,41 @@ export default function ReviewPage() {
             onUpdateFinding={updateFinding}
             onDeleteFinding={deleteFinding}
             onAddFinding={addFinding}
+            onNext={() => setTab("entry")}
           />
         )}
         {tab === "entry" && (
-          <EntryTab report={report} composed={composed} setComposed={setComposed} />
+          <EntryTab
+            report={report}
+            composed={composed}
+            setComposed={setComposed}
+            onNext={() => setTab("spectora")}
+          />
         )}
         {tab === "punch" && <PunchTab report={report} counts={counts} />}
-        {tab === "spectora" && <SpectoraTab report={report} composed={composed} />}
+        {tab === "spectora" && (
+          <SpectoraTab
+            report={report}
+            composed={composed}
+            onBackToWrite={() => setTab("entry")}
+          />
+        )}
       </div>
     </main>
+  );
+}
+
+// A consistent "Next →" rail so the whole flow can be driven with one button.
+function NextButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <div className="mt-8 flex justify-end border-t border-gray-200 pt-4">
+      <button
+        onClick={onClick}
+        className="rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold px-6 py-2.5"
+      >
+        {label} →
+      </button>
+    </div>
   );
 }
 
@@ -251,9 +279,11 @@ interface MappedRow {
 function SpectoraTab({
   report,
   composed,
+  onBackToWrite,
 }: {
   report: InspectionReport;
   composed: ComposedReportData | null;
+  onBackToWrite: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -285,11 +315,17 @@ function SpectoraTab({
       address: report.inspection?.property_address || "",
     });
   }, [lines, report.inspection?.property_address]);
-  function sendNow() {
-    if (!lines) return;
+  // One send carries EVERYTHING: the checkbox list and (when composed) the
+  // write-ups, so this step alone fills both of the extension's boxes.
+  function sendBoth(l?: string) {
+    const buildLines = l ?? lines;
+    if (!buildLines) return;
     setSendState("sending");
     sendToExtension({
-      buildLines: lines,
+      buildLines,
+      writeups: composed
+        ? buildExtensionPayload(composed, report.findings)
+        : undefined,
       address: report.inspection?.property_address || "",
     });
     setTimeout(
@@ -297,8 +333,12 @@ function SpectoraTab({
       1500
     );
   }
+  async function matchAndSend() {
+    const l = await run();
+    if (l) sendBoth(l);
+  }
 
-  async function run() {
+  async function run(): Promise<string> {
     setLoading(true);
     setError(null);
     setCopied(false);
@@ -318,12 +358,15 @@ function SpectoraTab({
         .filter((g) => g.box_label && g.item)
         .map((g) => `${g.section} > ${g.item} > Defects > ${g.box_label}`);
       setStandaloneCount(standalone.length);
-      setLines(
-        [data.lines as string, standalone.join("\n")].filter(Boolean).join("\n")
-      );
+      const finalLines = [data.lines as string, standalone.join("\n")]
+        .filter(Boolean)
+        .join("\n");
+      setLines(finalLines);
       setInfoCount(typeof data.infoCount === "number" ? data.infoCount : 0);
+      return finalLines;
     } catch (e) {
       setError((e as Error).message);
+      return "";
     } finally {
       setLoading(false);
     }
@@ -345,12 +388,12 @@ function SpectoraTab({
   return (
     <div>
       <div className="rounded-xl border border-gray-200 bg-white p-5">
-        <h2 className="font-semibold">Build the Spectora report</h2>
+        <h2 className="font-semibold">Send everything to Spectora</h2>
         <p className="text-sm text-gray-600 mt-1">
-          This matches findings to the pre-written checkboxes in your Spectora template.
-          With the extension installed the list is handed over automatically — open your
-          report in Spectora and the &ldquo;Build report&rdquo; box is already filled.
-          Copy/paste still works as a backup.
+          One button: your findings are matched to your template&apos;s checkboxes, and the
+          checkbox list <span className="font-medium">and</span> write-ups are handed to the
+          extension. Then you open your report in Spectora and click its two buttons.
+          Copy/paste stays available as a backup.
         </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -406,12 +449,30 @@ function SpectoraTab({
             </>
           )}
         </p>
+        {!composed && (
+          <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 flex items-center justify-between gap-3">
+            <span>
+              <span className="font-semibold">The report hasn&apos;t been written yet.</span>{" "}
+              Do Step 2 first so the write-ups and stand-alone boxes are included.
+            </span>
+            <button
+              onClick={onBackToWrite}
+              className="shrink-0 text-sm rounded-lg border border-amber-400 hover:bg-amber-100 px-3 py-1.5 font-medium"
+            >
+              ← Step 2
+            </button>
+          </div>
+        )}
         <button
-          onClick={run}
+          onClick={matchAndSend}
           disabled={loading}
           className="mt-4 rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white text-sm font-medium px-5 py-2.5"
         >
-          {loading ? "Matching…" : rows ? "Re-run matching" : "Match findings to checkboxes"}
+          {loading
+            ? "Matching…"
+            : rows
+            ? "Re-match & send again"
+            : "Match findings & send to Spectora"}
         </button>
         {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
       </div>
@@ -430,7 +491,7 @@ function SpectoraTab({
               <div className="flex items-center gap-2">
                 {sendState === "sent" && (
                   <span className="text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1">
-                    Sent to extension ✓
+                    Sent ✓ {ackedAt > 0 ? new Date(ackedAt).toLocaleTimeString() : ""}
                   </span>
                 )}
                 {sendState === "failed" && (
@@ -439,7 +500,7 @@ function SpectoraTab({
                   </span>
                 )}
                 <button
-                  onClick={sendNow}
+                  onClick={() => sendBoth()}
                   disabled={!lines || sendState === "sending"}
                   className="text-sm rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-medium px-3 py-1.5"
                 >
@@ -458,6 +519,25 @@ function SpectoraTab({
                 </button>
               </div>
             </div>
+            {sendState === "sent" && (
+              <div className="mt-3 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
+                <div className="font-semibold mb-1">
+                  Everything is in the extension — checkbox list
+                  {composed ? " + write-ups" : ""} ✓
+                </div>
+                <ol className="list-decimal pl-5 space-y-0.5">
+                  <li>Open your report in Spectora (same browser).</li>
+                  <li>
+                    In the HyperReports panel, click{" "}
+                    <span className="font-medium">Build report</span>.
+                  </li>
+                  <li>
+                    Then click <span className="font-medium">Place custom write-ups</span>.
+                  </li>
+                  <li>Read the log — it ends with a verified count.</li>
+                </ol>
+              </div>
+            )}
             <textarea
               readOnly
               value={lines}
@@ -544,11 +624,13 @@ function ReviewTab({
   onUpdateFinding,
   onDeleteFinding,
   onAddFinding,
+  onNext,
 }: {
   report: InspectionReport;
   onUpdateFinding: (id: string, patch: Partial<Finding>) => void;
   onDeleteFinding: (id: string) => void;
   onAddFinding: () => void;
+  onNext: () => void;
 }) {
   const groups = useMemo(() => groupBySection(report.findings), [report.findings]);
   const secondRead = report.meta?.second_read;
@@ -607,6 +689,7 @@ function ReviewTab({
           </div>
         </div>
       ))}
+      <NextButton label="Next: Write the report" onClick={onNext} />
     </div>
   );
 }
@@ -788,14 +871,17 @@ function EntryTab({
   report,
   composed,
   setComposed,
+  onNext,
 }: {
   report: InspectionReport;
   composed: ComposedReportData | null;
   setComposed: (c: ComposedReportData | null) => void;
+  onNext: () => void;
 }) {
   const groups = useMemo(() => groupBySection(report.findings), [report.findings]);
   const [copied, setCopied] = useState<string | null>(null);
-  const [style, setStyle] = useState<"standard" | "trever-2026">("standard");
+  // His voice is the product — it composes itself the moment this step opens.
+  const [style, setStyle] = useState<"standard" | "trever-2026">("trever-2026");
   const [composing, setComposing] = useState(false);
   const [missing, setMissing] = useState<
     { title: string; comment: string; section: string }[]
@@ -875,6 +961,12 @@ function EntryTab({
     setStyle(next);
     if (next === "trever-2026") void runCompose();
   }
+
+  // Auto-compose on arrival (guarded: no-op when already composed or running).
+  useEffect(() => {
+    if (style === "trever-2026") void runCompose();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const StyleToggle = (
     <div className="flex items-center gap-2">
@@ -961,9 +1053,12 @@ function EntryTab({
               <div className="text-sm text-purple-900">
                 {sendState === "sent" ? (
                   <>
-                    <span className="font-semibold">Write-ups sent to the extension ✓</span> — open
-                    your report in Spectora; the panel&apos;s “Place custom write-ups” box is
-                    already filled.
+                    <span className="font-semibold">
+                      Write-ups sent to the extension ✓
+                      {ackedAt > 0 ? ` at ${new Date(ackedAt).toLocaleTimeString()}` : ""}
+                    </span>{" "}
+                    — open your report in Spectora; the panel&apos;s “Place custom write-ups” box
+                    is already filled.
                   </>
                 ) : sendState === "failed" ? (
                   <>
@@ -1051,6 +1146,7 @@ function EntryTab({
             ))}
           </>
         )}
+        <NextButton label="Next: Send to Spectora" onClick={onNext} />
       </div>
     );
   }
