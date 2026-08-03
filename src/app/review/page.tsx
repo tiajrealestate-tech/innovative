@@ -416,9 +416,17 @@ function SpectoraTab({
         .filter((g) => g.box_label && g.item)
         .map((g) => `${g.section} > ${g.item} > Defects > ${g.box_label}`);
       setStandaloneCount(standalone.length);
-      const finalLines = [data.lines as string, standalone.join("\n")]
-        .filter(Boolean)
-        .join("\n");
+      // De-dupe: the defect pass and the info pass can both land on the same
+      // box (seen live: Cloth-Insulated NM Cable listed twice).
+      const finalLines = [
+        ...new Set(
+          [data.lines as string, standalone.join("\n")]
+            .filter(Boolean)
+            .join("\n")
+            .split("\n")
+            .filter(Boolean)
+        ),
+      ].join("\n");
       setLines(finalLines);
       setInfoCount(typeof data.infoCount === "number" ? data.infoCount : 0);
       return finalLines;
