@@ -24,9 +24,12 @@ product-wide. Update this list whenever a run leaves manual work behind.
    standing Airtable portal URL, his exact published wording. Entering the
    cosmetic items into Airtable stays on Tia/Trever's side (their setup).
    Debris routing question still ON HOLD per Tia.
-4. "Add it in both" items (asbestos stoop siding, fireplace, bathroom
-   caulking): in the report ✓; whether they ALSO belong on the punch list is
-   pending Trever's call (dual-listing not built yet).
+4. RESOLVED — dual-listing is his real method, proven by his approved 6002
+   41st Ave punch list: the punch list deliberately overlaps the report with
+   crew-executable items (escutcheons, downspouts, hardware, cleanup, bulging
+   drywall). Generator recalibrated to his approved list: room-level
+   consolidation (~40-55 rows), verb-chain descriptions closing repaint/
+   refinish, all findings in scope with specialist-first work excluded.
 
 **Product-wide manual steps that remain by design:**
 - Trever reviews/approves every report before publish (always).

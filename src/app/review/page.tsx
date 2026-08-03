@@ -1486,12 +1486,16 @@ function PunchTab({
       const res = await fetch("/api/punchlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // ALL findings go in — his approved lists deliberately overlap the
+        // report with crew-executable items (escutcheons, downspouts,
+        // hardware, cleanup). The prompt decides what the crew can execute.
         body: JSON.stringify({
-          findings: cosmetic.map((f) => ({
+          findings: report.findings.map((f) => ({
             title: f.title,
             comment: f.comment,
             section: f.section,
             location_tags: f.location_tags,
+            cosmetic: !!f.flags?.includes("cosmetic"),
           })),
         }),
       });

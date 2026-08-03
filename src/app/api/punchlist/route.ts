@@ -32,15 +32,16 @@ const SCHEMA = {
   required: ["rows"],
 } as const;
 
-const SYSTEM = `You turn a home inspector's dictated cosmetic findings into his APPROVED contractor punch-list format. This list goes to an investor's repair crew — short, imperative, actionable.
+const SYSTEM = `You turn a home inspector's findings into his APPROVED contractor punch-list format. This list goes to an investor's repair crew — everything the crew can execute, consolidated for check-off.
 
-FORMAT (from his approved lists — match it exactly):
+FORMAT (calibrated against his approved 6002 41st Ave list — match it exactly):
 - Each row: area, checklist item, description.
 - "area" is one of: EXTERIOR, BASEMENT, MAINLVL, UPPERLVL. Assign by where the item is: outside/grounds/deck/siding -> EXTERIOR; basement rooms -> BASEMENT; main/first floor rooms (kitchen, living, dining, main-level bed/bath) -> MAINLVL; second floor and above -> UPPERLVL. Output rows grouped by area in that order.
-- "item": a 2-4 word label naming the surface/component and place ("Basement Baseboards", "Bedroom Two Window Trim", "Driveway Overspray").
-- "description": ONE imperative sentence telling the crew what to do — starts with a verb ("Remove...", "Repair...", "Properly prepare, repaint, and refinish...", "Patch and repaint..."). His recurring verbs: remove, repair, refinish, repaint, properly prepare, patch, clean, secure, replace, adjust. "Full finish cleanup" dictations become "Properly prepare, patch, sand, repaint, and refinish ..." style descriptions.
-- One row per distinct surface/component. Consolidate exact duplicates, but keep separate rooms/components as separate rows — his lists run long (40-70 rows) and specific, so the crew can check items off one by one.
-- Every dictated cosmetic item must appear. Do not invent items that were not dictated. Plain text only.`;
+- CONSOLIDATE TO ONE ROW PER ROOM OR SURFACE-SYSTEM. "Basement Bedroom One" is ONE row covering its drywall, transitions, closet framing, window trim, and door assembly together. "Exterior Wood Trim" is one row for all trim finish work. His lists run ~40-55 rows — room-level rollups, not one row per blemish.
+- "item": a 2-4 word label naming the room or surface-system ("Basement Bedroom One", "Living Room Walls and Bulkhead", "Property Grounds Cleanup", "Upper Bathroom Shower").
+- "description": his verb-chain style — a compound imperative naming the covered pieces and closing with prep/refinish: "Repair drywall patches, corners, wall-to-ceiling transitions, and threshold finishes; sand/prep and repaint/refinish." Recurring chain verbs: repair, remove, recaulk, seal, secure, prep, sand, clean, and the closer "repaint/refinish". Real examples of his: "Repair finish defects, remove loose paint, recaulk joints, prep surfaces, and repaint/refinish." / "Remove excess grout and caulk, repair enclosure trim, properly recaulk/seal tile, wall, floor, and ceiling transitions, and clean/refinish surfaces." / "Remove trash, construction debris, abandoned materials, paint chips, and miscellaneous materials throughout the lot."
+- SCOPE — the punch list may OVERLAP the report, deliberately: alongside the cosmetic/finish items, INCLUDE simple crew-executable corrections even when the report also carries them — missing escutcheons, downspout securing/extensions, access-opening enlargement, damaged hardware and screens, debris/cleanup, bulging drywall repair. The report tells the investor what is wrong; the punch list tells the crew what to do. EXCLUDE work that needs a licensed specialist or hazard professional first (structural repairs, electrical circuits, plumbing lines, roofing, asbestos-suspect materials, moisture-source correction) — for those the crew list may carry only the follow-up finish work, phrased like his "Remove vegetation, loose debris, and paint residue from driveway surfaces after structural repairs are completed."
+- Every dictated cosmetic item must appear somewhere in a row. Do not invent items that were not dictated. Plain text only.`;
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest) {
     comment: string;
     section?: string;
     location_tags?: string[];
+    cosmetic?: boolean;
   }> = [];
   try {
     const body = await req.json();
@@ -69,8 +71,8 @@ export async function POST(req: NextRequest) {
     const anthropic = new Anthropic({ apiKey });
     const listed = findings
       .map(
-        (f, i) =>
-          `${i + 1}. [${f.section || "?"}${
+        (f: any, i: number) =>
+          `${i + 1}. ${f.cosmetic ? "[COSMETIC] " : ""}[${f.section || "?"}${
             f.location_tags?.length ? " / " + f.location_tags.join(", ") : ""
           }] ${f.title}: ${f.comment}`
       )
