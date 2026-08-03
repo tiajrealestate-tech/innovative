@@ -271,8 +271,13 @@ function SpectoraTab({
     return m;
   }, [report.findings]);
 
-  // Hand the build list to the extension the moment it exists (or changes).
+  // Hand the build list to the extension the moment it exists (or changes),
+  // plus an explicit send button with a clear received/not-found answer.
   const ackedAt = useExtensionBridge();
+  const [sendState, setSendState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  useEffect(() => {
+    if (ackedAt) setSendState("sent");
+  }, [ackedAt]);
   useEffect(() => {
     if (!lines) return;
     sendToExtension({
@@ -280,6 +285,18 @@ function SpectoraTab({
       address: report.inspection?.property_address || "",
     });
   }, [lines, report.inspection?.property_address]);
+  function sendNow() {
+    if (!lines) return;
+    setSendState("sending");
+    sendToExtension({
+      buildLines: lines,
+      address: report.inspection?.property_address || "",
+    });
+    setTimeout(
+      () => setSendState((s) => (s === "sending" ? "failed" : s)),
+      1500
+    );
+  }
 
   async function run() {
     setLoading(true);
@@ -411,11 +428,27 @@ function SpectoraTab({
                   : ""}
               </h3>
               <div className="flex items-center gap-2">
-                {ackedAt > 0 && (
+                {sendState === "sent" && (
                   <span className="text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2.5 py-1">
                     Sent to extension ✓
                   </span>
                 )}
+                {sendState === "failed" && (
+                  <span className="text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-full px-2.5 py-1">
+                    Extension not found — use Copy
+                  </span>
+                )}
+                <button
+                  onClick={sendNow}
+                  disabled={!lines || sendState === "sending"}
+                  className="text-sm rounded-lg bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-medium px-3 py-1.5"
+                >
+                  {sendState === "sending"
+                    ? "Sending…"
+                    : sendState === "sent"
+                    ? "Send again"
+                    : "Send to extension"}
+                </button>
                 <button
                   onClick={copyLines}
                   disabled={!lines}
@@ -776,8 +809,14 @@ function EntryTab({
   } | null>(null);
   const [composeError, setComposeError] = useState<string | null>(null);
 
-  // Hand the write-ups to the extension the moment they exist (or change).
+  // Hand the write-ups to the extension the moment they exist (or change),
+  // and let the inspector fire the same send by button — with a clear answer
+  // about whether the extension actually received it.
   const ackedAt = useExtensionBridge();
+  const [sendState, setSendState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  useEffect(() => {
+    if (ackedAt) setSendState("sent");
+  }, [ackedAt]);
   useEffect(() => {
     if (!composed) return;
     sendToExtension({
@@ -785,6 +824,18 @@ function EntryTab({
       address: report.inspection?.property_address || "",
     });
   }, [composed, report.findings, report.inspection?.property_address]);
+  function sendNow() {
+    if (!composed) return;
+    setSendState("sending");
+    sendToExtension({
+      writeups: buildExtensionPayload(composed, report.findings),
+      address: report.inspection?.property_address || "",
+    });
+    setTimeout(
+      () => setSendState((s) => (s === "sending" ? "failed" : s)),
+      1500
+    );
+  }
 
   function copy(text: string, id: string) {
     navigator.clipboard?.writeText(text).then(() => {
@@ -906,22 +957,40 @@ function EntryTab({
         )}
         {composed && (
           <>
-            <div className="rounded-2xl border border-purple-200 bg-purple-50 p-4 flex items-center justify-between">
+            <div className="rounded-2xl border border-purple-200 bg-purple-50 p-4 flex items-center justify-between gap-3">
               <div className="text-sm text-purple-900">
-                {ackedAt > 0 ? (
+                {sendState === "sent" ? (
                   <>
                     <span className="font-semibold">Write-ups sent to the extension ✓</span> — open
-                    your report in Spectora; the panel&apos;s “Place write-ups” box is already
-                    filled.
+                    your report in Spectora; the panel&apos;s “Place custom write-ups” box is
+                    already filled.
+                  </>
+                ) : sendState === "failed" ? (
+                  <>
+                    <span className="font-semibold text-red-700">
+                      Extension not found on this browser.
+                    </span>{" "}
+                    Install/enable the HyperReports extension and refresh this page — or use Copy
+                    and paste into the extension in Spectora.
                   </>
                 ) : (
                   <>
-                    <span className="font-semibold">Write-ups ready for the extension</span> — they
-                    send automatically when the extension is installed. No extension on this
-                    browser? Copy, then paste into the “Place write-ups” box in Spectora.
+                    <span className="font-semibold">Write-ups ready</span> — send them to the
+                    extension, or copy and paste.
                   </>
                 )}
               </div>
+              <button
+                onClick={sendNow}
+                disabled={sendState === "sending"}
+                className="shrink-0 text-sm rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white font-medium px-3 py-2"
+              >
+                {sendState === "sending"
+                  ? "Sending…"
+                  : sendState === "sent"
+                  ? "Send again"
+                  : "Send to extension"}
+              </button>
               <button
                 onClick={() => copy(buildExtensionPayload(composed, report.findings), "payload")}
                 className="shrink-0 ml-3 text-sm rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium px-3 py-2"
