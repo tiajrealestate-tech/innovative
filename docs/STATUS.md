@@ -152,6 +152,14 @@ more windows", reality was one): chosen fix is level 1 — capture stored wordin
 during template scan and route mismatches to write-ups instead of ticking;
 his stored words are never edited. NOT YET BUILT — next plugin feature.
 
+## DECISION (Tia, 08/03/2026): routine "was inspected" boxes stay dictation-only
+
+His template has ~21 evidence boxes ("Ran Water at Kitchen Sink", "GFCI
+Tested", "Doors Inspected"...). They tick ONLY when the walkthrough actually
+says it. Do NOT auto-tick them: a checked box is Trever's review signal that
+the system put data there from his words — pre-checking would erase the line
+between what the system did and what he did. Revisit only if he asks.
+
 ## Property Condition Overview auto-places — v0.9.3, 08/02/2026
 
 Researched from his own published reports (no Trever interruption needed):
