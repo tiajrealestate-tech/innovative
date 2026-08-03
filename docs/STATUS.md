@@ -6,9 +6,15 @@ Per Tia 08/03: track everything a human still has to do by hand, per report and
 product-wide. Update this list whenever a run leaves manual work behind.
 
 **Melissa 6002 42nd Ave report (current):**
+0. RESULT: build 21/23 verified (2 ignorable), write-ups 20/20 placed AND
+   verified (1 self-healed retry; overview + Basement Walkout + Plumbing
+   General optional items auto-added).
 1. Fireplace fuel: untick the wrong one of Wood/Gas in Spectora — he never
    dictated the fireplace's fuel; only Trever knows. (Guessing is now blocked
    for future reports.)
+1b. "Basement Slab and Framing" write-up: Structural General wouldn't open in
+   this report, so it self-placed into Basements & Crawlspaces — move it to
+   Structural General in Spectora if Trever prefers it there.
 2. The two "STILL UNCHECKED" chimney Information lines from the Build log:
    IGNORE — those boxes don't exist on the live Info tab (stale catalog entry,
    now removed); the chimney is fully covered by its write-up.
