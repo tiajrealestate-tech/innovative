@@ -41,15 +41,39 @@ export interface ComposedReport {
   style: ReportStyle;
   property_overview: string;
   groups: ComposedGroup[];
+  /**
+   * Investor mode only: indexes of [F#] findings that are purely cosmetic and
+   * belong in the separate cosmetic punch list document, not in report
+   * write-ups. Counted as covered by the coverage check.
+   */
+  punch_list_indexes?: number[];
 }
+
+/** Who the report is written for. "investor" = his Melissa style, learned
+ *  from 7 of the 50 studied reports (repeat investor client). */
+export type ReportAudience = "standard" | "investor";
 
 // ---- prompt -----------------------------------------------------------------
 
-export function buildComposeSystemPrompt(): string {
-  return `${HOUSE_STYLE}
+export function buildComposeSystemPrompt(
+  audience: ReportAudience = "standard"
+): string {
+  const investorBlock =
+    audience === "investor"
+      ? `
+
+INVESTOR REPORT MODE — his "Melissa" style, learned from 7 of his published reports for a repeat investor client. Severity ratings, grouping rules and every check below stay EXACTLY the same; only these things change:
+- THE READER IS THE FUTURE SELLER, not a home buyer. She will repair the property and list it. Never address "the buyer" as the client; future buyers appear only as a concern to pre-empt.
+- Say "prior to listing" (or "prior to resale") wherever the standard style says "prior to closing".
+- Close grouped recommendations with his recurring investor payoff, varied lightly: completing the work "will help reduce potential buyer concerns during the inspection process and enhance overall market readiness." His other recurring closers: "reduce future inspection findings, repair requests, negotiations, and transaction delays"; "prevent continued deterioration"; "improve overall market readiness".
+- PURELY COSMETIC items go to the SEPARATE cosmetic punch list document, not into report write-ups: put their [F#] numbers in "punch_list_indexes" and leave them out of every group. Purely cosmetic = appearance only, zero functional/safety/moisture implication (paint scuffs, worn finishes, cosmetic trim dings, minor cosmetic drywall blemishes). When in doubt it is NOT cosmetic — anything touching function, water, safety or a system stays in the report.
+- The Property Conditions Overview opens from the investor perspective ("From an investor perspective, the property would benefit from targeted corrective work prior to listing…") and may note that cosmetic deficiencies are documented separately within the cosmetic punch list.`
+      : "";
+  return `${HOUSE_STYLE}${investorBlock}
 
 TASK — GROUPED REPORT RECOMMENDATIONS
 You are given the inspection's findings as field notes. Produce the completed report recommendations in the DEFAULT grouped format, plus a Property Conditions Overview. Write in the first person.
+${audience === "standard" ? 'Return "punch_list_indexes" as an empty array — it is used only in investor mode.' : ""}
 
 HOW AGGRESSIVELY TO GROUP — THIS IS THE MOST IMPORTANT INSTRUCTION
 A finished report for an entire house contains roughly SIX TO TEN recommendations in total — not one per observation. Consolidate hard: all of a system's deficiencies become ONE recommendation whose numbered list carries the individual conditions. For example, a single "EXTERIOR MAINTENANCE DEFICIENCIES" recommendation properly contains cracked driveways, mortar deterioration, damaged hose bibbs, deteriorated trim and siding, fencing deterioration, overhanging limbs, and a missing sewer cleanout cap — nine separate observations in one write-up, not nine write-ups.
@@ -259,6 +283,7 @@ export const COMPOSE_OUTPUT_SCHEMA = {
         ],
       },
     },
+    punch_list_indexes: { type: "array", items: { type: "integer" } },
   },
-  required: ["property_overview", "groups"],
+  required: ["property_overview", "groups", "punch_list_indexes"],
 } as const;

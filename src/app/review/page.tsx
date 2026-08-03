@@ -1037,6 +1037,16 @@ function EntryTab({
   const [copied, setCopied] = useState<string | null>(null);
   // His voice is the product — it composes itself the moment this step opens.
   const [style, setStyle] = useState<"standard" | "trever-2026">("trever-2026");
+  // Investor ("Melissa") style: auto-selected when the walkthrough asks for it,
+  // and switchable by hand either way.
+  const detectedInvestor = useMemo(
+    () => /melissa|investor (?:style|report|client)|write .{0,20}investor/i.test(report.meta?.transcript || ""),
+    [report.meta?.transcript]
+  );
+  const [audience, setAudience] = useState<"standard" | "investor">(
+    detectedInvestor ? "investor" : "standard"
+  );
+  const [punchList, setPunchList] = useState<{ title: string; section: string }[]>([]);
   const [composing, setComposing] = useState(false);
   const [missing, setMissing] = useState<
     { title: string; comment: string; section: string }[]
@@ -1085,7 +1095,7 @@ function EntryTab({
     });
   }
 
-  async function runCompose(force = false) {
+  async function runCompose(force = false, aud: "standard" | "investor" = audience) {
     if (composing || (composed && !force)) return;
     {
       setComposing(true);
@@ -1096,13 +1106,18 @@ function EntryTab({
           headers: { "Content-Type": "application/json" },
           // A forced re-write must not be answered from any cache along the way.
           cache: "no-store",
-          body: JSON.stringify({ report, nonce: force ? Date.now() : undefined }),
+          body: JSON.stringify({
+            report,
+            audience: aud,
+            nonce: force ? Date.now() : undefined,
+          }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || "Could not write up the report.");
         setComposed(data.composed as ComposedReportData);
         setMissing(Array.isArray(data.missing) ? data.missing : []);
         setDroppedTerms(Array.isArray(data.droppedTerms) ? data.droppedTerms : []);
+        setPunchList(Array.isArray(data.punchList) ? data.punchList : []);
         setChecks(data.checks ?? null);
       } catch (e) {
         setComposeError((e as Error).message);
@@ -1110,6 +1125,12 @@ function EntryTab({
         setComposing(false);
       }
     }
+  }
+
+  function selectAudience(next: "standard" | "investor") {
+    if (next === audience) return;
+    setAudience(next);
+    void runCompose(true, next);
   }
 
   function selectStyle(next: "standard" | "trever-2026") {
@@ -1146,11 +1167,28 @@ function EntryTab({
   if (style === "trever-2026") {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-sm text-gray-500">
             Trever&apos;s 2026 voice — grouped write-ups you can paste as a block.
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">For:</span>
+              <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-xs">
+                <button
+                  onClick={() => selectAudience("standard")}
+                  className={`px-3 py-1.5 ${audience === "standard" ? "bg-brand-500 text-white" : "bg-white hover:bg-gray-50"}`}
+                >
+                  Home buyer
+                </button>
+                <button
+                  onClick={() => selectAudience("investor")}
+                  className={`px-3 py-1.5 border-l border-gray-300 ${audience === "investor" ? "bg-brand-500 text-white" : "bg-white hover:bg-gray-50"}`}
+                >
+                  Investor (Melissa)
+                </button>
+              </div>
+            </div>
             {StyleToggle}
             <button
               onClick={onNext}
@@ -1160,6 +1198,22 @@ function EntryTab({
             </button>
           </div>
         </div>
+        {detectedInvestor && audience === "investor" && (
+          <p className="text-xs text-indigo-700">
+            Investor style selected automatically — the walkthrough asks for it. Switch to
+            &ldquo;Home buyer&rdquo; above if that&apos;s wrong.
+          </p>
+        )}
+        {punchList.length > 0 && (
+          <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 text-sm text-indigo-900">
+            <span className="font-semibold">
+              Routed to the cosmetic punch list ({punchList.length}):
+            </span>{" "}
+            {punchList.map((p) => p.title).join("; ")} — these stay out of the report
+            write-ups (investor style) and live in the{" "}
+            <span className="font-medium">Punch list</span> tab instead.
+          </div>
+        )}
         {composing && <p className="text-sm text-gray-500">Writing up the report…</p>}
         {composeError && <p className="text-sm text-red-600">{composeError}</p>}
         <div className="flex items-center justify-between gap-3">

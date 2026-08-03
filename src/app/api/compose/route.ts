@@ -31,9 +31,11 @@ export async function POST(req: NextRequest) {
   }
 
   let report: InspectionReport | null = null;
+  let audience: "standard" | "investor" = "standard";
   try {
     const body = await req.json();
     report = body?.report ?? null;
+    if (body?.audience === "investor") audience = "investor";
   } catch {
     // fall through
   }
@@ -53,7 +55,7 @@ export async function POST(req: NextRequest) {
       const message = await anthropic.messages.stream({
         model: "claude-opus-5",
         max_tokens: 24000,
-        system: buildComposeSystemPrompt(),
+        system: buildComposeSystemPrompt(audience),
         messages: [{ role: "user", content: userContent }],
         output_config: {
           format: { type: "json_schema", schema: COMPOSE_OUTPUT_SCHEMA },
@@ -72,6 +74,9 @@ export async function POST(req: NextRequest) {
       const seen = new Set<number>();
       for (const g of p.groups || [])
         for (const i of g.finding_indexes || []) seen.add(i);
+      // Investor mode: a finding routed to the cosmetic punch list is covered —
+      // it lives in that separate document by design, not lost.
+      for (const i of p.punch_list_indexes || []) seen.add(i);
       return ordered
         .map((_, i) => i)
         .filter((i) => !seen.has(i));
@@ -225,6 +230,14 @@ export async function POST(req: NextRequest) {
         comment: ordered[i].comment,
         section: ordered[i].section,
       })),
+      // Investor mode: cosmetic findings routed to the separate punch list,
+      // resolved to titles so the UI can show what went there.
+      punchList: (parsed.punch_list_indexes || [])
+        .filter((i: number) => i >= 0 && i < ordered.length)
+        .map((i: number) => ({
+          title: ordered[i].title,
+          section: ordered[i].section,
+        })),
       droppedTerms: dropped,
       // Visible proof of what the safeguards actually did on this run.
       checks: {
