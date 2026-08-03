@@ -658,12 +658,20 @@ function ReviewTab({
           Edit any field, change severity, delete, or add findings. Changes save
           automatically.
         </p>
-        <button
-          onClick={onAddFinding}
-          className="text-sm rounded-lg bg-white border border-gray-300 hover:bg-gray-50 px-3 py-2 font-medium"
-        >
-          + Add finding
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onAddFinding}
+            className="text-sm rounded-lg bg-white border border-gray-300 hover:bg-gray-50 px-3 py-2 font-medium"
+          >
+            + Add finding
+          </button>
+          <button
+            onClick={onNext}
+            className="text-sm rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2"
+          >
+            Next: Write the report →
+          </button>
+        </div>
       </div>
 
       {report.findings.length === 0 && (
@@ -991,11 +999,19 @@ function EntryTab({
   if (style === "trever-2026") {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <p className="text-sm text-gray-500">
             Trever&apos;s 2026 voice — grouped write-ups you can paste as a block.
           </p>
-          {StyleToggle}
+          <div className="flex items-center gap-3">
+            {StyleToggle}
+            <button
+              onClick={onNext}
+              className="text-sm rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2"
+            >
+              Next: Send to Spectora →
+            </button>
+          </div>
         </div>
         {composing && <p className="text-sm text-gray-500">Writing up the report…</p>}
         {composeError && <p className="text-sm text-red-600">{composeError}</p>}
