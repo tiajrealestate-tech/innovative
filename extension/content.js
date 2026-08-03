@@ -59,10 +59,12 @@
   // If an item here is named slightly differently in Spectora it'll show up as
   // "missing" in the scan summary, which tells us exactly what to fix.
   const REPORT_MAP = [
-    // Section 1 in his reports — home of the Property Condition Overview
-    // comment (his published reports place it here, never in General Overview)
-    // and of the attendance/occupancy Information items.
-    ["Inspection Details", ["PROPERTY CONDITION OVERVIEW", "In Attendance", "Type of Building", "Weather Conditions", "Occupancy"]],
+    // Section 1 in his reports. The editor has exactly TWO items here:
+    // "General" (whose Information tab holds the In Attendance / Occupancy /
+    // Type of Building / Weather checkbox groups — they are groups inside
+    // General, NOT items, despite how the published PDF renders them) and
+    // the PROPERTY CONDITION OVERVIEW comment item.
+    ["Inspection Details", ["General", "PROPERTY CONDITION OVERVIEW"]],
     ["Roof", ["Coverings", "Roof Drainage Systems", "Flashings", "Skylights, Chimneys & Other Roof Penetrations", "Roofing General"]],
     ["Exterior", ["Siding, Flashing & Trim", "Exterior Windows", "Exterior Doors", "Decks, Balconies, Porches & Steps", "Walkways, Patios & Driveways", "Eaves, Soffits & Fascia", "Vegetation, Grading, Drainage & Retaining Walls", "Windows & Doors", "Basement Walkout", "Exterior General"]],
     ["Basement, Foundation, Crawlspace & Structure", ["Basements & Crawlspaces", "Foundation", "Structural Components", "Structural General"]],

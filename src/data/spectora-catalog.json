@@ -7,67 +7,66 @@
       "section": "Inspection Details",
       "items": [
         {
-          "item": "In Attendance",
+          "item": "General",
           "found": true,
           "tabs": [
             {
               "tab": "Information",
               "checkboxes": [
-                "Just the Inspector",
                 "Client",
-                "Client's Agent",
+                "Home Owner",
                 "Listing Agent",
+                "Client's Agent",
                 "Family Of the Client",
-                "Contractors"
-              ]
-            }
-          ]
-        },
-        {
-          "item": "Type of Building",
-          "found": true,
-          "tabs": [
-            {
-              "tab": "Information",
-              "checkboxes": [
+                "Just the Inspector",
+                "Property Owner",
+                "Property Contractor",
+                "Multiple unidentifed individuals",
+                "Client Unavailable for Walkthrough",
+                "Contractors",
+                "Inspector",
+                "Furnished",
+                "Occupied",
+                "Utilities Off",
+                "Vacant",
+                "Storage in property",
+                "Cluttered Condition",
+                "Occupancy Unknown",
                 "Single Family",
+                "Multi-Family",
+                "Detached",
+                "Attached",
+                "Condominium / Townhouse",
+                "Mobile Home",
                 "Townhouse",
+                "Rowhouse",
+                "Semi-Detached",
+                "Multi-Unit",
                 "Condominium",
-                "Semi-Detached"
-              ]
-            }
-          ]
-        },
-        {
-          "item": "Weather Conditions",
-          "found": true,
-          "tabs": [
-            {
-              "tab": "Information",
-              "checkboxes": [
-                "Clear",
-                "Cloudy",
+                "Commercial",
                 "Hot",
+                "Clear",
+                "Light Rain",
+                "Cloudy",
+                "Snow",
+                "Dry",
+                "Heavy Rain",
                 "Humid",
                 "Recent Rain",
-                "Moderate Rain"
+                "Moderate Rain",
+                "Recent Snow"
               ]
-            }
-          ]
-        },
-        {
-          "item": "Occupancy",
-          "found": true,
-          "tabs": [
+            },
             {
-              "tab": "Information",
+              "tab": "Limitations",
               "checkboxes": [
-                "Vacant",
-                "Occupied",
-                "Furnished",
-                "Storage in property",
-                "Staged",
-                "Cluttered Condition"
+                "THE CLIENT DID NOT ATTEND",
+                "Client Unavailable for Walkthrough",
+                "Elevator and systems limitation",
+                "Cluttered condition",
+                "Inspection Limitations for Condominiums",
+                "Limited Scope of Inspection",
+                "Limited Scope of Solar-Related Inspection"
               ]
             }
           ]
@@ -307,7 +306,7 @@
                 "Panels",
                 "Tongue and Groove",
                 "Horizontal",
-                "Owner’s Responsibility"
+                "Owner\u2019s Responsibility"
               ]
             },
             {
@@ -644,7 +643,7 @@
               "checkboxes": [
                 "No Access",
                 "Partially Limited Crawlspace Access",
-                "Crawlspace – General Inspection Limitations"
+                "Crawlspace \u2013 General Inspection Limitations"
               ]
             },
             {
@@ -808,7 +807,7 @@
                 "AirEase",
                 "NTI",
                 "Bosch",
-                "Unit 3’s heating equipment unknown",
+                "Unit 3\u2019s heating equipment unknown",
                 "No cooling system",
                 "No Central Cooling System Present",
                 "Peerless",
@@ -1248,7 +1247,7 @@
                 "2\"",
                 "Drain not present",
                 "Unknown",
-                "3”",
+                "3\u201d",
                 "Inspected Drain, Waste, Vent Pipes",
                 "ABS",
                 "Copper",
@@ -1456,7 +1455,7 @@
                 "2nd Floor",
                 "1st Floor",
                 "3rd Floor",
-                "She’d",
+                "She\u2019d",
                 "Exterior",
                 "100 AMP",
                 "125 AMP",
