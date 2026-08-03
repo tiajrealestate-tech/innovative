@@ -18,8 +18,12 @@ product-wide. Update this list whenever a run leaves manual work behind.
 2. The two "STILL UNCHECKED" chimney Information lines from the Build log:
    IGNORE — those boxes don't exist on the live Info tab (stale catalog entry,
    now removed); the chimney is fully covered by its write-up.
-3. Cosmetic punch list document: creation/format pending — Tia has debris
-   routing and the approved-punch-list format question ON HOLD.
+3. Punch-list portal link: add the "Cosmetic Punch List Report Link" item to
+   Inspection Details BY HAND for THIS report (the auto-placement shipped
+   after it was placed). Automatic on every investor report from now on —
+   standing Airtable portal URL, his exact published wording. Entering the
+   cosmetic items into Airtable stays on Tia/Trever's side (their setup).
+   Debris routing question still ON HOLD per Tia.
 4. "Add it in both" items (asbestos stoop siding, fireplace, bathroom
    caulking): in the report ✓; whether they ALSO belong on the punch list is
    pending Trever's call (dual-listing not built yet).
