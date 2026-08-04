@@ -1409,13 +1409,32 @@
     };
 
     // Handoff status — shows when payloads have arrived from the app.
+    const handoffWrap = document.createElement("div");
+    Object.assign(handoffWrap.style, { display: "none", marginBottom: "6px" });
     const handoffNote = document.createElement("div");
     Object.assign(handoffNote.style, {
-      display: "none", background: "#ecfdf5", border: "1px solid #a7f3d0",
+      background: "#ecfdf5", border: "1px solid #a7f3d0",
       color: "#065f46", borderRadius: "8px", padding: "8px", fontSize: "12px",
-      marginBottom: "6px",
     });
-    bodyWrap.appendChild(handoffNote);
+    const clearBtn = document.createElement("button");
+    clearBtn.textContent = "✕ Clear loaded data";
+    Object.assign(clearBtn.style, {
+      marginTop: "4px", background: "#fff", border: "1px solid #d0d5dd",
+      borderRadius: "6px", padding: "3px 8px", fontSize: "11px",
+      cursor: "pointer", color: "#6b7280",
+    });
+    clearBtn.onclick = () => {
+      try {
+        chrome.storage.local.remove("sa_handoff");
+      } catch (e) {}
+      lastHandoff = null;
+      taReport.value = "";
+      taWriteups.value = "";
+      handoffWrap.style.display = "none";
+    };
+    handoffWrap.appendChild(handoffNote);
+    handoffWrap.appendChild(clearBtn);
+    bodyWrap.appendChild(handoffWrap);
 
     bodyWrap.appendChild(mkLabel("Step 1 — Check the boxes"));
     const taReport = mkTextarea(
@@ -1471,12 +1490,17 @@
       "apt", "unit", "ne", "nw", "se", "sw", "n", "s", "e", "w",
     ];
     function addrNeedle(addr) {
-      const num = (addr.match(/\d+/) || [""])[0];
-      const word = (addr.toLowerCase().match(/[a-z]+/g) || []).find(
-        (w) => w.length >= 3 && !ADDR_SUFFIXES.includes(w)
-      );
-      if (!num || !word) return null;
-      return num + " " + word;
+      // Tokens keep digits+letters TOGETHER: "41st Avenue" must yield "41st",
+      // not split into "41" + "st" (which reads as the street suffix and made
+      // the guard hunt for "6002 hyattsville" on a page saying "6002 41st Ave").
+      const toks = (addr || "").toLowerCase().match(/[0-9a-z]+/g) || [];
+      const numIdx = toks.findIndex((t) => /^\d+$/.test(t));
+      if (numIdx === -1) return null;
+      const word = toks
+        .slice(numIdx + 1)
+        .find((w) => w.length >= 3 && !ADDR_SUFFIXES.includes(w));
+      if (!word) return null;
+      return toks[numIdx] + " " + word;
     }
     function pageText() {
       let t = (document.title || "") + " " + (document.body ? document.body.innerText : "");
@@ -1525,9 +1549,15 @@
       if (h.writeups) taWriteups.value = h.writeups;
       const when = h.updatedAt ? new Date(h.updatedAt).toLocaleString() : "";
       const houseOk = h.address ? houseVerified(h.address) : null;
-      handoffNote.style.display = "";
+      handoffWrap.style.display = "";
+      const hoursOld = h.updatedAt ? (Date.now() - h.updatedAt) / 3600000 : 0;
+      const staleTag =
+        hoursOld > 12
+          ? " · ⏰ from a previous session — Clear this if you're starting a different report"
+          : "";
       const houseTag =
-        houseOk === true ? " · house ✓" : houseOk === false ? " · ⚠ CHECK HOUSE" : "";
+        (houseOk === true ? " · house ✓" : houseOk === false ? " · ⚠ CHECK HOUSE" : "") +
+        staleTag;
       if (houseOk === false) {
         Object.assign(handoffNote.style, {
           background: "#fef2f2", border: "1px solid #fecaca", color: "#991b1b",
