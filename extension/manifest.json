@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "HyperReports AI (beta)",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Builds your inspection report for you \u2014 checks the boxes and places your write-ups, in your words. Works with Spectora.",
   "permissions": [
     "storage"
@@ -28,5 +28,10 @@
       ],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
 }
