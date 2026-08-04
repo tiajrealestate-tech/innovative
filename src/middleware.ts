@@ -8,7 +8,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 const COOKIE = "vtr_auth";
 
-const PUBLIC_PATHS = ["/login", "/api/login"];
+// /privacy must stay public: the Chrome Web Store reviewer rejected the
+// listing when the policy URL redirected to the login gate.
+const PUBLIC_PATHS = ["/login", "/api/login", "/privacy"];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
