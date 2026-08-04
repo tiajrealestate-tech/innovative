@@ -37,7 +37,11 @@ product-wide. Update this list whenever a run leaves manual work behind.
 - Routine "was inspected" boxes: dictation-only by decision — unticked ones
   he did but didn't narrate get ticked by hand.
 - Extension updates: remove → download → load unpacked until the Chrome Web
-  Store listing exists.
+  Store listing publishes. SUBMITTED FOR REVIEW 08/04/2026 (v1.1.0, unlisted,
+  full brand listing: 5 screenshots, H-pulse icon, privacy policy at
+  /privacy). Once published: Trever installs from the store link ONCE and
+  every future update auto-delivers. Review typically 1-3 days; Tia gets
+  email on completion.
 
 Voice-to-report tool for home inspectors, built around Trever Edelin's
 Innovative Home Inspections (Spectora). Two pieces:
