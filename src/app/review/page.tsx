@@ -906,17 +906,40 @@ function ReviewTab({
             type="file"
             accept="image/*"
             multiple
-            onChange={(e) => void hyAddFiles(e.target.files)}
+            onChange={(e) => {
+              const input = e.currentTarget;
+              void hyAddFiles(input.files).finally(() => {
+                // Reset so the picker's label never shows a stale filename and
+                // the same file can be re-picked after a remove.
+                input.value = "";
+              });
+            }}
             className="text-sm"
           />
+          <p className="text-[11px] text-gray-500 mt-1">
+            Choosing more files <span className="font-medium">adds</span> them to
+            the photos below (up to 12) — every photo shown goes with your question.
+          </p>
           {hyImages.length > 0 && (
-            <p className="text-xs text-teal-700 mt-1">
-              {hyImages.length} photo{hyImages.length === 1 ? "" : "s"} ready
-              {"  "}
-              <button className="underline" onClick={() => setHyImages([])}>
-                clear
-              </button>
-            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {hyImages.map((img, i) => (
+                <div key={i} className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`data:${img.media_type};base64,${img.data}`}
+                    alt={`photo ${i + 1}`}
+                    className="h-16 w-16 object-cover rounded-lg border border-teal-200"
+                  />
+                  <button
+                    onClick={() => setHyImages((cur) => cur.filter((_, j) => j !== i))}
+                    title="Remove this photo"
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-gray-800 hover:bg-red-600 text-white text-[10px] leading-5 text-center"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
           <textarea
             value={hyQuestion}
@@ -933,6 +956,20 @@ function ReviewTab({
             >
               {hyBusy ? "Hyper's looking…" : "Ask Hyper"}
             </button>
+            {(hyImages.length > 0 || hyResult || hyQuestion) && (
+              <button
+                onClick={() => {
+                  setHyImages([]);
+                  setHyQuestion("");
+                  setHyResult(null);
+                  setHyErr(null);
+                }}
+                disabled={hyBusy}
+                className="text-sm rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 px-4 py-2"
+              >
+                ↺ Start new check
+              </button>
+            )}
             <button
               onClick={() => setHyOpen(false)}
               className="text-sm rounded-lg border border-gray-300 hover:bg-gray-50 px-4 py-2"

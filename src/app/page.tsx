@@ -428,16 +428,40 @@ function HeyHyperCard() {
             type="file"
             accept="image/*"
             multiple
-            onChange={(e) => void addFiles(e.target.files)}
+            onChange={(e) => {
+              const input = e.currentTarget;
+              void addFiles(input.files).finally(() => {
+                // Reset so the picker's label never shows a stale filename and
+                // the same file can be re-picked after a remove.
+                input.value = "";
+              });
+            }}
             className="text-sm"
           />
+          <p className="text-[11px] text-gray-500 mt-1">
+            Choosing more files <span className="font-medium">adds</span> them to
+            the photos below (up to 12) — every photo shown goes with your question.
+          </p>
           {images.length > 0 && (
-            <p className="text-xs text-teal-700 mt-1">
-              {images.length} photo{images.length === 1 ? "" : "s"} ready{"  "}
-              <button className="underline" onClick={() => setImages([])}>
-                clear
-              </button>
-            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {images.map((img, i) => (
+                <div key={i} className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`data:${img.media_type};base64,${img.data}`}
+                    alt={`photo ${i + 1}`}
+                    className="h-16 w-16 object-cover rounded-lg border border-teal-200"
+                  />
+                  <button
+                    onClick={() => setImages((cur) => cur.filter((_, j) => j !== i))}
+                    title="Remove this photo"
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-gray-800 hover:bg-red-600 text-white text-[10px] leading-5 text-center"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
           <textarea
             value={question}
@@ -446,13 +470,29 @@ function HeyHyperCard() {
             className="mt-2 w-full h-16 text-sm border border-gray-300 rounded-lg p-3"
           />
           {err && <p className="text-sm text-red-600 mt-2">{err}</p>}
-          <button
-            onClick={ask}
-            disabled={busy || !images.length}
-            className="mt-2 text-sm rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-medium px-4 py-2"
-          >
-            {busy ? "Hyper's looking…" : "Ask Hyper"}
-          </button>
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              onClick={ask}
+              disabled={busy || !images.length}
+              className="text-sm rounded-lg bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-medium px-4 py-2"
+            >
+              {busy ? "Hyper's looking…" : "Ask Hyper"}
+            </button>
+            {(images.length > 0 || result || question) && (
+              <button
+                onClick={() => {
+                  setImages([]);
+                  setQuestion("");
+                  setResult(null);
+                  setErr(null);
+                }}
+                disabled={busy}
+                className="text-sm rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 px-4 py-2"
+              >
+                ↺ Start new check
+              </button>
+            )}
+          </div>
           {result && (
             <div className="mt-3 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-gray-900 space-y-2">
               <div>
