@@ -25,6 +25,7 @@ import {
   reindex,
 } from "@/lib/grouping";
 import { downloadCsv, downloadJson } from "@/lib/csv";
+import { ConfidenceBadge } from "../confidence-badge";
 
 type Tab = "review" | "entry" | "punch" | "spectora";
 
@@ -979,11 +980,12 @@ function ReviewTab({
           </div>
           {hyResult && (
             <div className="mt-3 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-gray-900 space-y-2">
-              <div>
-                <span className="font-semibold">{hyResult.component_type}</span>{" "}
-                <span className="text-xs text-teal-700">
-                  (type confidence: {hyResult.type_confidence})
-                </span>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <span className="font-semibold">{hyResult.component_type}</span>
+                <ConfidenceBadge
+                  band={hyResult.type_confidence}
+                  percent={hyResult.type_confidence_percent}
+                />
               </div>
               <p>{hyResult.assessment}</p>
               {hyResult.age_statement && (

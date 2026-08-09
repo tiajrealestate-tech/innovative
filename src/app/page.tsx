@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
+import { ConfidenceBadge } from "./confidence-badge";
 import { emptyDetails, InspectionDetails } from "@/lib/schema";
 import type { SpectoraJob } from "./api/inspections/route";
 import { saveReport } from "@/lib/storage";
@@ -495,11 +496,12 @@ function HeyHyperCard() {
           </div>
           {result && (
             <div className="mt-3 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-gray-900 space-y-2">
-              <div>
-                <span className="font-semibold">{result.component_type}</span>{" "}
-                <span className="text-xs text-teal-700">
-                  (type confidence: {result.type_confidence})
-                </span>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <span className="font-semibold">{result.component_type}</span>
+                <ConfidenceBadge
+                  band={result.type_confidence}
+                  percent={result.type_confidence_percent}
+                />
               </div>
               <p>{result.assessment}</p>
               {result.age_statement && (

@@ -25,6 +25,7 @@ const SCHEMA = {
   properties: {
     component_type: { type: "string" },
     type_confidence: { type: "string", enum: ["high", "medium", "low"] },
+    type_confidence_percent: { type: "integer", minimum: 0, maximum: 100 },
     evidence: { type: "array", items: { type: "string" } },
     assessment: { type: "string" },
     age_statement: { type: ["string", "null"] },
@@ -81,6 +82,7 @@ const SCHEMA = {
   required: [
     "component_type",
     "type_confidence",
+    "type_confidence_percent",
     "evidence",
     "assessment",
     "age_statement",
@@ -95,7 +97,7 @@ function buildSystem(): string {
 BE CONCISE. When the inspector asked a specific question, the assessment ANSWERS THAT QUESTION in its first sentence, then supports it — no tour of everything visible. Assessment: 120 words maximum. Age statement: one sentence. Only discuss age at all when it is asked about or genuinely load-bearing. The report-ready finding comment: 2-4 sentences, his classic shape (observation → why it matters when useful → recommendation), nothing more.
 
 METHOD — in this order, always:
-1. IDENTIFY THE COMPONENT TYPE FIRST, from all angles together, and state your confidence. Getting the type wrong flips the meaning of everything downstream (fogging on a single-pane storm panel is routine condensation; fogging inside an insulated glass unit is a failed seal). If the type is uncertain, say so and describe what would settle it.
+1. IDENTIFY THE COMPONENT TYPE FIRST, from all angles together, and state your confidence as BOTH a band and a calibrated percentage (type_confidence_percent). The percentage must agree with the band — high: 80-100, medium: 50-79, low: 0-49 — and must be honest, not reflexively 95: it should track how much of the identification the visible evidence actually pins down. Getting the type wrong flips the meaning of everything downstream (fogging on a single-pane storm panel is routine condensation; fogging inside an insulated glass unit is a failed seal). If the type is uncertain, say so and describe what would settle it.
 2. ANCHOR EVERYTHING TO VISIBLE EVIDENCE. List the specific observations you are using (construction details, materials, wear patterns, hardware style, readable markings). No conclusion without a named observation behind it.
 3. AGE: give an honest RANGE derived from the evidence. Wide evidence, wide range — never manufacture precision. If a data plate or date code is visible, use it. Decode serial-number dates ONLY when you confidently know that manufacturer's format; otherwise transcribe the serial and say the age could not be confirmed from it. Never invent decoder logic.
 4. STAND YOUR GROUND: your estimate must be the one the evidence supports. It would not change if the inspector pushed back — only new evidence changes it.
