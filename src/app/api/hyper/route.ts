@@ -25,7 +25,9 @@ const SCHEMA = {
   properties: {
     component_type: { type: "string" },
     type_confidence: { type: "string", enum: ["high", "medium", "low"] },
-    type_confidence_percent: { type: "integer", minimum: 0, maximum: 100 },
+    // NOTE: minimum/maximum are not supported by the structured-output API for
+    // integers — the 0-100 range is enforced by the prompt plus a clamp below.
+    type_confidence_percent: { type: "integer" },
     evidence: { type: "array", items: { type: "string" } },
     assessment: { type: "string" },
     age_statement: { type: ["string", "null"] },
@@ -155,7 +157,14 @@ export async function POST(req: NextRequest) {
     } as any).finalMessage();
     const block = (msg.content as any[]).find((b) => b.type === "text");
     if (!block?.text) throw new Error("The AI returned an empty response.");
-    return NextResponse.json({ result: JSON.parse(block.text) });
+    const result = JSON.parse(block.text);
+    if (typeof result.type_confidence_percent === "number") {
+      result.type_confidence_percent = Math.min(
+        100,
+        Math.max(0, Math.round(result.type_confidence_percent))
+      );
+    }
+    return NextResponse.json({ result });
   } catch (error) {
     return NextResponse.json(
       { error: (error as Error).message || "Could not analyze the photos." },
