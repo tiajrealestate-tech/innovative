@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import { ConfidenceBadge } from "./confidence-badge";
+import {
+  HyImage,
+  fileToHyImage,
+  shrinkToBudget,
+  readHyperResponse,
+} from "@/lib/hyper-images";
 import { emptyDetails, InspectionDetails } from "@/lib/schema";
 import type { SpectoraJob } from "./api/inspections/route";
 import { saveReport } from "@/lib/storage";
@@ -363,24 +369,9 @@ function HeyHyperCard() {
 
   async function addFiles(files: FileList | null) {
     if (!files) return;
-    const out: { data: string; media_type: string }[] = [];
+    const out: HyImage[] = [];
     for (const file of Array.from(files).slice(0, 12)) {
-      const b64 = await new Promise<string>((resolve, reject) => {
-        const img = new Image();
-        const url = URL.createObjectURL(file);
-        img.onload = () => {
-          const scale = Math.min(1, 1600 / Math.max(img.width, img.height));
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.round(img.width * scale);
-          canvas.height = Math.round(img.height * scale);
-          canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
-          URL.revokeObjectURL(url);
-          resolve(canvas.toDataURL("image/jpeg", 0.82).split(",")[1]);
-        };
-        img.onerror = reject;
-        img.src = url;
-      });
-      out.push({ data: b64, media_type: "image/jpeg" });
+      out.push(await fileToHyImage(file));
     }
     setImages((cur) => [...cur, ...out].slice(0, 12));
   }
@@ -391,13 +382,15 @@ function HeyHyperCard() {
     setErr(null);
     setResult(null);
     try {
+      // A big batch can exceed the server's request-size cap — squeeze it
+      // down first rather than letting the request bounce.
+      const sendable = await shrinkToBudget(images);
       const res = await fetch("/api/hyper", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ images, question: question.trim() }),
+        body: JSON.stringify({ images: sendable, question: question.trim() }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Could not analyze the photos.");
+      const data = await readHyperResponse(res);
       setResult(data.result);
     } catch (e) {
       setErr((e as Error).message);
