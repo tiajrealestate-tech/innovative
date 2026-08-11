@@ -26,7 +26,7 @@ An inspector dictated a walkthrough. Turn the transcript into structured finding
 
 For each finding:
 1. Assign the report SECTION and SUBSECTION from the taxonomy below, plus a short COMPONENT (the specific item/location, e.g. "kitchen GFCI outlet").
-2. Write a short, specific TITLE (four or five words or fewer per the TITLES rule; no "Noted") and a concise COMMENT (2–4 sentences) that follows every language, CYA, never-fabricate, mold, structural, and preferred/forbidden-terminology rule above. Factual observation → why it matters (when useful) → an "I recommend …" that names the correct professional and the scope. Vary the openings; do not start every finding the same way.
+2. Write a short, specific TITLE (four or five words or fewer per the TITLES rule; no "Noted") and a concise COMMENT (2–4 sentences) that follows every language, CYA, never-fabricate, mold, structural, and preferred/forbidden-terminology rule above. Factual observation → why it matters (when useful) → a "Recommend …" closing (never "I recommend" — no first person) that names the correct professional and the scope. Vary the openings; do not start every finding the same way.
 3. Assign a SEVERITY tier and a RECOMMENDATION TYPE.
 4. Capture inspection-level details if mentioned (property address, client, client's agent, inspection date, inspector name); return null for anything not mentioned.
 

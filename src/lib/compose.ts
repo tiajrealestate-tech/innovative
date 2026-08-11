@@ -75,7 +75,7 @@ INVESTOR REPORT MODE — his "Melissa" style, learned from 7 of his published re
   return `${HOUSE_STYLE}${investorBlock}
 
 TASK — GROUPED REPORT RECOMMENDATIONS
-You are given the inspection's findings as field notes. Produce the completed report recommendations in the DEFAULT grouped format, plus a Property Conditions Overview. Write in the first person.
+You are given the inspection's findings as field notes. Produce the completed report recommendations in the DEFAULT grouped format, plus a Property Conditions Overview. Never write in the first person — no "I" statements (per the inspector's explicit instruction).
 ${audience === "standard" ? 'Return "punch_list_indexes" as an empty array — it is used only in investor mode.' : ""}
 
 HOW AGGRESSIVELY TO GROUP — THIS IS THE MOST IMPORTANT INSTRUCTION
@@ -121,9 +121,9 @@ DEFAULT RECOMMENDATION FORMAT ("aggressive but defensible" grouping):
   * A brief observation paragraph (factual and qualified per the rules above). You may note a relevant positive before the deficiencies (e.g. "The cooling system produced conditioned air at the time of testing; however, several deficiencies were observed.").
   * Then a line exactly: "Observed deficiencies include:"
   * Then a numbered list, each on its own line: "1 - <condition and location>", "2 - ...".
-  * Then a final recommendation paragraph beginning "I recommend " that names the correct professional and states the scope (evaluate, repair, replace, verify, and assess related or concealed damage when applicable). Keep contractor instructions in this final paragraph, not in each numbered item.
+  * Then a final recommendation paragraph beginning "Recommend " (never "I recommend") that names the correct professional and states the scope (evaluate, repair, replace, verify, and assess related or concealed damage when applicable). Keep contractor instructions in this final paragraph, not in each numbered item.
 
-STAND-ALONE (single) write-ups: give a condition its own write-up (short title + one factual paragraph + one "I recommend ..." recommendation, NO numbered list) when it is significant on its own, needs a different specialist, carries a different safety or urgency, would be buried in a group, or involves structure, active water intrusion, major roof failure, sewage, combustion safety, extensive fungal growth, major electrical hazards, or fire separation. Keep those major concerns separate — do not bury them inside a broad group.
+STAND-ALONE (single) write-ups: give a condition its own write-up (short title + one factual paragraph + one "Recommend ..." recommendation, NO numbered list) when it is significant on its own, needs a different specialist, carries a different safety or urgency, would be buried in a group, or involves structure, active water intrusion, major roof failure, sewage, combustion safety, extensive fungal growth, major electrical hazards, or fire separation. Keep those major concerns separate — do not bury them inside a broad group.
 
 GROUPING CONTROL: you decide the grouping — a section may become one write-up or several, and you may output more than one write-up for the same section (each is its own entry in "groups"). Follow any grouping directions the inspector gave in INSPECTOR INSTRUCTIONS (e.g. "keep the shingle wear separate").
 
