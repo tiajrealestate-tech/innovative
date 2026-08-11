@@ -553,11 +553,15 @@ function SpectoraTab({
             </>
           )}
         </p>
-        {!composed && (
+        {!composed && mode === "trever" && (
           <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 flex items-center justify-between gap-3">
             <span>
-              <span className="font-semibold">The report hasn&apos;t been written yet.</span>{" "}
-              Do Step 2 first so the write-ups and stand-alone boxes are included.
+              <span className="font-semibold">
+                The grouped write-ups haven&apos;t been created yet.
+              </span>{" "}
+              The Trever method places grouped write-ups, so open Step 2 with the{" "}
+              <span className="font-medium">Trever 2026</span> style first — that&apos;s
+              what builds them (Step 2&apos;s Standard view is copy/paste only).
             </span>
             <button
               onClick={onBackToWrite}
@@ -566,6 +570,14 @@ function SpectoraTab({
               ← Step 2
             </button>
           </div>
+        )}
+        {!composed && mode === "standard" && (
+          <p className="mt-3 text-xs text-gray-600">
+            Standard method needs no written report first — every checked Defect box
+            auto-fills with your template&apos;s stored wording. Your Step 2 comments
+            stay copy/paste in this method; for automatic write-up placement, use
+            Step 2&apos;s <span className="font-medium">Trever 2026</span> style.
+          </p>
         )}
         <button
           onClick={matchAndSend}
