@@ -49,6 +49,13 @@
 
   const TAB_NAMES = ["Information", "Limitations", "Defects"];
 
+  // Pseudo-item marking a SECTION's own Information/Limitations page — the
+  // groups that live on the section itself, before any item is opened
+  // (Inspection Method, Roof Type/Style, water source…). Published reports
+  // render these with no item prefix; the scanner and builder treat this
+  // token as "stay on the section page, don't open an item".
+  const SECTION_ITEM = "(Section)";
+
   // Panel visibility preferences persist across page loads.
   const HIDE_KEY = "spectoraAutofillHidden";
   const MIN_KEY = "spectoraAutofillMinimized";
@@ -371,6 +378,9 @@
     if (!leaves.length) return false;
     leaves.sort((a, b) => (a.closest("li") ? 0 : 1) - (b.closest("li") ? 0 : 1));
     const leaf = leaves[0];
+    // A nav entry below the fold of a scrollable sidebar may ignore events —
+    // bring it into view first.
+    try { leaf.scrollIntoView({ block: "center" }); } catch (e) {}
     // Fire on the text leaf first (bubbles up to the real inner handler), then
     // on the nearest clickable ancestor as a backup — both are safe because
     // clickByText only drives navigation (sections/items/tabs), never checkboxes.
@@ -378,6 +388,45 @@
     const clk = leaf.closest('li,a,button,[role="tab"],[role="button"]');
     if (clk && clk !== leaf) fireClick(clk);
     return true;
+  }
+
+  // When a nav name can't be found, the list may be virtualized: entries only
+  // exist in the DOM while scrolled near. Nudge every scrollable pane through
+  // its range so lazy entries render, giving the caller a second chance.
+  async function nudgeScrollPanes() {
+    const panes = [...document.querySelectorAll("*")].filter(
+      (el) => el.scrollHeight > el.clientHeight + 40 && el.clientHeight > 100
+    );
+    for (const pane of panes.slice(0, 6)) {
+      const orig = pane.scrollTop;
+      try {
+        pane.scrollTop = pane.scrollHeight;
+        await sleep(250);
+        pane.scrollTop = 0;
+        await sleep(250);
+        pane.scrollTop = orig;
+      } catch (e) {}
+    }
+    await sleep(200);
+  }
+
+  // What CAN be seen right now — so a "not found" in the scan log tells us the
+  // real on-screen names instead of leaving us guessing.
+  function visibleNavTexts() {
+    const seen = new Set();
+    const out = [];
+    for (const el of document.querySelectorAll("span,li,a")) {
+      if (el.children.length !== 0) continue;
+      if (el.offsetParent === null) continue;
+      const t = trimText(el);
+      if (!t || t.length < 3 || t.length > 60) continue;
+      const n = norm(t);
+      if (!n || seen.has(n)) continue;
+      seen.add(n);
+      out.push(t);
+      if (out.length >= 30) break;
+    }
+    return out;
   }
   function tabActive(name) {
     const leaf = [...document.querySelectorAll("span")].find(
@@ -389,7 +438,12 @@
   }
 
   async function selectSection(name) {
-    if (!clickByText(name)) return false;
+    if (!clickByText(name)) {
+      // The section list may be scrolled/virtualized — render everything once
+      // and retry before declaring it missing.
+      await nudgeScrollPanes();
+      if (!clickByText(name)) return false;
+    }
     await sleep(1000); // let the section's item list render
     return true;
   }
@@ -401,6 +455,10 @@
       resolved = resolveNavText(name);
       return !!resolved;
     }, 7000);
+    if (!resolved) {
+      await nudgeScrollPanes();
+      resolved = resolveNavText(name);
+    }
     if (!resolved) return false;
     clickByText(resolved);
     await sleep(900); // let the item's tabs/content render
@@ -462,7 +520,8 @@
         problems.push("Section not found: " + grp.section);
         continue;
       }
-      if (!(await selectItem(grp.item))) {
+      // "(Section)" boxes live on the section's own page — no item to open.
+      if (grp.item !== SECTION_ITEM && !(await selectItem(grp.item))) {
         // It may be an optional item this report hasn't added yet.
         if ((await addOptionalItem(grp.item)) && (await selectItem(grp.item))) {
           log(`  Added optional item "${grp.item}" to ${grp.section}.`);
@@ -512,7 +571,7 @@
       total += grp.labels.length;
       if (
         !(await selectSection(grp.section)) ||
-        !(await selectItem(grp.item)) ||
+        (grp.item !== SECTION_ITEM && !(await selectItem(grp.item))) ||
         !(await openTab(grp.tab))
       ) {
         grp.labels.forEach((l) =>
@@ -588,8 +647,67 @@
     return labels;
   }
 
-  // Walk the entire report (every section -> item -> tab) and record the exact
-  // checkbox wording found at each stop. Produces the "menu" we map findings to.
+  // Stored wording for Defect boxes: expanding a comment card (clicking its
+  // header, NOT its checkbox) reveals the pre-written body that ticking the box
+  // places in the report. Captured so the app can refuse a box whose stored
+  // wording contradicts the dictation (the "two or more windows" problem).
+  // Fully defensive: any failure just leaves that box without wording.
+  async function readDefectWordings(labels) {
+    const wordings = {};
+    for (const label of labels) {
+      try {
+        let m = findCb(label);
+        if (!m || !m.rec) continue;
+        const header = m.rec.querySelector(".card-header") || m.rec;
+        clickOnce(header);
+        const opened = await waitFor(() => {
+          m = findCb(label);
+          return !!(m && m.rec && editableFieldsIn(m.rec).length > 0);
+        }, 1800);
+        if (opened && m && m.rec) {
+          const body = editableFieldsIn(m.rec)
+            .map((el) => (el.tagName === "TEXTAREA" ? el.value : el.textContent) || "")
+            .join("\n")
+            .trim();
+          if (body) wordings[label] = body;
+        }
+        if (expandedRecord()) collapseOpen();
+        await waitFor(() => allCheckboxes().length > 1, 1500);
+        await sleep(120);
+      } catch (e) {
+        try { if (expandedRecord()) collapseOpen(); } catch (e2) {}
+      }
+    }
+    return wordings;
+  }
+
+  // Read the tabs at the CURRENT navigation position into tab records.
+  // Captures stored wording on the Defects tab when asked.
+  async function readTabsHere(withWordings) {
+    const tabs = [];
+    for (const tab of TAB_NAMES) {
+      if (!existsByText(tab)) continue; // not every page has all tabs
+      if (!(await openTab(tab))) continue;
+      const labels = await readCurrentTabLabels();
+      const rec = { tab, checkboxes: labels };
+      if (withWordings && tab === "Defects" && labels.length) {
+        const w = await readDefectWordings(labels);
+        if (Object.keys(w).length) rec.wordings = w;
+      }
+      tabs.push(rec);
+    }
+    return tabs;
+  }
+
+  // Fingerprint of a tabs read — two DIFFERENT pages returning identical
+  // non-empty reads means the page never actually changed under us (the stale
+  // read that corrupted a previous scan). Flagged, so bad data never merges.
+  function tabsFingerprint(tabs) {
+    return tabs.map((t) => t.tab + ":" + t.checkboxes.join("|")).join("§");
+  }
+
+  // Walk the entire report (every section -> its own page -> every item -> tab)
+  // and record the exact checkbox wording found at each stop.
   async function scanAll(log) {
     const started = Date.now();
     const result = { version: VERSION, url: location.href, generatedAt: new Date().toISOString(), sections: [] };
@@ -597,6 +715,7 @@
     let itemsMissing = 0;
     let boxes = 0;
     const missingList = [];
+    let prevFp = null;
 
     for (let s = 0; s < REPORT_MAP.length; s++) {
       const [section, items] = REPORT_MAP[s];
@@ -606,10 +725,28 @@
       const gotSection = await selectSection(section);
       if (!gotSection) {
         sectionRec.found = false;
-        missingList.push(`Section not found: ${section}`);
+        missingList.push(`Section not found: ${section} — visible: ${visibleNavTexts().join(", ")}`);
         continue;
       }
       sectionRec.found = true;
+
+      // The section's OWN Information/Limitations page — where Inspection
+      // Method, Roof Type/Style, water source etc. live. Read before opening
+      // any item, recorded under the "(Section)" pseudo-item.
+      {
+        const tabs = await readTabsHere(true);
+        const withBoxes = tabs.filter((t) => t.checkboxes.length);
+        if (withBoxes.length) {
+          const fp = tabsFingerprint(tabs);
+          const rec = { item: SECTION_ITEM, tabs, found: true };
+          if (prevFp && fp === prevFp) rec.suspect = "identical to previous read — possible stale page";
+          prevFp = fp;
+          sectionRec.items.push(rec);
+          const n = withBoxes.reduce((a, t) => a + t.checkboxes.length, 0);
+          boxes += n;
+          log(`   ${section} › ${SECTION_ITEM}: ${n} boxes${rec.suspect ? " (SUSPECT)" : ""}`);
+        }
+      }
 
       for (const item of items) {
         const itemRec = { item, tabs: [] };
@@ -617,19 +754,26 @@
         if (!(await selectItem(item))) {
           itemRec.found = false;
           itemsMissing++;
-          missingList.push(`Item not found: ${section} › ${item}`);
+          missingList.push(`Item not found: ${section} › ${item} — visible: ${visibleNavTexts().join(", ")}`);
           continue;
         }
         itemRec.found = true;
         itemsFound++;
 
-        for (const tab of TAB_NAMES) {
-          if (!existsByText(tab)) continue; // some items don't have all tabs
-          if (!(await openTab(tab))) continue;
-          const labels = await readCurrentTabLabels();
-          itemRec.tabs.push({ tab, checkboxes: labels });
-          boxes += labels.length;
-          log(`   ${section} › ${item} › ${tab}: ${labels.length} boxes`);
+        const tabs = await readTabsHere(true);
+        const fp = tabsFingerprint(tabs);
+        if (prevFp && fp === prevFp && tabs.some((t) => t.checkboxes.length)) {
+          itemRec.suspect = "identical to previous read — possible stale page";
+        }
+        prevFp = fp;
+        for (const rec of tabs) {
+          itemRec.tabs.push(rec);
+          boxes += rec.checkboxes.length;
+          log(
+            `   ${section} › ${item} › ${rec.tab}: ${rec.checkboxes.length} boxes` +
+              (rec.wordings ? ` (${Object.keys(rec.wordings).length} wordings)` : "") +
+              (itemRec.suspect ? " (SUSPECT)" : "")
+          );
         }
       }
     }

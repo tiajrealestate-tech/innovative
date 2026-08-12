@@ -13,6 +13,10 @@ import rawCatalog from "@/data/spectora-catalog.json";
 export interface CatalogTab {
   tab: string; // "Information" | "Limitations" | "Defects"
   checkboxes: string[];
+  // Stored comment body per Defects checkbox (captured by scanner v1.2.0+).
+  // Ticking a box places this wording verbatim, so the matcher must refuse a
+  // box whose stored wording contradicts the dictated finding.
+  wordings?: Record<string, string>;
 }
 export interface CatalogItem {
   item: string;
@@ -62,6 +66,7 @@ export interface BoxCandidate {
   item: string;
   tab: string;
   label: string;
+  wording?: string; // the stored comment body this box places, when known
 }
 
 /**
@@ -84,7 +89,13 @@ export function candidateBoxes(
     for (const t of it.tabs) {
       if (!tabs.some((want) => norm(want) === norm(t.tab))) continue;
       for (const label of t.checkboxes) {
-        out.push({ section: sec.section, item: it.item, tab: t.tab, label });
+        out.push({
+          section: sec.section,
+          item: it.item,
+          tab: t.tab,
+          label,
+          wording: t.wordings?.[label],
+        });
       }
     }
   };
@@ -129,7 +140,13 @@ export function allBoxesOnTab(tab: string): BoxCandidate[] {
       for (const t of it.tabs) {
         if (norm(t.tab) !== norm(tab)) continue;
         for (const label of t.checkboxes) {
-          out.push({ section: s.section, item: it.item, tab: t.tab, label });
+          out.push({
+            section: s.section,
+            item: it.item,
+            tab: t.tab,
+            label,
+            wording: t.wordings?.[label],
+          });
         }
       }
     }

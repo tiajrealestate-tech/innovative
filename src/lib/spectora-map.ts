@@ -87,6 +87,7 @@ export function buildMapSystemPrompt(mode: MapMode = "trever"): string {
 RULES
 - Choose from the candidate labels EXACTLY as written (copy the label verbatim). Never invent a label.
 - Match on MEANING, not wording. "Active leak under the sink" -> "Active Water Leak". "Downspouts dump right next to the house" -> "Downspouts Drain Too Close to Property".
+- STORED WORDING IS PLACED VERBATIM. When a candidate shows [stored wording: ...], that exact pre-written text enters the report if the box is ticked — the inspector's stored words are never edited. Only choose that box if its stored wording is ACCURATE for THIS finding. If the stored wording materially contradicts the dictation — a different count ("two or more windows" when ONE window was dictated), a different component, location, cause, or severity — return box_label = null instead, so the finding is carried by a custom write-up in the inspector's dictated words. A box whose label matches but whose stored wording lies about the house is a wrong box.
 - Prefer a candidate whose tab is "Defects" for a defect; use a "Limitations" candidate only when the finding is about not being able to inspect/access something.
 - If NO candidate genuinely matches the finding's meaning, return box_label = null and needs_review = true. Do NOT force a weak match — a wrong box is worse than none, because it pulls in the wrong recommendation.
 - confidence is 0.0–1.0 for how sure you are of the match. Set needs_review = true whenever confidence < 0.6 OR box_label is null.
@@ -98,7 +99,12 @@ Return ONLY the structured object requested.`;
 export function buildMapUserPrompt(items: FindingWithCandidates[]): string {
   const blocks = items.map((x, i) => {
     const cand = x.candidates
-      .map((c) => `      - [${c.tab}] ${c.label}`)
+      .map((c) => {
+        const w = c.wording
+          ? ` [stored wording: ${c.wording.length > 220 ? c.wording.slice(0, 220) + "…" : c.wording}]`
+          : "";
+        return `      - [${c.tab}] ${c.label}${w}`;
+      })
       .join("\n");
     return `FINDING ${i}
   section: ${x.finding.section}

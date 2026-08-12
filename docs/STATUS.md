@@ -195,7 +195,19 @@ items; our write-ups land alongside; photo-AI is redundant when the transcript
 already names the issue). Box-wording mismatches (e.g. stored text says "two or
 more windows", reality was one): chosen fix is level 1 — capture stored wording
 during template scan and route mismatches to write-ups instead of ticking;
-his stored words are never edited. NOT YET BUILT — next plugin feature.
+his stored words are never edited. BUILT 08/12/2026 (extension v1.2.0 scanner
+captures Defect-box stored wording; matcher refuses boxes whose stored wording
+contradicts the dictation). Wording data arrives with the first v1.2.0 scan.
+
+Extension v1.2.0 (08/12/2026, zip ready for store upload): section-level
+Information scanning + building ("(Section)" pseudo-item — Inspection Method,
+Roof Type/Style, water source etc. live on the section's own page, which the
+scanner never visited before); stored-wording capture on Defects; stale-read
+detection (the corruption that hit GFCI/Smoke items in the 08/12 scan is now
+flagged as SUSPECT instead of silently recorded); nav hardening + "visible
+here:" diagnostics on every not-found. AWAITING: Tia uploads zip to dev
+console; after review clears, Trever re-runs Scan template and sends the file
+for merge (brings section-level boxes + wordings into the catalog).
 
 ## DECISION (Tia, 08/03/2026): routine "was inspected" boxes stay dictation-only
 
