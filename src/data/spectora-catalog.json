@@ -1,7 +1,7 @@
 {
   "version": "merged",
-  "generatedAt": "2026-07-24T03:42:17.034Z",
-  "source": "union of 3 report scans (full 990-box scan 08/03/2026) + Inspection Details General seeded from editor screenshots",
+  "generatedAt": "2026-08-12T00:16:34.125Z",
+  "source": "union of template scans through 2026-08-12 (Patuxent scan merged; corrupted GFCI/Smoke items and comma-split fragments excluded)",
   "sections": [
     {
       "section": "Inspection Details",
@@ -54,7 +54,26 @@
                 "Humid",
                 "Recent Rain",
                 "Moderate Rain",
-                "Recent Snow"
+                "Recent Snow",
+                "Unit B",
+                "New Contruction",
+                "New Construction(Pre Drywall)",
+                "Unit 1",
+                "Unit 1: Occupied",
+                "Unit 1 Vacant",
+                "All Units Occupied",
+                "Staged",
+                "Units 1-3 Occupied",
+                "Unit 2 Occupied/Tenants Moving Out",
+                "Unit 3 Occupied",
+                "Townehouse",
+                "Multi-Unit Rowhouse",
+                "Condo/Townhouse",
+                "Unit 2",
+                "Unit 3",
+                "Residential Re Inspection",
+                "2F",
+                "Limited Scope of Inspection"
               ]
             },
             {
@@ -67,6 +86,26 @@
                 "Inspection Limitations for Condominiums",
                 "Limited Scope of Inspection",
                 "Limited Scope of Solar-Related Inspection"
+              ]
+            }
+          ]
+        },
+        {
+          "item": "PROPERTY CONDITION OVERVIEW",
+          "found": true,
+          "tabs": [
+            {
+              "tab": "Information",
+              "checkboxes": []
+            },
+            {
+              "tab": "Limitations",
+              "checkboxes": []
+            },
+            {
+              "tab": "Defects",
+              "checkboxes": [
+                "Overview"
               ]
             }
           ]
@@ -296,7 +335,7 @@
                 "Panels",
                 "Tongue and Groove",
                 "Horizontal",
-                "Owner\u2019s Responsibility"
+                "Owner’s Responsibility"
               ]
             },
             {
@@ -635,7 +674,7 @@
               "checkboxes": [
                 "No Access",
                 "Partially Limited Crawlspace Access",
-                "Crawlspace \u2013 General Inspection Limitations"
+                "Crawlspace – General Inspection Limitations"
               ]
             },
             {
@@ -799,7 +838,7 @@
                 "AirEase",
                 "NTI",
                 "Bosch",
-                "Unit 3\u2019s heating equipment unknown",
+                "Unit 3’s heating equipment unknown",
                 "No cooling system",
                 "No Central Cooling System Present",
                 "Peerless",
@@ -1242,7 +1281,7 @@
                 "2\"",
                 "Drain not present",
                 "Unknown",
-                "3\u201d",
+                "3”",
                 "Inspected Drain, Waste, Vent Pipes",
                 "ABS",
                 "Copper",
@@ -1539,7 +1578,7 @@
                 "2nd Floor",
                 "1st Floor",
                 "3rd Floor",
-                "She\u2019d",
+                "She’d",
                 "Exterior",
                 "100 AMP",
                 "125 AMP",
@@ -1630,7 +1669,8 @@
                 "Romex",
                 "Surface Mounted Distribution",
                 "Ac/Bx (Metal)",
-                "Cloth-Insulated NM Cable"
+                "Cloth-Insulated NM Cable",
+                "Unknown"
               ]
             },
             {
@@ -1744,7 +1784,9 @@
           "tabs": [
             {
               "tab": "Information",
-              "checkboxes": []
+              "checkboxes": [
+                "Electrical System"
+              ]
             },
             {
               "tab": "Limitations",
@@ -2717,6 +2759,7 @@
       "Kitchen > Ventilation",
       "Garage > Ceiling & Firewall",
       "General Overview > General"
-    ]
+    ],
+    "checkboxes": 1257
   }
 }
