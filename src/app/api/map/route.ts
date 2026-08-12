@@ -102,13 +102,20 @@ export async function POST(req: NextRequest) {
     const mapped = resolveMatches(items, raw.matches || [], mode);
 
     let infoBoxes: ReturnType<typeof resolveInfoSelections> = [];
+    let infoError: string | null = null;
     if (infoMsg) {
       try {
         const infoRaw = JSON.parse(textOf(infoMsg)) as { selections: InfoSelection[] };
         infoBoxes = resolveInfoSelections(infoCandidates, infoRaw.selections || []);
-      } catch {
-        // An Information-pass failure must not lose the defect mapping.
+      } catch (e) {
+        // An Information-pass failure must not lose the defect mapping — but it
+        // must be REPORTED, or the build list silently ships with zero
+        // Information boxes and nobody knows why.
+        infoError = `The Information pass failed (${(e as Error).message}) — the build list has no Information boxes. Re-run "Match findings & send".`;
       }
+    } else if (transcript === "") {
+      infoError =
+        "This report has no transcript stored, so no Information boxes could be read. If the details were a separate recording, add it via “+ Add more audio” on Step 1, then re-run.";
     }
 
     const lines = [toExtensionLines(mapped), infoBoxesToLines(infoBoxes)]
@@ -122,6 +129,7 @@ export async function POST(req: NextRequest) {
       includeDefectBoxes,
       info: infoBoxes,
       infoCount: infoBoxes.length,
+      infoError,
     });
   } catch (error) {
     return NextResponse.json(

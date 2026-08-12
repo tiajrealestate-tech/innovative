@@ -388,6 +388,7 @@ function SpectoraTab({
   const [copied, setCopied] = useState(false);
   const [mode, setMode] = useState<"trever" | "standard">("trever");
   const [infoCount, setInfoCount] = useState(0);
+  const [infoError, setInfoError] = useState<string | null>(null);
   const [includeDefectBoxes, setIncludeDefectBoxes] = useState(false);
   const [standaloneCount, setStandaloneCount] = useState(0);
 
@@ -467,6 +468,7 @@ function SpectoraTab({
       ].join("\n");
       setLines(finalLines);
       setInfoCount(typeof data.infoCount === "number" ? data.infoCount : 0);
+      setInfoError(typeof data.infoError === "string" ? data.infoError : null);
       return finalLines;
     } catch (e) {
       setError((e as Error).message);
@@ -591,6 +593,12 @@ function SpectoraTab({
             : "Match findings & send to Spectora"}
         </button>
         {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
+        {infoError && (
+          <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <span className="font-semibold">Information boxes: </span>
+            {infoError}
+          </div>
+        )}
       </div>
 
       {rows && (
