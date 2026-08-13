@@ -506,34 +506,48 @@ function SpectoraTab({
           <span className="text-xs text-gray-500">Method:</span>
           <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-xs">
             <button
-              onClick={() => { setMode("trever"); setRows(null); }}
+              onClick={() => {
+                setMode("trever");
+                // Trever's hand-built reports use no individual defect boxes;
+                // the write-ups carry every defect. Opt back in via the box.
+                setIncludeDefectBoxes(false);
+                setRows(null);
+              }}
               className={`px-3 py-1.5 ${mode === "trever" ? "bg-brand-500 text-white" : "bg-white hover:bg-gray-50"}`}
             >
               Trever method
             </button>
             <button
-              onClick={() => { setMode("standard"); setRows(null); }}
+              onClick={() => {
+                setMode("standard");
+                // Standard IS the one-defect-box-per-finding method — without
+                // defect boxes it would do almost nothing.
+                setIncludeDefectBoxes(true);
+                setRows(null);
+              }}
               className={`px-3 py-1.5 border-l border-gray-300 ${mode === "standard" ? "bg-brand-500 text-white" : "bg-white hover:bg-gray-50"}`}
             >
               Standard
             </button>
           </div>
         </div>
-        <label className="mt-3 flex items-start gap-2 text-xs text-gray-700 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={includeDefectBoxes}
-            onChange={(e) => { setIncludeDefectBoxes(e.target.checked); setRows(null); }}
-            className="mt-0.5"
-          />
-          <span>
-            <span className="font-medium">Also check individual Defect boxes</span> — leave
-            this off to match Trever&rsquo;s hand-built reports (his 19-finding report contains
-            no individual defect checkboxes; every defect lives in a write-up). Turning it on
-            ticks a box per defect, which is how most inspectors work but produces a much
-            longer report.
-          </span>
-        </label>
+        {mode === "trever" && (
+          <label className="mt-3 flex items-start gap-2 text-xs text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={includeDefectBoxes}
+              onChange={(e) => { setIncludeDefectBoxes(e.target.checked); setRows(null); }}
+              className="mt-0.5"
+            />
+            <span>
+              <span className="font-medium">Also check individual Defect boxes</span> — leave
+              this off to match Trever&rsquo;s hand-built reports (his 19-finding report contains
+              no individual defect checkboxes; every defect lives in a write-up). Turning it on
+              ticks a box per defect on top of the write-ups, which produces a much longer
+              report. (Standard method always ticks defect boxes — that&rsquo;s what it is.)
+            </span>
+          </label>
+        )}
 
         <p className="text-xs text-gray-500 mt-2">
           {mode === "trever" ? (
