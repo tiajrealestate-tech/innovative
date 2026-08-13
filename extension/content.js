@@ -617,7 +617,13 @@
   // report" re-checks the legitimate defect lines from Step 1.
   async function confirmAnyDeleteDialog() {
     await sleep(250);
-    const btn = [...document.querySelectorAll("button,[role='button']")].find(
+    // ONLY inside an actual dialog/modal overlay. An unscoped search clicked
+    // Delete buttons on open comment cards and destroyed placed write-ups.
+    const dialog = document.querySelector(
+      '[role="dialog"], [role="alertdialog"], .modal, [class*="modal"], [class*="dialog"]'
+    );
+    if (!dialog || dialog.offsetParent === null) return;
+    const btn = [...dialog.querySelectorAll("button,[role='button']")].find(
       (el) =>
         el.offsetParent !== null &&
         /^(delete|remove|yes|confirm|ok)$/i.test(trimText(el))
