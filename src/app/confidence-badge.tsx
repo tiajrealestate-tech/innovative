@@ -23,7 +23,7 @@ export function ConfidenceBadge({
       title="How confident Hyper is that it identified WHAT this is"
     >
       <span className="text-xs font-semibold uppercase tracking-wide">
-        {band} confidence
+        ID confidence: {band}
       </span>
       {typeof percent === "number" && (
         <span className="text-lg font-bold leading-none">{percent}%</span>
