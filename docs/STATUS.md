@@ -42,6 +42,16 @@ product-wide. Update this list whenever a run leaves manual work behind.
    insulation write-up landed in Structural Components & Observations in
    Attic (no separate Insulation item).
 
+**INCIDENT 08/13 — scan ticked defect boxes on 1586 Potomac Heights:**
+v1.2.0's wording capture clicked defect cards (no safe header found ->
+unsafe fallback clicked the card, which ticks the box). Fixed in v1.2.1
+(can never tick; skips instead) and v1.2.2 adds the red Advanced-tools
+"Clear ALL Defect boxes" recovery button. RECOVERY for that report: update
+extension to 1.2.2 -> open the report -> Advanced tools -> Clear ALL Defect
+boxes -> then Build report to restore the 3 legitimate defect ticks ->
+Trever eyeballs before publish. Write-ups, Information and Limitations
+boxes were never affected.
+
 **Product-wide manual steps that remain by design:**
 - Trever reviews/approves every report before publish (always).
 - Photos: attached via Spectora mobile app (off the table per Tia).
