@@ -31,6 +31,17 @@ product-wide. Update this list whenever a run leaves manual work behind.
    consolidation (~40-55 rows), verb-chain descriptions closing repaint/
    refinish, all findings in scope with specialist-first work excluded.
 
+**Melissa 1586 Potomac Heights Dr Unit 231 (08/13, condo):**
+0. RESULT: build 17/18 verified; write-ups 18/18 placed AND verified (2
+   self-healed: HVAC General retry, 3 optional items auto-added; punch-list
+   portal link auto-placed for the first time).
+1. IGNORE the "Fireplace › Electric" unchecked line — no fireplace exists in
+   the unit or the dictation (the guess that produced it is now blocked).
+2. Optional moves, Trever's preference only: laundry/dryer-vent write-up
+   landed in Clothes Washer (report has no Laundry › Ventilation item);
+   insulation write-up landed in Structural Components & Observations in
+   Attic (no separate Insulation item).
+
 **Product-wide manual steps that remain by design:**
 - Trever reviews/approves every report before publish (always).
 - Photos: attached via Spectora mobile app (off the table per Tia).
