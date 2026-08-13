@@ -610,6 +610,68 @@
     return { total, confirmed, fixed, still };
   }
 
+  // ---- recovery: clear every Defects-tab tick -----------------------------
+  // After the v1.2.0 scan incident ticked defect boxes across a live report:
+  // untick EVERY checked box on EVERY Defects tab (Information/Limitations are
+  // never touched — the scan never ticked those). Then one press of "Build
+  // report" re-checks the legitimate defect lines from Step 1.
+  async function confirmAnyDeleteDialog() {
+    await sleep(250);
+    const btn = [...document.querySelectorAll("button,[role='button']")].find(
+      (el) =>
+        el.offsetParent !== null &&
+        /^(delete|remove|yes|confirm|ok)$/i.test(trimText(el))
+    );
+    if (btn) {
+      clickOnce(btn);
+      await sleep(400);
+    }
+  }
+  async function clearAllDefects(log) {
+    let cleared = 0;
+    const problems = [];
+    for (let s = 0; s < REPORT_MAP.length; s++) {
+      const [section, items] = REPORT_MAP[s];
+      log(`(${s + 1}/${REPORT_MAP.length}) ${section}…`);
+      if (!(await selectSection(section))) {
+        problems.push("Section not found: " + section);
+        continue;
+      }
+      for (const item of items) {
+        if (item === SECTION_ITEM) continue;
+        if (!(await selectItem(item))) continue; // absent item = no ticks
+        if (!existsByText("Defects")) continue;
+        if (!(await openTab("Defects"))) continue;
+        let guard = 0;
+        while (guard++ < 80) {
+          const checked = allCheckboxes().filter((x) => x.cb.checked);
+          if (!checked.length) break;
+          const x = checked[0];
+          const lbl = x.label;
+          x.cb.click();
+          await confirmAnyDeleteDialog();
+          const ok = await waitFor(() => {
+            const f = findCb(lbl);
+            return !f || !f.cb.checked;
+          }, 3500);
+          if (ok) {
+            cleared++;
+            log(`   ✕ ${item}: ${lbl}`);
+          } else {
+            problems.push(`${section} › ${item}: ${lbl} (would not untick)`);
+            break;
+          }
+          await sleep(150);
+        }
+      }
+    }
+    log(
+      `\nCleared ${cleared} defect box(es).` +
+        (problems.length ? `\nIssues:\n- ${problems.join("\n- ")}` : "") +
+        `\n\nNOW press "Build report" (Step 1) to re-check the legitimate boxes.`
+    );
+  }
+
   // ---- scan (debug) -------------------------------------------------------
 
   function scan() {
@@ -1839,6 +1901,11 @@
     Object.assign(clickAddBtn.style, { border: "1px solid #e5e7eb", fontSize: "12px", marginTop: "8px" });
     advWrap.appendChild(clickAddBtn);
 
+    advWrap.appendChild(mkLabel("Recovery — untick every Defects box:"));
+    const clearDefectsBtn = mkBtn("🧹 Clear ALL Defect boxes", "#b91c1c", "#fff");
+    clearDefectsBtn.style.width = "100%";
+    advWrap.appendChild(clearDefectsBtn);
+
     panel.appendChild(header);
     panel.appendChild(bodyWrap);
     document.body.appendChild(panel);
@@ -1931,6 +1998,27 @@
       }
       scanAllBtn.disabled = false;
       scanAllBtn.textContent = "Scan template → file";
+    };
+    clearDefectsBtn.onclick = async () => {
+      if (
+        !window.confirm(
+          "This UNTICKS every checked box on every Defects tab in THIS report " +
+            "(Information and Limitations are not touched).\n\nUse it to undo the " +
+            "scan incident, then press \"Build report\" to re-check the legitimate " +
+            "defect boxes from Step 1.\n\nClear all Defect boxes now?"
+        )
+      )
+        return;
+      resetLog();
+      clearDefectsBtn.disabled = true;
+      clearDefectsBtn.textContent = "Clearing… (leave this tab open)";
+      try {
+        await clearAllDefects(log);
+      } catch (e) {
+        log("Clear error: " + (e && e.message ? e.message : e));
+      }
+      clearDefectsBtn.disabled = false;
+      clearDefectsBtn.textContent = "🧹 Clear ALL Defect boxes";
     };
   }
 
