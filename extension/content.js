@@ -639,7 +639,14 @@
       }
       for (const item of items) {
         if (item === SECTION_ITEM) continue;
-        if (!(await selectItem(item))) continue; // absent item = no ticks
+        if (!(await selectItem(item))) {
+          // Could be genuinely absent OR a navigation miss — either way,
+          // SAY SO. A silent skip on a recovery tool hides exactly the boxes
+          // the user most needs to check by hand (it hid three Exterior
+          // items on the first real run).
+          problems.push(`Couldn't open ${section} › ${item} — check its Defects tab by hand`);
+          continue;
+        }
         if (!existsByText("Defects")) continue;
         if (!(await openTab("Defects"))) continue;
         let guard = 0;
