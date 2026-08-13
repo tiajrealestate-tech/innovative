@@ -176,7 +176,11 @@
   function collapseOpen() {
     const rec = expandedRecord();
     if (!rec) return false;
-    (rec.querySelector(".card-header") || rec).click();
+    // Only a distinct header is a safe collapse handle — clicking the card
+    // itself TICKS its checkbox in Spectora's editor.
+    const header = rec.querySelector(".card-header");
+    if (!header || header.querySelector('input[type="checkbox"]')) return false;
+    header.click();
     return true;
   }
 
@@ -658,8 +662,26 @@
       try {
         let m = findCb(label);
         if (!m || !m.rec) continue;
-        const header = m.rec.querySelector(".card-header") || m.rec;
+        const wasChecked = m.cb.checked;
+        // ONLY a distinct header element is a safe expand handle. Clicking the
+        // card itself (the old fallback) TICKS THE BOX in Spectora's editor —
+        // that fallback checked defects all over a live report. No header, no
+        // wording: skipping is always safe; clicking blind never is.
+        const header = m.rec.querySelector(".card-header");
+        if (!header) continue;
+        if (header.contains(m.cb) || header.querySelector('input[type="checkbox"]')) continue;
         clickOnce(header);
+        // If the click ticked the box anyway, undo it IMMEDIATELY and move on.
+        await sleep(150);
+        let now = findCb(label);
+        if (now && now.cb.checked !== wasChecked) {
+          now.cb.click();
+          await waitFor(() => {
+            const f = findCb(label);
+            return !!(f && f.cb.checked === wasChecked);
+          }, 2500);
+          continue;
+        }
         const opened = await waitFor(() => {
           m = findCb(label);
           return !!(m && m.rec && editableFieldsIn(m.rec).length > 0);
@@ -673,6 +695,16 @@
         }
         if (expandedRecord()) collapseOpen();
         await waitFor(() => allCheckboxes().length > 1, 1500);
+        // Belt and suspenders: confirm the checkbox still holds its original
+        // state after collapse; restore it if anything toggled it.
+        const after = findCb(label);
+        if (after && after.cb.checked !== wasChecked) {
+          after.cb.click();
+          await waitFor(() => {
+            const f = findCb(label);
+            return !!(f && f.cb.checked === wasChecked);
+          }, 2500);
+        }
         await sleep(120);
       } catch (e) {
         try { if (expandedRecord()) collapseOpen(); } catch (e2) {}
