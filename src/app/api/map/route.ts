@@ -45,7 +45,7 @@ function normWords(s: string): string[] {
     .filter((w) => w.length >= 3);
 }
 
-export function infoSelectionSupported(
+function infoSelectionSupported(
   sel: { section: string; item: string; label: string; evidence: string },
   transcript: string
 ): boolean {
