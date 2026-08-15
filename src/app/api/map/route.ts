@@ -22,6 +22,48 @@ import { allBoxesOnTab } from "@/lib/catalog";
 export const runtime = "nodejs";
 export const maxDuration = 300; // seconds (Vercel Pro)
 
+// ---------------------------------------------------------------------------
+// Deterministic guards on Information selections. The prompt already forbids
+// guessing, but "gas water heater" still became Fireplace > Gas twice in the
+// field — so the rules get enforced in code, not just asked for:
+//  1. The selection's evidence must actually be words from the transcript.
+//  2. Component-specific items (fireplace, skylight, pool...) require the
+//     component to be mentioned SOMEWHERE in the transcript at all.
+// ---------------------------------------------------------------------------
+const COMPONENT_GUARDS: Array<{ match: RegExp; requires: RegExp }> = [
+  { match: /fireplace/i, requires: /fireplace|hearth|wood.?stove|gas (?:log|insert)/i },
+  { match: /skylight/i, requires: /skylight/i },
+  { match: /\bpool\b/i, requires: /\bpool\b/i },
+  { match: /elevator/i, requires: /elevator/i },
+];
+
+function normWords(s: string): string[] {
+  return (s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(" ")
+    .filter((w) => w.length >= 3);
+}
+
+export function infoSelectionSupported(
+  sel: { section: string; item: string; label: string; evidence: string },
+  transcript: string
+): boolean {
+  const tWords = new Set(normWords(transcript));
+  // Component guard: an item about a specific component needs that component
+  // mentioned in the transcript, full stop.
+  const target = `${sel.section} ${sel.item}`;
+  for (const g of COMPONENT_GUARDS) {
+    if (g.match.test(target) && !g.requires.test(transcript)) return false;
+  }
+  // Evidence check: most of the evidence quote's words must really occur in
+  // the transcript (tolerant of punctuation/casing, hostile to invention).
+  const ev = normWords(sel.evidence);
+  if (!ev.length) return false;
+  const hit = ev.filter((w) => tWords.has(w)).length;
+  return hit / ev.length >= 0.6;
+}
+
 // POST { report } -> { mapped, lines }
 // Maps each finding to the best Spectora checkbox from the scanned catalog.
 export async function POST(req: NextRequest) {
@@ -106,7 +148,10 @@ export async function POST(req: NextRequest) {
     if (infoMsg) {
       try {
         const infoRaw = JSON.parse(textOf(infoMsg)) as { selections: InfoSelection[] };
-        infoBoxes = resolveInfoSelections(infoCandidates, infoRaw.selections || []);
+        infoBoxes = resolveInfoSelections(
+          infoCandidates,
+          (infoRaw.selections || []).filter((s) => infoSelectionSupported(s, transcript))
+        );
       } catch (e) {
         // An Information-pass failure must not lose the defect mapping — but it
         // must be REPORTED, or the build list silently ships with zero

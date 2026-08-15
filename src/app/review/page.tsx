@@ -465,9 +465,14 @@ function SpectoraTab({
       // His method combines both: the like-kind deficiencies go in as grouped
       // write-ups, while a lone deficiency that a library box already covers is
       // ticked here so his own stored wording carries it.
-      const standalone = (composed?.groups || [])
-        .filter((g) => g.box_label && g.item)
-        .map((g) => `${g.section} > ${g.item} > Defects > ${g.box_label}`);
+      // Custom-language standard must never tick a defect box — including the
+      // stand-alone boxes from an earlier Trever-2026 compose, which leaked 6
+      // canned comments into the 1004 Dennis Ave custom run.
+      const standalone = customStandard
+        ? []
+        : (composed?.groups || [])
+            .filter((g) => g.box_label && g.item)
+            .map((g) => `${g.section} > ${g.item} > Defects > ${g.box_label}`);
       setStandaloneCount(standalone.length);
       // De-dupe: the defect pass and the info pass can both land on the same
       // box (seen live: Cloth-Insulated NM Cable listed twice).
