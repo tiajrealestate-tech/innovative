@@ -1684,12 +1684,20 @@ function EntryTab({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-sm text-gray-500">
           Findings in Spectora&apos;s section order. Copy each comment, then check
           the matching severity and recommendation boxes as you paste.
         </p>
-        {StyleToggle}
+        <div className="flex items-center gap-3">
+          {StyleToggle}
+          <button
+            onClick={onNext}
+            className="text-sm rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2"
+          >
+            Next: Send to Spectora →
+          </button>
+        </div>
       </div>
       {groups.map((g) => (
         <div key={g.key} className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
