@@ -146,18 +146,29 @@ export default function UploadPage() {
 
   return (
     <main className="min-h-screen">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-brand-500 text-white flex items-center justify-center font-bold">
-            V
-          </div>
-          <div>
-            <h1 className="text-lg font-semibold leading-tight">HyperReports AI</h1>
-            <p className="text-xs text-gray-500">
-              Upload a walkthrough voice memo → get Spectora-ready findings
-            </p>
-          </div>
+      <header className="bg-navy relative overflow-hidden">
+        <div className="max-w-3xl mx-auto px-6 pt-7 pb-6 relative">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-lockup.png"
+            alt="HyperReports AI"
+            className="h-9 w-auto"
+          />
+          <p className="mt-2 text-sm font-display font-semibold uppercase tracking-[0.18em] text-pulse">
+            Get home, not behind.
+          </p>
+          <p className="mt-1 text-xs text-blue-200/80">
+            Your walkthrough becomes the finished report — in your words.
+          </p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/hyper-wave.png"
+            alt=""
+            aria-hidden="true"
+            className="hidden sm:block absolute -right-2 -bottom-9 h-40 w-auto opacity-95 pointer-events-none"
+          />
         </div>
+        <div className="h-1 bg-gradient-to-r from-brand-500 via-pulse to-brand-500" />
       </header>
 
       <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
@@ -402,12 +413,21 @@ function HeyHyperCard() {
   return (
     <section className="bg-white rounded-2xl border border-teal-300 shadow-sm p-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-semibold">📸 Hey Hyper — quick photo check</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
-            Not sure about something on site? Photos in, best read out — no
-            transcript needed. Informational only; your inspection, your call.
-          </p>
+        <div className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/hyper-head.png"
+            alt=""
+            aria-hidden="true"
+            className="h-11 w-auto shrink-0"
+          />
+          <div>
+            <h2 className="font-semibold">Hey Hyper — quick photo check</h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Not sure about something on site? Photos in, best read out — no
+              transcript needed. Informational only; your inspection, your call.
+            </p>
+          </div>
         </div>
         <button
           onClick={() => setOpen((o) => !o)}

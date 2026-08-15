@@ -203,25 +203,29 @@ export default function ReviewPage() {
     <main className="min-h-screen">
       {/* Header */}
       <header className="border-b border-gray-200 bg-white no-print">
+        <div className="bg-navy">
+          <div className="max-w-5xl mx-auto px-6 py-2.5 flex items-center justify-between">
+            <Link href="/" className="shrink-0" title="Home">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-lockup.png" alt="HyperReports AI" className="h-6 w-auto" />
+            </Link>
+            <span className="hidden sm:block text-[11px] font-display font-semibold uppercase tracking-[0.2em] text-pulse">
+              Get home, not behind.
+            </span>
+          </div>
+          <div className="h-0.5 bg-gradient-to-r from-brand-500 via-pulse to-brand-500" />
+        </div>
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Link
-                href="/"
-                className="w-9 h-9 rounded-lg bg-brand-500 text-white flex items-center justify-center font-bold"
-              >
-                V
-              </Link>
-              <div>
-                <h1 className="text-lg font-semibold leading-tight">
-                  Review &amp; export
-                </h1>
-                <p className="text-xs text-gray-500">
-                  {report.findings.length} finding
-                  {report.findings.length === 1 ? "" : "s"} ·{" "}
-                  {approved ? "Approved" : "Draft — nothing is final until you approve"}
-                </p>
-              </div>
+            <div>
+              <h1 className="text-lg font-semibold leading-tight">
+                Review &amp; export
+              </h1>
+              <p className="text-xs text-gray-500">
+                {report.findings.length} finding
+                {report.findings.length === 1 ? "" : "s"} ·{" "}
+                {approved ? "Approved" : "Draft — nothing is final until you approve"}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <button

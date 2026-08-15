@@ -33,14 +33,20 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-        <div className="mb-6">
-          <div className="w-11 h-11 rounded-xl bg-brand-500 text-white flex items-center justify-center text-xl font-bold mb-4">
-            V
-          </div>
-          <h1 className="text-xl font-semibold">HyperReports AI</h1>
-          <p className="text-sm text-gray-500 mt-1">
+    <main className="min-h-screen bg-navy flex items-center justify-center p-6">
+      <div className="w-full max-w-sm">
+        <div className="flex flex-col items-center mb-6">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/hyper-wave.png" alt="" aria-hidden="true" className="h-40 w-auto mb-4" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-lockup.png" alt="HyperReports AI" className="h-8 w-auto" />
+          <p className="mt-2 text-xs font-display font-semibold uppercase tracking-[0.2em] text-pulse">
+            Get home, not behind.
+          </p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-lg p-8">
+        <div className="mb-4">
+          <p className="text-sm text-gray-600">
             Enter the shared password to continue.
           </p>
         </div>
@@ -62,6 +68,7 @@ export default function LoginPage() {
             {busy ? "Checking…" : "Enter"}
           </button>
         </form>
+        </div>
       </div>
     </main>
   );

@@ -10,8 +10,13 @@ html,
 body {
   padding: 0;
   margin: 0;
-  background: #f6f7f9;
+  background: #f4f6fa;
   color: #111827;
+}
+
+::selection {
+  background: #104edb;
+  color: #fff;
 }
 
 /* Nicer default focus rings for inputs/buttons */
