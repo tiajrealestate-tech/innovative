@@ -25,7 +25,7 @@ import {
   reindex,
 } from "@/lib/grouping";
 import { downloadCsv, downloadJson } from "@/lib/csv";
-import { placementItemFor } from "@/lib/catalog";
+import { placementItemFor, getItem } from "@/lib/catalog";
 import { ConfidenceBadge } from "../confidence-badge";
 import {
   HyImage,
@@ -1401,10 +1401,17 @@ function buildExtensionPayload(
 // existing recommendations — create new ones in our latest style."
 function buildFindingsPayload(findings: Finding[]): string {
   const sev = (s: string) => (s === "safety_major" ? "safety" : s || "recommendation");
+  // Canonicalize item names against the scanned template — extraction writes
+  // shorthand ("Main & Subpanels") that the extension rightly refuses to
+  // guess at; the catalog knows the full item name.
+  const itemFor = (f: Finding) => {
+    const resolved = f.subsection ? getItem(f.section, f.subsection) : null;
+    return resolved?.item || f.subsection || placementItemFor(f.section);
+  };
   return findings
     .map(
       (f) =>
-        `@@SECTION: ${f.section}\n@@ITEM: ${f.subsection || placementItemFor(f.section)}\n@@SEVERITY: ${sev(
+        `@@SECTION: ${f.section}\n@@ITEM: ${itemFor(f)}\n@@SEVERITY: ${sev(
           f.severity as string
         )}\n@@HEADING: ${f.title || f.comment.slice(0, 60)}\n@@BODY\n${f.comment}\n@@END`
     )
