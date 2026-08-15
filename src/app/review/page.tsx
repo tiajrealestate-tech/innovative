@@ -25,6 +25,7 @@ import {
   reindex,
 } from "@/lib/grouping";
 import { downloadCsv, downloadJson } from "@/lib/csv";
+import { placementItemFor } from "@/lib/catalog";
 import { ConfidenceBadge } from "../confidence-badge";
 import {
   HyImage,
@@ -387,9 +388,14 @@ function SpectoraTab({
   const [lines, setLines] = useState("");
   const [copied, setCopied] = useState(false);
   const [mode, setMode] = useState<"trever" | "standard">("trever");
+  // Standard method's wording source: "template" ticks each defect's library
+  // box (Spectora auto-fills his stored wording); "custom" skips the boxes and
+  // places one freshly written recommendation per finding instead.
+  const [language, setLanguage] = useState<"template" | "custom">("template");
   const [infoCount, setInfoCount] = useState(0);
   const [infoError, setInfoError] = useState<string | null>(null);
   const [includeDefectBoxes, setIncludeDefectBoxes] = useState(false);
+  const customStandard = mode === "standard" && language === "custom";
   const [standaloneCount, setStandaloneCount] = useState(0);
 
   const titleById = useMemo(() => {
@@ -420,7 +426,9 @@ function SpectoraTab({
     setSendState("sending");
     sendToExtension({
       buildLines,
-      writeups: composed
+      writeups: customStandard
+        ? buildFindingsPayload(report.findings)
+        : composed
         ? buildExtensionPayload(composed, report.findings)
         : undefined,
       address: report.inspection?.property_address || "",
@@ -443,7 +451,13 @@ function SpectoraTab({
       const res = await fetch("/api/map", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ report, mode, includeDefectBoxes }),
+        // Custom-language standard never ticks defect boxes — the per-finding
+        // custom recommendations carry every defect instead.
+        body: JSON.stringify({
+          report,
+          mode,
+          includeDefectBoxes: customStandard ? false : includeDefectBoxes,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Mapping failed.");
@@ -544,9 +558,33 @@ function SpectoraTab({
               this off to match Trever&rsquo;s hand-built reports (his 19-finding report contains
               no individual defect checkboxes; every defect lives in a write-up). Turning it on
               ticks a box per defect on top of the write-ups, which produces a much longer
-              report. (Standard method always ticks defect boxes — that&rsquo;s what it is.)
+              report.
             </span>
           </label>
+        )}
+        {mode === "standard" && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-gray-500">Wording:</span>
+            <div className="inline-flex rounded-lg border border-gray-300 overflow-hidden text-xs">
+              <button
+                onClick={() => { setLanguage("template"); setRows(null); }}
+                className={`px-3 py-1.5 ${language === "template" ? "bg-brand-500 text-white" : "bg-white hover:bg-gray-50"}`}
+              >
+                Template language
+              </button>
+              <button
+                onClick={() => { setLanguage("custom"); setRows(null); }}
+                className={`px-3 py-1.5 border-l border-gray-300 ${language === "custom" ? "bg-brand-500 text-white" : "bg-white hover:bg-gray-50"}`}
+              >
+                Custom language
+              </button>
+            </div>
+            <span className="text-[11px] text-gray-500">
+              {language === "template"
+                ? "Each defect ticks its library box — Spectora fills in the template's stored wording."
+                : "No library boxes — every finding is placed as its own recommendation with freshly written wording (“don't use my existing recommendations”)."}
+            </span>
+          </div>
         )}
 
         <p className="text-xs text-gray-500 mt-2">
@@ -561,11 +599,18 @@ function SpectoraTab({
               Open <span className="font-medium">Report entry → Trever 2026</span> first so
               those stand-alone boxes are included.
             </>
+          ) : language === "template" ? (
+            <>
+              <span className="font-medium">Standard · Template language:</span> every defect
+              checks its own pre-written <span className="font-medium">Defects</span> box, which
+              auto-fills that box&rsquo;s library wording. This is how most inspectors work.
+            </>
           ) : (
             <>
-              <span className="font-medium">Standard:</span> every defect checks its own
-              pre-written <span className="font-medium">Defects</span> box, which auto-fills
-              that box&rsquo;s library wording. This is how most inspectors work.
+              <span className="font-medium">Standard · Custom language:</span> individual
+              recommendations, one per finding, each placed in its own item with freshly
+              written wording from this walkthrough — none of the template&rsquo;s stored
+              language is used. Information and Limitations boxes still tick normally.
             </>
           )}
         </p>
@@ -589,10 +634,18 @@ function SpectoraTab({
         )}
         {!composed && mode === "standard" && (
           <p className="mt-3 text-xs text-gray-600">
-            Standard method needs no written report first — every checked Defect box
-            auto-fills with your template&apos;s stored wording. Your Step 2 comments
-            stay copy/paste in this method; for automatic write-up placement, use
-            Step 2&apos;s <span className="font-medium">Trever 2026</span> style.
+            {language === "template" ? (
+              <>
+                Standard · Template needs no written report first — every checked Defect
+                box auto-fills with your template&apos;s stored wording.
+              </>
+            ) : (
+              <>
+                Standard · Custom needs no written report first either — each finding&apos;s
+                freshly written recommendation (what you see on Step 1/2) is placed
+                automatically as its own comment.
+              </>
+            )}
           </p>
         )}
         <button
@@ -661,7 +714,7 @@ function SpectoraTab({
               <div className="mt-3 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
                 <div className="font-semibold mb-1">
                   Everything is in the extension — checkbox list
-                  {composed ? " + write-ups" : ""} ✓
+                  {composed || customStandard ? " + write-ups" : ""} ✓
                 </div>
                 <ol className="list-decimal pl-5 space-y-0.5">
                   <li>Open your report in Spectora (same browser).</li>
@@ -1334,6 +1387,23 @@ function buildExtensionPayload(
         `@@SECTION: ${g.section}\n@@ITEM: ${g.item || fallbackItem(g.section)}\n@@SEVERITY: ${g.severity || "recommendation"}\n@@HEADING: ${g.heading}\n@@BODY\n${g.body}\n@@END`
     );
   return [punchLinkBlock, overviewBlock, ...groupBlocks].filter(Boolean).join("\n\n");
+}
+
+// Standard method + CUSTOM language: one individually placed recommendation per
+// finding, filed in the finding's own item, using the freshly written wording
+// from the walkthrough — the inspector's per-defect structure with NONE of his
+// stored template language. Built for his instruction: "do not use any
+// existing recommendations — create new ones in our latest style."
+function buildFindingsPayload(findings: Finding[]): string {
+  const sev = (s: string) => (s === "safety_major" ? "safety" : s || "recommendation");
+  return findings
+    .map(
+      (f) =>
+        `@@SECTION: ${f.section}\n@@ITEM: ${f.subsection || placementItemFor(f.section)}\n@@SEVERITY: ${sev(
+          f.severity as string
+        )}\n@@HEADING: ${f.title || f.comment.slice(0, 60)}\n@@BODY\n${f.comment}\n@@END`
+    )
+    .join("\n\n");
 }
 
 function EntryTab({

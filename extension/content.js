@@ -1436,14 +1436,25 @@
         problem: `Item not found: ${b.item} (in ${b.section} — no other item there would open either)`,
       };
     }
-    const tabOk = await openTab("Defects");
+    // The comment MUST land on the Defects tab whenever this item has one.
+    // Adding while Information is active is how write-ups ended up on the
+    // wrong tab with no rating (Roofing General / Walkways at 1004 Dennis
+    // Ave) — better to fail the block and retry than to file it wrong.
+    let tabOk = true;
+    if (existsByText("Defects")) {
+      tabOk = (await openTab("Defects")) || (await openTab("Defects"));
+      if (!tabOk) {
+        return {
+          ok: false,
+          problem: `${b.section} › ${sel.item || b.item || "?"}: the Defects tab would not open — refused to add the comment to the wrong tab`,
+        };
+      }
+    }
     const r = await addCustomComment(b.heading, b.body, b.severity);
     if (!r.ok) {
       return {
         ok: false,
-        problem:
-          `${b.section} › ${sel.item || b.item || "?"}: ${r.reason || "couldn't fill the comment"}` +
-          (tabOk ? "" : " (the Defects tab never opened)"),
+        problem: `${b.section} › ${sel.item || b.item || "?"}: ${r.reason || "couldn't fill the comment"}`,
       };
     }
     let warning = null;
