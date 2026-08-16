@@ -1230,32 +1230,21 @@
         return { ok: true };
       }
 
-      // --- Strategy 3: the original label -> nearby input -> overlay diff. --
-      const label = [...modal.querySelectorAll("label,div,span")].find(
+      // --- Strategy 3: 'Recommendation' label -> nearby control -> overlay. --
+      // BOTH the Category chip and the dropdown label can read "Recommendation",
+      // so every candidate label is tried, LAST in document order first (the
+      // dropdown sits below the Category row in Spectora's dialogs).
+      const labels = [...modal.querySelectorAll("label,div,span")].filter(
         (el) => el.children.length <= 1 && /^recommendation$/i.test(trimText(el))
       );
-      if (!label)
+      if (!labels.length)
         return fail("dialog has no professionals list and no 'Recommendation' label");
-      let input = null;
-      let scope = label.parentElement;
-      for (let i = 0; i < 5 && scope && !input; i++) {
-        input = [...scope.querySelectorAll('input,button,[role="combobox"]')].find(
-          (el) =>
-            !isSearchField(el) &&
-            el.offsetParent !== null &&
-            !(label.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING)
-        ) || null;
-        scope = scope.parentElement;
-      }
-      if (!input) return fail("'Recommendation' label found but no control near it");
 
       const visibleBefore = new Set(
         [...document.querySelectorAll("li,div,span")]
           .filter((el) => el.children.length === 0 && el.offsetParent !== null)
           .map((el) => norm(el.textContent))
       );
-      clickOnce(input);
-      await sleep(450);
       const overlayOpts = () =>
         [...document.querySelectorAll("li,div,span")].filter(
           (el) =>
@@ -1265,16 +1254,61 @@
             trimText(el).length < 60 &&
             !visibleBefore.has(norm(el.textContent))
         );
-      let opt = bestIn(overlayOpts(), (el) => el.textContent);
-      if (!opt && input.tagName === "INPUT") {
-        setFieldValue(input, pro);
-        await sleep(500);
-        opt = bestIn(overlayOpts(), (el) => el.textContent);
+      const waitForOpts = async (ms) => {
+        const until = Date.now() + ms;
+        while (Date.now() < until) {
+          const found = bestIn(overlayOpts(), (el) => el.textContent);
+          if (found) return found;
+          await sleep(250);
+        }
+        return null;
+      };
+
+      let sawControl = false;
+      for (const label of labels.reverse()) {
+        let input = null;
+        let scope = label.parentElement;
+        for (let i = 0; i < 5 && scope && !input; i++) {
+          input = [...scope.querySelectorAll(
+            'input,button,[role="combobox"],[class*="select"],[class*="dropdown"]'
+          )].find(
+            (el) =>
+              !isSearchField(el) &&
+              el.offsetParent !== null &&
+              !(label.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING)
+          ) || null;
+          scope = scope.parentElement;
+        }
+        if (!input) continue;
+        sawControl = true;
+        try {
+          if (input.scrollIntoView) input.scrollIntoView({ block: "center" });
+        } catch (e) {}
+        clickOnce(input);
+        let opt = await waitForOpts(1400);
+        if (!opt && input.tagName === "INPUT") {
+          // A combobox may want typing or a keypress to open.
+          try { input.focus(); } catch (e) {}
+          input.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowDown", keyCode: 40, bubbles: true })
+          );
+          opt = await waitForOpts(800);
+          if (!opt) {
+            setFieldValue(input, pro);
+            opt = await waitForOpts(900);
+          }
+        }
+        if (opt) {
+          clickOnce(opt);
+          await sleep(350);
+          return { ok: true };
+        }
       }
-      if (!opt) return fail("clicked the Recommendation control but no options appeared");
-      clickOnce(opt);
-      await sleep(350);
-      return { ok: true };
+      return fail(
+        sawControl
+          ? "clicked the Recommendation control(s) but no options appeared"
+          : "'Recommendation' label found but no control near it"
+      );
     } catch (e) {
       return { ok: false, why: "error: " + (e && e.message ? e.message : e) };
     }
@@ -1920,13 +1954,26 @@
         problem: `${where()}: "${b.heading}" was not found in this section — nothing to fix here`,
       };
 
-    const card =
-      leaf.closest('.comment.record, .card, [class*="comment"]') || leaf.parentElement;
+    // The card: prefer Spectora's own record class; otherwise the nearest
+    // ancestor that owns a card header.
+    let card = leaf.closest(".comment.record") || leaf.closest(".card");
+    if (!card) {
+      let n = leaf.parentElement;
+      for (let i = 0; i < 8 && n; i++) {
+        if (n.querySelector && n.querySelector(".card-header")) {
+          card = n;
+          break;
+        }
+        n = n.parentElement;
+      }
+    }
+    if (!card) card = leaf.closest('[class*="comment"]') || leaf.parentElement;
 
     // Open the FULL editor (the one with the Recommendation dropdown). The
-    // card's pencil opens a rename dialog instead, so several open paths are
-    // tried; a rename dialog is recognised, cancelled, and the next path
-    // tried. Success = the professionals control is on screen.
+    // card's "Edit" control opens a rename dialog instead, so several open
+    // paths are tried, each one's outcome recorded for the log. Success = the
+    // professionals control (or an editor showing a Recommendation label) is
+    // on screen.
     const clickTextIn = (scope, re) => {
       const el = [...scope.querySelectorAll('button,[role="button"],a,span,div,li')].find(
         (n) => n.children.length === 0 && n.offsetParent !== null && re.test(trimText(n))
@@ -1934,90 +1981,127 @@
       if (el) clickOnce(el);
       return !!el;
     };
-    const attempts = [
-      // 1. An explicit "Edit this comment" control on the card.
-      () => clickTextIn(card, /^edit this comment$/i),
-      // 2. The comment heading itself (only when the card carries no
-      //    checkbox — clicking a checkbox card ticks it).
-      () => {
-        if (card.querySelector('input[type="checkbox"]')) return false;
-        clickOnce(leaf);
-        return true;
-      },
-      // 3. A kebab/menu on the card, then an Edit entry in the menu it opens.
-      async () => {
-        const kebab = [...card.querySelectorAll('button,[role="button"],a,span,i,div')].find(
-          (el) =>
-            el.offsetParent !== null &&
-            (/^(⋮|⋯|•••|\.\.\.)$/.test(trimText(el)) ||
-              /more|options|menu/i.test(
-                (el.getAttribute("aria-label") || "") + (el.getAttribute("title") || "")
-              ))
-        );
-        if (!kebab) return false;
-        clickOnce(kebab);
-        await sleep(400);
-        return clickTextIn(document, /^edit( this comment| observation| comment)?$/i);
-      },
-      // 4. The pencil/aria-labelled Edit control (known to open RENAME on
-      //    some cards — the rename detector below keeps it harmless).
-      () => {
-        const ctl = editControlIn(card);
-        if (ctl) clickOnce(ctl);
-        return !!ctl;
-      },
-      // 5. Expand via a checkbox-free header, then retry the explicit link.
-      async () => {
-        const header = card.querySelector(".card-header");
-        if (!header || header.querySelector('input[type="checkbox"]')) return false;
-        clickOnce(header);
-        await sleep(500);
-        return (
-          clickTextIn(card, /^edit this comment$/i) ||
-          (() => {
-            const ctl = editControlIn(card);
-            if (ctl) clickOnce(ctl);
-            return !!ctl;
-          })()
-        );
-      },
-    ];
-
-    let container = null;
-    const tried = [];
-    for (let a = 0; a < attempts.length && !container; a++) {
-      let clicked = false;
-      try {
-        clicked = await attempts[a]();
-      } catch (e) {}
-      if (!clicked) continue;
-      tried.push(a + 1);
+    const dialogLabelPeek = (d) =>
+      [...d.querySelectorAll("label,div,span,button")]
+        .filter((el) => el.children.length === 0 && el.offsetParent !== null)
+        .map((el) => trimText(el))
+        .filter((t) => t.length > 1 && t.length < 22)
+        .filter((t, i, a) => a.indexOf(t) === i)
+        .slice(0, 6)
+        .join("|");
+    const recLeafIn = (scope) =>
+      [...scope.querySelectorAll("label,div,span")].some(
+        (el) => el.children.length === 0 && /^recommendation$/i.test(trimText(el))
+      );
+    const outcomes = [];
+    const assess = async (tag) => {
       await sleep(900);
-      container = findProContainer();
-      if (container) break;
+      let c = findProContainer();
+      if (c) return c;
       const dlg = findCommentModalAny();
       if (dlg) {
         if (isRenameDialog(dlg)) {
-          await cancelModal(dlg); // wrong dialog — harmless, keep trying
-        } else {
-          // A real dialog without the fingerprint yet — give the dropdown a
-          // moment to render, then accept the dialog if it shows a
-          // Recommendation label; otherwise cancel and move on.
-          await sleep(700);
-          container = findProContainer();
-          if (
-            !container &&
-            [...dlg.querySelectorAll("label,div,span")].some(
-              (el) => el.children.length === 0 && /^recommendation$/i.test(trimText(el))
-            )
-          )
-            container = dlg;
-          if (!container) await cancelModal(dlg);
+          outcomes.push(`${tag}:rename-cancelled`);
+          await cancelModal(dlg);
+          return null;
         }
+        await sleep(700);
+        c = findProContainer();
+        if (c) return c;
+        if (recLeafIn(dlg)) return dlg;
+        outcomes.push(`${tag}:dialog(${dialogLabelPeek(dlg)})-cancelled`);
+        await cancelModal(dlg);
+        return null;
       }
+      // An INLINE editor may have opened in the card itself.
+      const rec = expandedRecord();
+      if (rec && (recLeafIn(rec) || findProContainer())) return findProContainer() || rec;
+      if (editableFieldsIn(card).length && recLeafIn(card)) return card;
+      outcomes.push(`${tag}:nothing-opened`);
+      return null;
+    };
+
+    const attempts = [
+      // 1. An explicit "Edit this comment" control on the card.
+      ["edit-this-comment", () => clickTextIn(card, /^edit this comment$/i)],
+      // 2. Expand via a checkbox-free header (checkbox state verified and
+      //    restored, same discipline as the wording scanner), then the
+      //    expanded card's edit link.
+      [
+        "expand-then-edit",
+        async () => {
+          const header = card.querySelector(".card-header");
+          if (!header || header.querySelector('input[type="checkbox"]')) return false;
+          const cb = card.querySelector('input[type="checkbox"]');
+          const was = cb ? cb.checked : null;
+          clickOnce(header);
+          await sleep(400);
+          if (cb && cb.checked !== was) {
+            cb.click();
+            await sleep(300);
+            outcomes.push("expand:ticked-box-undone");
+            return false;
+          }
+          const scope = expandedRecord() || card;
+          return (
+            clickTextIn(scope, /^edit this comment$/i) ||
+            clickTextIn(scope, /^edit$/i)
+          );
+        },
+      ],
+      // 3. A kebab/menu on the card, then an Edit entry in the menu.
+      [
+        "kebab-menu",
+        async () => {
+          const kebab = [...card.querySelectorAll('button,[role="button"],a,span,i,div')].find(
+            (el) =>
+              el.offsetParent !== null &&
+              (/^(⋮|⋯|•••|\.\.\.)$/.test(trimText(el)) ||
+                /more|options|menu/i.test(
+                  (el.getAttribute("aria-label") || "") + (el.getAttribute("title") || "")
+                ))
+          );
+          if (!kebab) return false;
+          clickOnce(kebab);
+          await sleep(400);
+          return clickTextIn(document, /^edit( this comment| observation| comment)?$/i);
+        },
+      ],
+      // 4. The bare "Edit" control (opens RENAME on these cards — the
+      //    detector cancels it harmlessly, but on other layouts it may be
+      //    the real editor).
+      [
+        "edit-control",
+        () => {
+          const ctl = editControlIn(card);
+          if (ctl) clickOnce(ctl);
+          return !!ctl;
+        },
+      ],
+      // 5. The comment heading itself — ONLY when the card carries no
+      //    checkbox anywhere (clicking a checkbox card ticks it).
+      [
+        "heading-click",
+        () => {
+          if (card.querySelector('input[type="checkbox"]')) return false;
+          clickOnce(leaf);
+          return true;
+        },
+      ],
+    ];
+
+    let container = null;
+    for (const [tag, run] of attempts) {
+      let clicked = false;
+      try {
+        clicked = await run();
+      } catch (e) {}
+      if (!clicked) continue;
+      container = await assess(tag);
+      if (container) break;
     }
     if (!container) {
-      let problem = `${where()}: couldn't open the full editor for "${b.heading}" (paths tried: ${tried.join(",") || "none"})`;
+      let problem = `${where()}: couldn't open the full editor for "${b.heading}" — ${outcomes.join("; ") || "no open path found"}`;
       if (!fixOneProDropdown._dumped) {
         fixOneProDropdown._dumped = true;
         problem += ` — card controls: ${cardControlInventory(card)}`;
@@ -2125,6 +2209,11 @@
       `\nSet ${done}/${blocks.length} Recommendation dropdowns.` +
         (problems.length ? `\n\nIssues:\n- ${problems.join("\n- ")}` : " All set — spot-check a few in Spectora.")
     );
+    const notFound = problems.filter((p) => /was not found in this section/.test(p)).length;
+    if (notFound >= 3)
+      log(
+        `\n⚠ ${notFound} headings aren't on this report at all — the Step 2 box is probably holding a NEWER re-write than the one that was placed. Paste the payload that placed THIS report, then run Fix-up again.`
+      );
     log(`\nClick "Copy log" below and paste it into the chat.`);
   }
 
