@@ -72,6 +72,36 @@ function chunkTranscript(t: string, targetChars = 14000, maxChunks = 3): string[
   return chunks;
 }
 
+// Users paste transcripts out of docs that also hold extension logs from
+// earlier runs ("Fireplace/Information: 1/1: Gas", "House check ✓ …"). Those
+// lines are OUR OWN tool output, not the inspector's words — and they poison
+// the Information pass (a logged Fireplace line reads like a dictated
+// fireplace, which is exactly how a nonexistent gas fireplace got ticked at
+// 1004 Dennis Ave). Strip anything that looks like tool output on intake.
+function stripToolLogLines(t: string): string {
+  const drop = [
+    /^House check ✓/i,
+    /^\(\d+\/\d+\)\s/, // "(8/35) Fireplace › Fireplace › Information…"
+    /\/(Information|Limitations|Defects):\s*\d+\/\d+:/i,
+    /^(Checked|Verified|Placed|Cleared)\s+\d+/i,
+    /^Verification sweep/i,
+    /^Added optional item/i,
+    /^Couldn'?t open /i,
+    /^@@(SECTION|ITEM|SEVERITY|HEADING|BODY|END)/,
+    /^Scan\s*\d*\s*:/i,
+    /^(Item|Section) not found:/i,
+    /^STILL UNCHECKED/i,
+    /^NOT FOUND ON THE PAGE/i,
+    /^Click "Copy log"/i,
+    /^Issues:$/i,
+    /^Retrying \d+ failed/i,
+  ];
+  return t
+    .split("\n")
+    .filter((line) => !drop.some((re) => re.test(line.trim())))
+    .join("\n");
+}
+
 // POST { transcript, details? } -> InspectionReport
 export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -91,7 +121,7 @@ export async function POST(req: NextRequest) {
     null;
   try {
     const body = await req.json();
-    transcript = String(body?.transcript ?? "").trim();
+    transcript = stripToolLogLines(String(body?.transcript ?? "")).trim();
     if (body?.details) typed = { ...emptyDetails(), ...body.details };
     if (body?.append?.findings && Array.isArray(body.append.findings)) {
       append = { findings: body.append.findings };
