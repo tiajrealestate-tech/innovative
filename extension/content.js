@@ -1077,7 +1077,80 @@
     return false;
   }
 
-  async function addCustomComment(heading, body, severity) {
+  // Set the comment's "Recommendation" dropdown to the named professional.
+  // Trever's rule: pick the REAL professional from the list; only fall back to
+  // the generic "Qualified Professional" entry when the list has no match. The
+  // options render in an overlay, so candidates are diffed against what was
+  // visible BEFORE opening the dropdown — never click pre-existing page text.
+  async function setProDropdown(modal, pro) {
+    if (!pro) return false;
+    try {
+      const label = [...modal.querySelectorAll("label,div,span")].find(
+        (el) => el.children.length === 0 && /^recommendation$/i.test(trimText(el))
+      );
+      if (!label) return false;
+      let input = null;
+      let scope = label.parentElement;
+      for (let i = 0; i < 5 && scope && !input; i++) {
+        input = [...scope.querySelectorAll("input")].find(
+          (el) =>
+            !isSearchField(el) &&
+            el.offsetParent !== null &&
+            !(label.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING)
+        ) || null;
+        scope = scope.parentElement;
+      }
+      if (!input) return false;
+
+      const visibleBefore = new Set(
+        [...document.querySelectorAll("li,div,span")]
+          .filter((el) => el.children.length === 0 && el.offsetParent !== null)
+          .map((el) => norm(el.textContent))
+      );
+      clickOnce(input);
+      await sleep(450);
+
+      const options = () =>
+        [...document.querySelectorAll("li,div,span")].filter(
+          (el) =>
+            el.children.length === 0 &&
+            el.offsetParent !== null &&
+            trimText(el).length > 2 &&
+            trimText(el).length < 60 &&
+            !visibleBefore.has(norm(el.textContent))
+        );
+      const pick = (name) => {
+        const t = norm(name);
+        const opts = options();
+        return (
+          opts.find((el) => norm(el.textContent) === t) ||
+          opts.find((el) => norm(el.textContent).startsWith(t)) ||
+          (t.length > 6 && opts.find((el) => norm(el.textContent).includes(t))) ||
+          null
+        );
+      };
+      let opt = pick(pro);
+      if (!opt) {
+        // Filter by typing, then re-pick.
+        setFieldValue(input, pro);
+        await sleep(500);
+        opt = pick(pro);
+      }
+      if (!opt) {
+        setFieldValue(input, "");
+        await sleep(400);
+        opt = pick("Qualified Professional") || pick("No Recommendation");
+      }
+      if (!opt) return false;
+      clickOnce(opt);
+      await sleep(350);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function addCustomComment(heading, body, severity, pro) {
     await closeAnyDialog();
     if (!clickByTextOnce("Add") && !clickByTextOnce("+ Add")) {
       return { ok: false, reason: "'Add' control not found" };
@@ -1151,6 +1224,12 @@
       await sleep(250);
     }
 
+    let proSet = false;
+    if (pro) {
+      proSet = await setProDropdown(modal, pro);
+      await sleep(200);
+    }
+
     // Save (inside the modal only — never hit the page's other buttons).
     await sleep(250);
     const saveBtn = [...modal.querySelectorAll('button,[role="button"],span,a,div')].find(
@@ -1193,6 +1272,7 @@
       saved: closed,
       verified,
       severitySet,
+      proSet,
       reason: closed ? "" : "clicked Save but the dialog stayed open",
     };
   }
@@ -1350,6 +1430,7 @@
           heading: "",
           body: "",
           severity: "",
+          pro: "",
         };
         inBody = false;
         continue;
@@ -1365,6 +1446,7 @@
         cur.severity = t.slice(11).trim().toLowerCase();
         continue;
       }
+      if (t.startsWith("@@PRO:")) { cur.pro = t.slice(6).trim(); continue; }
       if (t === "@@BODY") { inBody = true; continue; }
       if (t === "@@END") { inBody = false; continue; }
       if (inBody) cur.body += (cur.body ? "\n" : "") + raw;
@@ -1450,7 +1532,7 @@
         };
       }
     }
-    const r = await addCustomComment(b.heading, b.body, b.severity);
+    const r = await addCustomComment(b.heading, b.body, b.severity, b.pro);
     if (!r.ok) {
       return {
         ok: false,
@@ -1462,6 +1544,8 @@
       warning = `${b.section} › ${sel.item || b.item || "?"}: saved, but "${b.heading}" is NOT visible in this item afterwards — it may have landed in the wrong place. Check it in Spectora.`;
     else if (b.severity && b.severity !== "recommendation" && !r.severitySet)
       warning = `${b.section} › ${sel.item || b.item || "?"}: couldn't set the ${b.severity} rating — it saved as the default Recommendation. Change the Category by hand.`;
+    else if (b.pro && !r.proSet)
+      warning = `${b.section} › ${sel.item || b.item || "?"}: couldn't set the Recommendation dropdown to "${b.pro}" — pick it by hand.`;
     return { ok: true, warning };
   }
 

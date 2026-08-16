@@ -26,6 +26,7 @@ import {
 } from "@/lib/grouping";
 import { downloadCsv, downloadJson } from "@/lib/csv";
 import { placementItemFor, getItem } from "@/lib/catalog";
+import { proForText } from "@/lib/pro";
 import { ConfidenceBadge } from "../confidence-badge";
 import {
   HyImage,
@@ -1393,7 +1394,7 @@ function buildExtensionPayload(
     .filter((g) => !g.box_label)
     .map(
       (g) =>
-        `@@SECTION: ${g.section}\n@@ITEM: ${g.item || fallbackItem(g.section)}\n@@SEVERITY: ${g.severity || "recommendation"}\n@@HEADING: ${g.heading}\n@@BODY\n${g.body}\n@@END`
+        `@@SECTION: ${g.section}\n@@ITEM: ${g.item || fallbackItem(g.section)}\n@@SEVERITY: ${g.severity || "recommendation"}\n@@PRO: ${proForText(g.body)}\n@@HEADING: ${g.heading}\n@@BODY\n${g.body}\n@@END`
     );
   return [punchLinkBlock, overviewBlock, ...groupBlocks].filter(Boolean).join("\n\n");
 }
@@ -1417,7 +1418,9 @@ function buildFindingsPayload(findings: Finding[]): string {
       (f) =>
         `@@SECTION: ${f.section}\n@@ITEM: ${itemFor(f)}\n@@SEVERITY: ${sev(
           f.severity as string
-        )}\n@@HEADING: ${f.title || f.comment.slice(0, 60)}\n@@BODY\n${f.comment}\n@@END`
+        )}\n@@PRO: ${proForText(f.comment, f.recommendation_type)}\n@@HEADING: ${
+          f.title || f.comment.slice(0, 60)
+        }\n@@BODY\n${f.comment}\n@@END`
     )
     .join("\n\n");
 }
