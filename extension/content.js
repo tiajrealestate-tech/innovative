@@ -1122,12 +1122,20 @@
       const pick = (name) => {
         const t = norm(name);
         const opts = options();
-        return (
+        const direct =
           opts.find((el) => norm(el.textContent) === t) ||
           opts.find((el) => norm(el.textContent).startsWith(t)) ||
           (t.length > 6 && opts.find((el) => norm(el.textContent).includes(t))) ||
-          null
-        );
+          null;
+        if (direct) return direct;
+        // Last resort: exactly ONE option shares the target's first word
+        // ("plumbing …" -> the single Plumbing entry). Ambiguity -> no pick.
+        const head = t.split(" ")[0];
+        if (head && head.length > 3) {
+          const sharing = opts.filter((el) => norm(el.textContent).split(" ")[0] === head);
+          if (sharing.length === 1) return sharing[0];
+        }
+        return null;
       };
       let opt = pick(pro);
       if (!opt) {
