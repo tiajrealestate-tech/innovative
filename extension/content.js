@@ -1828,6 +1828,57 @@
     );
   }
 
+  // The 46 Club View fix-up run proved a card's pencil/Edit control opens a
+  // RENAME dialog (fields: Cancel | RENAME) — the full "Edit Observation"
+  // editor with the Recommendation dropdown opens some other way. These
+  // helpers let the sweep recognise each dialog for what it is.
+  function isRenameDialog(d) {
+    if (!d) return false;
+    return [...d.querySelectorAll('button,[role="button"],span,a,div')].some(
+      (el) => el.children.length === 0 && /^rename$/i.test(trimText(el)) && el.offsetParent !== null
+    );
+  }
+
+  // Wherever the professionals control lives right now — dialog, inline panel,
+  // full-page editor — found by its own unmistakable options.
+  function findProContainer() {
+    const host = (el) =>
+      el.closest('[role="dialog"],[role="alertdialog"],.modal,.v-dialog,form,[class*="modal"],[class*="dialog"]') ||
+      document.body;
+    const sel = [...document.querySelectorAll("select")].find((s) =>
+      [...s.options].some((o) => /^(qualified professional|no recommendation)$/i.test(trimText(o)))
+    );
+    if (sel) return host(sel);
+    const marker = [...document.querySelectorAll("li,div,span")].find(
+      (el) =>
+        el.children.length === 0 &&
+        /^(qualified professional|no recommendation)$/i.test(trimText(el))
+    );
+    if (marker) return host(marker);
+    return null;
+  }
+
+  function cardControlInventory(card) {
+    try {
+      const seen = new Set();
+      const out = [];
+      for (const el of card.querySelectorAll('button,[role="button"],a,span,i,div,svg')) {
+        if (el.offsetParent === null) continue;
+        const t = trimText(el);
+        const aria = (el.getAttribute("aria-label") || "") + (el.getAttribute("title") || "");
+        const label = t && t.length <= 24 && el.children.length === 0 ? t : aria ? `[${aria.slice(0, 24)}]` : "";
+        if (label && !seen.has(label)) {
+          seen.add(label);
+          out.push(label);
+          if (out.length >= 14) break;
+        }
+      }
+      return out.join(" | ") || "no labelled controls";
+    } catch (e) {
+      return "?";
+    }
+  }
+
   async function fixOneProDropdown(b, log, resCache) {
     const where = () => `${b.section} › ${b.item || "?"}`;
     if (!(await selectSection(b.section)))
@@ -1841,64 +1892,161 @@
 
     const frag = (b.heading || "").toLowerCase().slice(0, 40);
     if (!frag) return { ok: false, problem: `${where()}: block has no heading` };
-    const leaf = [...document.querySelectorAll("div,span,p,td,h1,h2,h3")].find(
-      (el) =>
-        el.children.length === 0 &&
-        el.offsetParent !== null &&
-        trimText(el).toLowerCase().includes(frag)
-    );
+    const findLeaf = () =>
+      [...document.querySelectorAll("div,span,p,td,h1,h2,h3")].find(
+        (el) =>
+          el.children.length === 0 &&
+          el.offsetParent !== null &&
+          trimText(el).toLowerCase().includes(frag)
+      ) || null;
+    let leaf = findLeaf();
+    if (!leaf) {
+      // Placement may have fallen back to a DIFFERENT item than this pass
+      // resolved (it happened between the Club View place and fix runs) —
+      // check the section's other items for the heading before giving up.
+      const entry = REPORT_MAP.find(([s]) => norm(s) === norm(b.section));
+      for (const cand of entry ? entry[1] : []) {
+        if (norm(cand) === norm(sel.item || b.item)) continue;
+        if (!(await selectItem(cand))) continue;
+        if (existsByText("Defects")) await openTab("Defects");
+        await sleep(300);
+        leaf = findLeaf();
+        if (leaf) break;
+      }
+    }
     if (!leaf)
       return {
         ok: false,
-        problem: `${where()}: "${b.heading}" is not on this item — nothing to fix here`,
+        problem: `${where()}: "${b.heading}" was not found in this section — nothing to fix here`,
       };
 
-    // Find its Edit control: on the card first; if the card is collapsed,
-    // expand via a checkbox-free header (the only safe expand handle).
     const card =
       leaf.closest('.comment.record, .card, [class*="comment"]') || leaf.parentElement;
-    let editCtl = editControlIn(card);
-    if (!editCtl && card) {
-      const header = card.querySelector(".card-header");
-      if (header && !header.querySelector('input[type="checkbox"]')) {
+
+    // Open the FULL editor (the one with the Recommendation dropdown). The
+    // card's pencil opens a rename dialog instead, so several open paths are
+    // tried; a rename dialog is recognised, cancelled, and the next path
+    // tried. Success = the professionals control is on screen.
+    const clickTextIn = (scope, re) => {
+      const el = [...scope.querySelectorAll('button,[role="button"],a,span,div,li')].find(
+        (n) => n.children.length === 0 && n.offsetParent !== null && re.test(trimText(n))
+      );
+      if (el) clickOnce(el);
+      return !!el;
+    };
+    const attempts = [
+      // 1. An explicit "Edit this comment" control on the card.
+      () => clickTextIn(card, /^edit this comment$/i),
+      // 2. The comment heading itself (only when the card carries no
+      //    checkbox — clicking a checkbox card ticks it).
+      () => {
+        if (card.querySelector('input[type="checkbox"]')) return false;
+        clickOnce(leaf);
+        return true;
+      },
+      // 3. A kebab/menu on the card, then an Edit entry in the menu it opens.
+      async () => {
+        const kebab = [...card.querySelectorAll('button,[role="button"],a,span,i,div')].find(
+          (el) =>
+            el.offsetParent !== null &&
+            (/^(⋮|⋯|•••|\.\.\.)$/.test(trimText(el)) ||
+              /more|options|menu/i.test(
+                (el.getAttribute("aria-label") || "") + (el.getAttribute("title") || "")
+              ))
+        );
+        if (!kebab) return false;
+        clickOnce(kebab);
+        await sleep(400);
+        return clickTextIn(document, /^edit( this comment| observation| comment)?$/i);
+      },
+      // 4. The pencil/aria-labelled Edit control (known to open RENAME on
+      //    some cards — the rename detector below keeps it harmless).
+      () => {
+        const ctl = editControlIn(card);
+        if (ctl) clickOnce(ctl);
+        return !!ctl;
+      },
+      // 5. Expand via a checkbox-free header, then retry the explicit link.
+      async () => {
+        const header = card.querySelector(".card-header");
+        if (!header || header.querySelector('input[type="checkbox"]')) return false;
         clickOnce(header);
         await sleep(500);
-        editCtl = editControlIn(card) || editControlIn(leaf.closest('[class*="comment"]'));
+        return (
+          clickTextIn(card, /^edit this comment$/i) ||
+          (() => {
+            const ctl = editControlIn(card);
+            if (ctl) clickOnce(ctl);
+            return !!ctl;
+          })()
+        );
+      },
+    ];
+
+    let container = null;
+    const tried = [];
+    for (let a = 0; a < attempts.length && !container; a++) {
+      let clicked = false;
+      try {
+        clicked = await attempts[a]();
+      } catch (e) {}
+      if (!clicked) continue;
+      tried.push(a + 1);
+      await sleep(900);
+      container = findProContainer();
+      if (container) break;
+      const dlg = findCommentModalAny();
+      if (dlg) {
+        if (isRenameDialog(dlg)) {
+          await cancelModal(dlg); // wrong dialog — harmless, keep trying
+        } else {
+          // A real dialog without the fingerprint yet — give the dropdown a
+          // moment to render, then accept the dialog if it shows a
+          // Recommendation label; otherwise cancel and move on.
+          await sleep(700);
+          container = findProContainer();
+          if (
+            !container &&
+            [...dlg.querySelectorAll("label,div,span")].some(
+              (el) => el.children.length === 0 && /^recommendation$/i.test(trimText(el))
+            )
+          )
+            container = dlg;
+          if (!container) await cancelModal(dlg);
+        }
       }
     }
-    if (!editCtl)
-      return {
-        ok: false,
-        problem: `${where()}: found "${b.heading}" but no Edit control on its card — set this one by hand`,
-      };
-    clickOnce(editCtl);
-    let modal = (await waitFor(() => !!findCommentModalAny(), 4000))
-      ? findCommentModalAny()
-      : null;
-    if (!modal)
-      return { ok: false, problem: `${where()}: clicked Edit but no editor dialog opened` };
+    if (!container) {
+      let problem = `${where()}: couldn't open the full editor for "${b.heading}" (paths tried: ${tried.join(",") || "none"})`;
+      if (!fixOneProDropdown._dumped) {
+        fixOneProDropdown._dumped = true;
+        problem += ` — card controls: ${cardControlInventory(card)}`;
+      }
+      return { ok: false, problem };
+    }
 
-    // The dialog must be THIS comment — its name field or text must carry the
-    // heading. A mismatched dialog is cancelled untouched.
+    // The editor must be THIS comment — its name field or text must carry the
+    // heading. A mismatched editor is cancelled untouched.
     const short = frag.slice(0, 25);
-    const nameEl = [...modal.querySelectorAll('input[type="text"], input:not([type])')].find(
+    const nameEl = [...container.querySelectorAll('input[type="text"], input:not([type]), textarea')].find(
       (el) => !isSearchField(el) && el.offsetParent !== null
     );
     const isOurs =
       (nameEl && (nameEl.value || "").toLowerCase().includes(short)) ||
-      [...modal.querySelectorAll("div,span,h1,h2,h3,textarea")].some(
+      [...container.querySelectorAll("div,span,h1,h2,h3,textarea")].some(
         (el) =>
           el.children.length === 0 &&
           (trimText(el) + (el.value || "")).toLowerCase().includes(short)
       );
     if (!isOurs) {
-      await cancelModal(modal);
+      await cancelModal(container);
       return {
         ok: false,
-        problem: `${where()}: a dialog opened but it wasn't "${b.heading}" — cancelled without touching it`,
+        problem: `${where()}: an editor opened but it wasn't "${b.heading}" — cancelled without touching it`,
       };
     }
 
+    const modal = container;
     const pr = await setProDropdown(modal, b.pro);
     if (!pr.ok) {
       await cancelModal(modal);
@@ -1911,22 +2059,34 @@
       };
     }
     const saveBtn = [...modal.querySelectorAll('button,[role="button"],span,a,div')].find(
-      (el) => el.children.length === 0 && /^save$/i.test(trimText(el)) && el.offsetParent !== null
+      (el) =>
+        el.children.length === 0 &&
+        /^(save|update|done|apply)$/i.test(trimText(el)) &&
+        el.offsetParent !== null
     );
     if (!saveBtn) {
-      await cancelModal(modal);
-      return { ok: false, problem: `${where()}: dropdown set but no Save button — cancelled` };
+      // Some editors save the dropdown the moment it is picked. Close softly
+      // (never Cancel — that could discard) and flag for a spot-check.
+      for (const target of [document, document.body])
+        target.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", keyCode: 27, bubbles: true })
+        );
+      await sleep(400);
+      return {
+        ok: true,
+        note: `${where()}: dropdown picked but the editor had no Save button — it may auto-save; spot-check "${b.heading}" in Spectora`,
+      };
     }
     clickOnce(saveBtn);
-    let closed = await waitFor(() => !findCommentModalAny(), 4000);
-    if (!closed && findCommentModalAny()) {
+    let closed = await waitFor(() => !findCommentModalAny() && !findProContainer(), 4000);
+    if (!closed) {
       clickOnce(saveBtn);
-      closed = await waitFor(() => !findCommentModalAny(), 4000);
+      closed = await waitFor(() => !findCommentModalAny() && !findProContainer(), 4000);
     }
     if (!closed)
       return {
         ok: false,
-        problem: `${where()}: clicked Save but the editor stayed open — close it by hand and check "${b.heading}"`,
+        problem: `${where()}: picked the dropdown and clicked ${trimText(saveBtn)} but the editor stayed open — finish this one by hand`,
       };
     await sleep(300);
     return { ok: true };
@@ -1955,8 +2115,10 @@
       } catch (e) {
         r = { ok: false, problem: `${b.section} › ${b.item || "?"}: error — ${e && e.message ? e.message : e}` };
       }
-      if (r.ok) done++;
-      else problems.push(r.problem);
+      if (r.ok) {
+        done++;
+        if (r.note) problems.push(r.note);
+      } else problems.push(r.problem);
       await sleep(300);
     }
     log(
