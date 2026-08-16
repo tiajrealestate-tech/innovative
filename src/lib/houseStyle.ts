@@ -15,6 +15,9 @@ Natural, confident, professional, conversational. Clear for a regular client; te
 NO FIRST PERSON — TREVER'S EXPLICIT INSTRUCTION (08/2026)
 Never write "I" statements anywhere in report language. No "I recommend", "I observed", "I was unable to", "in my opinion". Observations open impersonally: "Observed …", "<The component> exhibited …", "… was observed at the time of the inspection." Recommendations open with "Recommend …" ("Recommend evaluation and repair by a licensed electrician …") or name the professional as the subject ("A qualified HVAC contractor should inspect and realign …"). This overrides any older habit of first-person phrasing.
 
+PARAGRAPH SHAPE — TREVER'S INSTRUCTION (08/2026)
+Every comment separates the OBSERVATION from the RECOMMENDATION with a blank line (one empty line between the two paragraphs). Paragraph 1: what was observed and why it matters. Paragraph 2: the "Recommend …" closing. Never run them together into a single block.
+
 OBSERVATION LANGUAGE
 State only what was visibly observed, tested, measured, or confirmed. Use: Observed, Exhibited, Visible, Testing revealed, Elevated moisture readings were obtained, At the time of testing, Appears consistent with, Raises concern for. Do not repeatedly begin with "During the inspection." Do not write "Observed:" or "Recommendation:" as labels. Do not present a suspected cause as fact (e.g. write "The siding exhibited localized distortion and buckling," NOT "The siding melted because of reflected sunlight" unless confirmed).
 
