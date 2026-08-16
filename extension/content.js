@@ -1771,6 +1771,201 @@
     log(`\nClick "Copy log" below and paste it into the chat.`);
   }
 
+  // ---- fix-up sweep: set Recommendation dropdowns on ALREADY-PLACED
+  // write-ups, in place, without re-adding anything. Built for the 46 Club
+  // View run, where all 83 comments saved fine but every dropdown attempt
+  // failed — re-placing would duplicate the report, so this edits instead.
+  // Safety rules learned the hard way: only Edit/Save/Cancel are ever
+  // clicked, every dialog is verified to be the RIGHT comment before any
+  // change, and anything uncertain is cancelled untouched.
+  function findCommentModalAny() {
+    const byHeading = findAddCommentModal();
+    if (byHeading) return byHeading;
+    const dialogs = [
+      ...document.querySelectorAll(
+        '[role="dialog"],[role="alertdialog"],.modal,.v-dialog,[class*="modal"],[class*="dialog"]'
+      ),
+    ].filter((d) => d.offsetParent !== null);
+    return (
+      dialogs.find(
+        (d) =>
+          d.querySelector('input,textarea,[contenteditable="true"]') &&
+          [...d.querySelectorAll('button,[role="button"],span,a')].some(
+            (b) => b.children.length === 0 && /^(save|cancel)$/i.test(trimText(b))
+          )
+      ) || null
+    );
+  }
+
+  async function cancelModal(modal) {
+    const cancel = [...modal.querySelectorAll('button,[role="button"],span,a,div')].find(
+      (el) => el.children.length === 0 && /^cancel$/i.test(trimText(el)) && el.offsetParent !== null
+    );
+    if (cancel) clickOnce(cancel);
+    else
+      for (const target of [document, document.body])
+        target.dispatchEvent(
+          new KeyboardEvent("keydown", { key: "Escape", keyCode: 27, bubbles: true })
+        );
+    await sleep(400);
+  }
+
+  // The edit control for a placed comment — "Edit this comment", an Edit
+  // link, or a pencil labelled via aria/title. NEVER the card body itself
+  // (clicking a card ticks checkboxes in this editor).
+  function editControlIn(scope) {
+    if (!scope) return null;
+    return (
+      [...scope.querySelectorAll('button,[role="button"],a,span,i,div')].find(
+        (el) =>
+          el.offsetParent !== null &&
+          !/delete|remove|trash/i.test(
+            trimText(el) + " " + (el.getAttribute("aria-label") || "") + (el.getAttribute("title") || "")
+          ) &&
+          (/^edit( this comment)?$/i.test(trimText(el)) ||
+            /\bedit\b/i.test(el.getAttribute("aria-label") || el.getAttribute("title") || ""))
+      ) || null
+    );
+  }
+
+  async function fixOneProDropdown(b, log, resCache) {
+    const where = () => `${b.section} › ${b.item || "?"}`;
+    if (!(await selectSection(b.section)))
+      return { ok: false, problem: "Section not found: " + b.section };
+    const sel = await selectItemWithFallback(b.section, b.item, log, resCache);
+    if (!sel.ok) return { ok: false, problem: `Item not found: ${b.item} (in ${b.section})` };
+    if (existsByText("Defects")) {
+      (await openTab("Defects")) || (await openTab("Defects"));
+    }
+    await closeAnyDialog();
+
+    const frag = (b.heading || "").toLowerCase().slice(0, 40);
+    if (!frag) return { ok: false, problem: `${where()}: block has no heading` };
+    const leaf = [...document.querySelectorAll("div,span,p,td,h1,h2,h3")].find(
+      (el) =>
+        el.children.length === 0 &&
+        el.offsetParent !== null &&
+        trimText(el).toLowerCase().includes(frag)
+    );
+    if (!leaf)
+      return {
+        ok: false,
+        problem: `${where()}: "${b.heading}" is not on this item — nothing to fix here`,
+      };
+
+    // Find its Edit control: on the card first; if the card is collapsed,
+    // expand via a checkbox-free header (the only safe expand handle).
+    const card =
+      leaf.closest('.comment.record, .card, [class*="comment"]') || leaf.parentElement;
+    let editCtl = editControlIn(card);
+    if (!editCtl && card) {
+      const header = card.querySelector(".card-header");
+      if (header && !header.querySelector('input[type="checkbox"]')) {
+        clickOnce(header);
+        await sleep(500);
+        editCtl = editControlIn(card) || editControlIn(leaf.closest('[class*="comment"]'));
+      }
+    }
+    if (!editCtl)
+      return {
+        ok: false,
+        problem: `${where()}: found "${b.heading}" but no Edit control on its card — set this one by hand`,
+      };
+    clickOnce(editCtl);
+    let modal = (await waitFor(() => !!findCommentModalAny(), 4000))
+      ? findCommentModalAny()
+      : null;
+    if (!modal)
+      return { ok: false, problem: `${where()}: clicked Edit but no editor dialog opened` };
+
+    // The dialog must be THIS comment — its name field or text must carry the
+    // heading. A mismatched dialog is cancelled untouched.
+    const short = frag.slice(0, 25);
+    const nameEl = [...modal.querySelectorAll('input[type="text"], input:not([type])')].find(
+      (el) => !isSearchField(el) && el.offsetParent !== null
+    );
+    const isOurs =
+      (nameEl && (nameEl.value || "").toLowerCase().includes(short)) ||
+      [...modal.querySelectorAll("div,span,h1,h2,h3,textarea")].some(
+        (el) =>
+          el.children.length === 0 &&
+          (trimText(el) + (el.value || "")).toLowerCase().includes(short)
+      );
+    if (!isOurs) {
+      await cancelModal(modal);
+      return {
+        ok: false,
+        problem: `${where()}: a dialog opened but it wasn't "${b.heading}" — cancelled without touching it`,
+      };
+    }
+
+    const pr = await setProDropdown(modal, b.pro);
+    if (!pr.ok) {
+      await cancelModal(modal);
+      return {
+        ok: false,
+        problem:
+          `${where()}: couldn't set "${b.pro}"` +
+          (pr.why ? ` [${pr.why}]` : "") +
+          " — cancelled without saving",
+      };
+    }
+    const saveBtn = [...modal.querySelectorAll('button,[role="button"],span,a,div')].find(
+      (el) => el.children.length === 0 && /^save$/i.test(trimText(el)) && el.offsetParent !== null
+    );
+    if (!saveBtn) {
+      await cancelModal(modal);
+      return { ok: false, problem: `${where()}: dropdown set but no Save button — cancelled` };
+    }
+    clickOnce(saveBtn);
+    let closed = await waitFor(() => !findCommentModalAny(), 4000);
+    if (!closed && findCommentModalAny()) {
+      clickOnce(saveBtn);
+      closed = await waitFor(() => !findCommentModalAny(), 4000);
+    }
+    if (!closed)
+      return {
+        ok: false,
+        problem: `${where()}: clicked Save but the editor stayed open — close it by hand and check "${b.heading}"`,
+      };
+    await sleep(300);
+    return { ok: true };
+  }
+
+  async function fixProDropdowns(text, log) {
+    const blocks = parseWriteups(text).filter((b) => b.pro);
+    if (!blocks.length) {
+      log(
+        "No write-ups with a professional found. Paste the same payload used to place the report (it carries each comment's professional)."
+      );
+      return;
+    }
+    log(
+      `Setting the Recommendation dropdown on ${blocks.length} already-placed write-up(s) — nothing is re-added.\n`
+    );
+    let done = 0;
+    const problems = [];
+    const resCache = new Map();
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      log(`(${i + 1}/${blocks.length}) ${b.section} › ${b.item || "?"} — ${b.pro}…`);
+      let r;
+      try {
+        r = await fixOneProDropdown(b, log, resCache);
+      } catch (e) {
+        r = { ok: false, problem: `${b.section} › ${b.item || "?"}: error — ${e && e.message ? e.message : e}` };
+      }
+      if (r.ok) done++;
+      else problems.push(r.problem);
+      await sleep(300);
+    }
+    log(
+      `\nSet ${done}/${blocks.length} Recommendation dropdowns.` +
+        (problems.length ? `\n\nIssues:\n- ${problems.join("\n- ")}` : " All set — spot-check a few in Spectora.")
+    );
+    log(`\nClick "Copy log" below and paste it into the chat.`);
+  }
+
   // ---- end-of-run verification sweep (write-ups) --------------------------
   async function verifyWriteups(blocks, log, resCache) {
     // Group by section+item so each place is visited once.
@@ -1973,6 +2168,14 @@
     placeBtn.style.marginTop = "8px";
     placeBtn.style.width = "100%";
     bodyWrap.appendChild(placeBtn);
+
+    // Repair path for an already-placed report: edits each existing comment's
+    // Recommendation dropdown from the same payload — nothing is re-added.
+    const fixProBtn = mkBtn("Fix-up: set Recommendation dropdowns (no re-place)", "#f59e0b", "#111827");
+    fixProBtn.style.marginTop = "8px";
+    fixProBtn.style.width = "100%";
+    fixProBtn.style.fontSize = "12px";
+    bodyWrap.appendChild(fixProBtn);
 
     // ---- payload handoff from the app (seam removal) ----------------------
     // The bridge script (on the app's site) stores {buildLines, writeups,
@@ -2250,6 +2453,22 @@
       }
       placeBtn.disabled = false;
       placeBtn.textContent = "Place custom write-ups";
+    };
+    fixProBtn.onclick = async () => {
+      resetLog();
+      if (!guardHouse(log)) {
+        log("Stopped — wrong-house check was not confirmed.");
+        return;
+      }
+      fixProBtn.disabled = true;
+      fixProBtn.textContent = "Fixing dropdowns… (leave this tab open)";
+      try {
+        await fixProDropdowns(taWriteups.value, log);
+      } catch (e) {
+        log("Fix error: " + (e && e.message ? e.message : e));
+      }
+      fixProBtn.disabled = false;
+      fixProBtn.textContent = "Fix-up: set Recommendation dropdowns (no re-place)";
     };
     scanAllBtn.onclick = async () => {
       resetLog();
