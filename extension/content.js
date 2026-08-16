@@ -1079,20 +1079,167 @@
 
   // Set the comment's "Recommendation" dropdown to the named professional.
   // Trever's rule: pick the REAL professional from the list; only fall back to
-  // the generic "Qualified Professional" entry when the list has no match. The
-  // options render in an overlay, so candidates are diffed against what was
-  // visible BEFORE opening the dropdown — never click pre-existing page text.
-  async function setProDropdown(modal, pro) {
-    if (!pro) return false;
+  // the generic "Qualified Professional" entry when the list has no match.
+  //
+  // The 46 Club View run (08/15) failed this on all 83 comments with the old
+  // label->input->overlay-diff approach, so the control is NOT a plain input
+  // next to a leaf "Recommendation" label. This version locates the control by
+  // the one thing that cannot vary — the options themselves ("Qualified
+  // Professional" / "No Recommendation" exist in every build of the list) —
+  // and reports WHY it failed, since the field log is the only debugger
+  // available once this runs on a live report.
+  function proFieldInventory(modal) {
     try {
-      const label = [...modal.querySelectorAll("label,div,span")].find(
-        (el) => el.children.length === 0 && /^recommendation$/i.test(trimText(el))
+      const sels = [...modal.querySelectorAll("select")].map((s) =>
+        [...s.options].slice(0, 3).map((o) => trimText(o)).join("/").slice(0, 60)
       );
-      if (!label) return false;
+      const labels = [...modal.querySelectorAll("label,div,span")]
+        .filter((el) => el.children.length === 0)
+        .map((el) => trimText(el))
+        .filter((t) => t.length > 1 && t.length < 26)
+        .filter((t, i, a) => a.indexOf(t) === i)
+        .slice(0, 14);
+      return (
+        `selects: ${sels.length ? sels.join(" ; ") : "none"} — labels: ` +
+        (labels.join(" | ") || "none")
+      );
+    } catch (e) {
+      return "?";
+    }
+  }
+
+  async function setProDropdown(modal, pro) {
+    if (!pro) return { ok: false, why: "" };
+    const fail = (why) => {
+      // The full field inventory rides along on the FIRST failure only —
+      // one copy is a diagnosis, eighty copies is noise.
+      if (!setProDropdown._dumped) {
+        setProDropdown._dumped = true;
+        why += " — dialog fields: " + proFieldInventory(modal);
+      }
+      return { ok: false, why };
+    };
+    const matchIn = (list, getText, name) => {
+      const t = norm(name);
+      return (
+        list.find((el) => norm(getText(el)) === t) ||
+        list.find((el) => norm(getText(el)).startsWith(t)) ||
+        (t.length > 6 && list.find((el) => norm(getText(el)).includes(t))) ||
+        null
+      );
+    };
+    const bestIn = (list, getText) =>
+      matchIn(list, getText, pro) ||
+      matchIn(list, getText, "Qualified Professional") ||
+      matchIn(list, getText, "No Recommendation");
+    try {
+      // Give a lazily-rendered field a moment to exist before deciding it doesn't.
+      await waitFor(
+        () =>
+          !!modal.querySelector("select") ||
+          [...modal.querySelectorAll("li,option,div,span")].some((el) =>
+            /^(qualified professional|no recommendation)$/i.test(trimText(el))
+          ),
+        2000
+      );
+
+      // --- Strategy 1: a real <select> fingerprinted by its own options. ----
+      const proSelect = [...modal.querySelectorAll("select")].find((s) =>
+        [...s.options].some((o) =>
+          /^(qualified professional|no recommendation)$/i.test(trimText(o))
+        )
+      );
+      if (proSelect) {
+        const opt = bestIn([...proSelect.options], (o) => o.textContent);
+        if (!opt) return fail("professionals <select> found but no matching option");
+        const desc = Object.getOwnPropertyDescriptor(
+          window.HTMLSelectElement.prototype,
+          "value"
+        );
+        if (desc && desc.set) desc.set.call(proSelect, opt.value);
+        else proSelect.value = opt.value;
+        proSelect.dispatchEvent(new Event("input", { bubbles: true }));
+        proSelect.dispatchEvent(new Event("change", { bubbles: true }));
+        await sleep(250);
+        // Materialize-style widgets hide the select behind a display input —
+        // drive the visible list too so what's on screen matches what saves.
+        if (proSelect.offsetParent === null) {
+          const wrap = proSelect.closest(".select-wrapper") || proSelect.parentElement;
+          const face =
+            wrap &&
+            [...wrap.querySelectorAll("input")].find((el) => el.offsetParent !== null);
+          if (face) {
+            clickOnce(face);
+            await sleep(400);
+            const li = bestIn(
+              [...(wrap.querySelectorAll("ul li") || [])].filter(
+                (el) => el.offsetParent !== null
+              ),
+              (el) => el.textContent
+            );
+            if (li) clickOnce(li);
+            else clickOnce(face); // close again; the select value is already set
+            await sleep(250);
+          }
+        }
+        if (proSelect.value !== opt.value)
+          return fail("professionals <select> refused the value");
+        return { ok: true };
+      }
+
+      // --- Strategy 2: a pre-rendered option list (custom dropdown widget). -
+      // Find the "Qualified Professional"/"No Recommendation" entry anywhere in
+      // the dialog, visible or not, and work outward to its trigger.
+      const marker = [...modal.querySelectorAll("li,div,span")].find(
+        (el) =>
+          el.children.length === 0 &&
+          /^(qualified professional|no recommendation)$/i.test(trimText(el))
+      );
+      if (marker) {
+        const listBox =
+          marker.closest('ul,[role="listbox"],[class*="dropdown"],[class*="menu"]') ||
+          marker.parentElement;
+        const wrap = listBox.parentElement || modal;
+        const trigger =
+          [...wrap.querySelectorAll('input,button,[role="combobox"],[role="button"]')].find(
+            (el) => !listBox.contains(el) && el.offsetParent !== null
+          ) ||
+          (listBox.previousElementSibling &&
+          listBox.previousElementSibling.offsetParent !== null
+            ? listBox.previousElementSibling
+            : null);
+        const optionsIn = () =>
+          [...listBox.querySelectorAll("li,div,span")].filter(
+            (el) => el.children.length === 0 && trimText(el).length > 1
+          );
+        let opt = null;
+        if (trigger) {
+          clickOnce(trigger);
+          await sleep(400);
+          opt = bestIn(
+            optionsIn().filter((el) => el.offsetParent !== null),
+            (el) => el.textContent
+          );
+        }
+        // No trigger, or options never became visible: click the entry anyway —
+        // many widgets register handlers on hidden list items.
+        if (!opt) opt = bestIn(optionsIn(), (el) => el.textContent);
+        if (!opt) return fail("professionals list found but no matching entry");
+        clickOnce(opt);
+        await sleep(300);
+        return { ok: true };
+      }
+
+      // --- Strategy 3: the original label -> nearby input -> overlay diff. --
+      const label = [...modal.querySelectorAll("label,div,span")].find(
+        (el) => el.children.length <= 1 && /^recommendation$/i.test(trimText(el))
+      );
+      if (!label)
+        return fail("dialog has no professionals list and no 'Recommendation' label");
       let input = null;
       let scope = label.parentElement;
       for (let i = 0; i < 5 && scope && !input; i++) {
-        input = [...scope.querySelectorAll("input")].find(
+        input = [...scope.querySelectorAll('input,button,[role="combobox"]')].find(
           (el) =>
             !isSearchField(el) &&
             el.offsetParent !== null &&
@@ -1100,7 +1247,7 @@
         ) || null;
         scope = scope.parentElement;
       }
-      if (!input) return false;
+      if (!input) return fail("'Recommendation' label found but no control near it");
 
       const visibleBefore = new Set(
         [...document.querySelectorAll("li,div,span")]
@@ -1109,8 +1256,7 @@
       );
       clickOnce(input);
       await sleep(450);
-
-      const options = () =>
+      const overlayOpts = () =>
         [...document.querySelectorAll("li,div,span")].filter(
           (el) =>
             el.children.length === 0 &&
@@ -1119,42 +1265,18 @@
             trimText(el).length < 60 &&
             !visibleBefore.has(norm(el.textContent))
         );
-      const pick = (name) => {
-        const t = norm(name);
-        const opts = options();
-        const direct =
-          opts.find((el) => norm(el.textContent) === t) ||
-          opts.find((el) => norm(el.textContent).startsWith(t)) ||
-          (t.length > 6 && opts.find((el) => norm(el.textContent).includes(t))) ||
-          null;
-        if (direct) return direct;
-        // Last resort: exactly ONE option shares the target's first word
-        // ("plumbing …" -> the single Plumbing entry). Ambiguity -> no pick.
-        const head = t.split(" ")[0];
-        if (head && head.length > 3) {
-          const sharing = opts.filter((el) => norm(el.textContent).split(" ")[0] === head);
-          if (sharing.length === 1) return sharing[0];
-        }
-        return null;
-      };
-      let opt = pick(pro);
-      if (!opt) {
-        // Filter by typing, then re-pick.
+      let opt = bestIn(overlayOpts(), (el) => el.textContent);
+      if (!opt && input.tagName === "INPUT") {
         setFieldValue(input, pro);
         await sleep(500);
-        opt = pick(pro);
+        opt = bestIn(overlayOpts(), (el) => el.textContent);
       }
-      if (!opt) {
-        setFieldValue(input, "");
-        await sleep(400);
-        opt = pick("Qualified Professional") || pick("No Recommendation");
-      }
-      if (!opt) return false;
+      if (!opt) return fail("clicked the Recommendation control but no options appeared");
       clickOnce(opt);
       await sleep(350);
-      return true;
+      return { ok: true };
     } catch (e) {
-      return false;
+      return { ok: false, why: "error: " + (e && e.message ? e.message : e) };
     }
   }
 
@@ -1233,8 +1355,11 @@
     }
 
     let proSet = false;
+    let proWhy = "";
     if (pro) {
-      proSet = await setProDropdown(modal, pro);
+      const pr = await setProDropdown(modal, pro);
+      proSet = !!(pr && pr.ok);
+      proWhy = (pr && pr.why) || "";
       await sleep(200);
     }
 
@@ -1281,6 +1406,7 @@
       verified,
       severitySet,
       proSet,
+      proWhy,
       reason: closed ? "" : "clicked Save but the dialog stayed open",
     };
   }
@@ -1411,7 +1537,27 @@
         cls: (f.className || "").toString().slice(0, 60),
         value: (f.value || f.textContent || "").slice(0, 30),
       }));
-    return { clickedAdd: clicked, before, after, visibleButtons: buttons, visibleFields: fields };
+    // Everything that could be the Recommendation dropdown — this dump is how
+    // the professional-picker gets tuned against Spectora's real dialog.
+    const selects = [...document.querySelectorAll("select")].map((s) => ({
+      options: [...s.options].slice(0, 6).map((o) => trimText(o)),
+      total: s.options.length,
+      visible: s.offsetParent !== null,
+      cls: (s.className || "").toString().slice(0, 40),
+    }));
+    const proMarkers = [...document.querySelectorAll("li,div,span,option")]
+      .filter((el) => /^(qualified professional|no recommendation|recommendation)$/i.test(trimText(el)))
+      .slice(0, 10)
+      .map((el) => ({
+        tag: el.tagName,
+        text: trimText(el),
+        kids: el.children.length,
+        visible: el.offsetParent !== null,
+        parent: el.parentElement
+          ? el.parentElement.tagName + "." + (el.parentElement.className || "").toString().slice(0, 40)
+          : "",
+      }));
+    return { clickedAdd: clicked, before, after, visibleButtons: buttons, visibleFields: fields, selects, proMarkers };
   }
 
   // Payload format the app copies (multi-line safe):
@@ -1553,7 +1699,9 @@
     else if (b.severity && b.severity !== "recommendation" && !r.severitySet)
       warning = `${b.section} › ${sel.item || b.item || "?"}: couldn't set the ${b.severity} rating — it saved as the default Recommendation. Change the Category by hand.`;
     else if (b.pro && !r.proSet)
-      warning = `${b.section} › ${sel.item || b.item || "?"}: couldn't set the Recommendation dropdown to "${b.pro}" — pick it by hand.`;
+      warning =
+        `${b.section} › ${sel.item || b.item || "?"}: couldn't set the Recommendation dropdown to "${b.pro}" — pick it by hand.` +
+        (r.proWhy ? ` [${r.proWhy}]` : "");
     return { ok: true, warning };
   }
 
