@@ -20,7 +20,7 @@ const PRO_RULES: Array<[RegExp, string]> = [
   [/electrician|electrical contractor/i, "Electrical Contractor"],
   [/plumber|plumbing contractor/i, "Plumbing Contractor"],
   [/hvac/i, "HVAC Professional"],
-  [/heating and cooling/i, "Heating and Cooling Contractor"],
+  [/heating and cooling|heating contractor|heating professional|boiler|furnace/i, "Heating and Cooling Contractor"],
   [/roofer|roofing/i, "Roofing Professional"],
   [/waterproof/i, "Waterproofing Contractor"],
   [/radon/i, "Radon Mitigation Specialist"],
@@ -47,7 +47,7 @@ const PRO_RULES: Array<[RegExp, string]> = [
   [/garage door/i, "Garage Door Contractor"],
   [/window/i, "Window Repair and Installation Contractor"],
   [/\bdoor\b/i, "Door Repair and Installation Contractor"],
-  [/driveway/i, "Driveway Contractor"],
+  [/driveway|paving|hardscape/i, "Driveway Contractor"],
   [/gutter/i, "Gutter Contractor"],
   [/tree service|arborist|tree limb|overhanging (limb|branch)|\btree\b/i, "Tree Service"],
   [/grading|regrad/i, "Grading Contractor"],
@@ -85,4 +85,20 @@ export function proForText(...texts: Array<string | null | undefined>): string {
     if (re.test(hay)) return label;
   }
   return GENERIC;
+}
+
+/**
+ * The dropdown professional for a WRITE-UP, per Trever's rule (08/2026,
+ * "keep it simpler"): a GROUPED write-up (numbered deficiency list) spans
+ * trades, so no single dropdown entry is honest — it always gets the generic
+ * "Qualified Professional" and the closing paragraph carries the specifics.
+ * A stand-alone write-up gets the professional its own closing "Recommend …"
+ * paragraph names (the closing governs — mid-body mentions of other systems
+ * must not hijack the pick).
+ */
+export function proForWriteup(body: string, ...extra: Array<string | null | undefined>): string {
+  const text = body || "";
+  if (/observed deficiencies include:/i.test(text)) return GENERIC;
+  const i = text.lastIndexOf("Recommend");
+  return proForText(i >= 0 ? text.slice(i) : text, ...extra);
 }
