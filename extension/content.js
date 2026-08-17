@@ -1877,8 +1877,9 @@
   // full-page editor — found by its own unmistakable options.
   function findProContainer() {
     const host = (el) =>
-      el.closest('[role="dialog"],[role="alertdialog"],.modal,.v-dialog,form,[class*="modal"],[class*="dialog"]') ||
-      document.body;
+      el.closest(
+        '[role="dialog"],[role="alertdialog"],.modal,.v-dialog,.comment.record,.card,form,[class*="modal"],[class*="dialog"]'
+      ) || document.body;
     const sel = [...document.querySelectorAll("select")].find((s) =>
       [...s.options].some((o) => /^(qualified professional|no recommendation)$/i.test(trimText(o)))
     );
@@ -2022,33 +2023,36 @@
     };
 
     const attempts = [
-      // 1. An explicit "Edit this comment" control on the card.
-      ["edit-this-comment", () => clickTextIn(card, /^edit this comment$/i)],
-      // 2. Expand via a checkbox-free header (checkbox state verified and
-      //    restored, same discipline as the wording scanner), then the
-      //    expanded card's edit link.
+      // 1. EXPAND THE CARD — Tia's screenshot (08/17) shows the Category
+      //    chips, body editor, and Recommendation dropdown live ON the
+      //    expanded card; expanding IS opening the editor. The header click
+      //    can tick the card's checkbox, so its state is verified and
+      //    restored, same discipline as the wording scanner.
       [
-        "expand-then-edit",
+        "expand-card",
         async () => {
-          const header = card.querySelector(".card-header");
-          if (!header || header.querySelector('input[type="checkbox"]')) return false;
+          if (editableFieldsIn(card).length) return true; // already expanded
+          const header = card.querySelector(".card-header") || card.firstElementChild;
+          if (!header) return false;
           const cb = card.querySelector('input[type="checkbox"]');
           const was = cb ? cb.checked : null;
           clickOnce(header);
-          await sleep(400);
-          if (cb && cb.checked !== was) {
-            cb.click();
-            await sleep(300);
+          await sleep(600);
+          const cbNow = card.querySelector('input[type="checkbox"]');
+          if (cbNow && cbNow.checked !== was) {
+            cbNow.click();
+            await waitFor(() => {
+              const f = card.querySelector('input[type="checkbox"]');
+              return !!f && f.checked === was;
+            }, 2500);
             outcomes.push("expand:ticked-box-undone");
             return false;
           }
-          const scope = expandedRecord() || card;
-          return (
-            clickTextIn(scope, /^edit this comment$/i) ||
-            clickTextIn(scope, /^edit$/i)
-          );
+          return true;
         },
       ],
+      // 2. An explicit "Edit this comment" control on the card.
+      ["edit-this-comment", () => clickTextIn(card, /^edit this comment$/i)],
       // 3. A kebab/menu on the card, then an Edit entry in the menu.
       [
         "kebab-menu",
@@ -2142,15 +2146,41 @@
           " — cancelled without saving",
       };
     }
-    const saveBtn = [...modal.querySelectorAll('button,[role="button"],span,a,div')].find(
+    // Save. Two shapes: a dialog (text Save button, closes on save) or the
+    // expanded card itself (a save ICON on the header, stays open — collapse
+    // it afterwards). The card auto-saves selections in many builds, so a
+    // missing save control is a note, not a failure.
+    const isDialog =
+      (modal.matches &&
+        modal.matches(
+          '[role="dialog"],[role="alertdialog"],.modal,.v-dialog,[class*="modal"],[class*="dialog"]'
+        )) ||
+      findCommentModalAny() === modal;
+    const saveBtn = [...modal.querySelectorAll('button,[role="button"],span,a,div,i,svg')].find(
       (el) =>
-        el.children.length === 0 &&
-        /^(save|update|done|apply)$/i.test(trimText(el)) &&
-        el.offsetParent !== null
+        el.offsetParent !== null &&
+        !/delete|remove|trash/i.test(
+          (el.getAttribute("aria-label") || "") + (el.getAttribute("title") || "")
+        ) &&
+        ((el.children.length === 0 && /^(save|update|done|apply)$/i.test(trimText(el))) ||
+          /\bsave\b/i.test(
+            (el.getAttribute("aria-label") || "") + (el.getAttribute("title") || "")
+          ))
     );
+    if (!isDialog) {
+      // Inline expanded card.
+      if (saveBtn) clickOnce(saveBtn);
+      await sleep(600);
+      if (expandedRecord()) collapseOpen();
+      await sleep(300);
+      return saveBtn
+        ? { ok: true }
+        : {
+            ok: true,
+            note: `${where()}: dropdown picked on the card but no save control was found — it may auto-save; spot-check "${b.heading}" in Spectora`,
+          };
+    }
     if (!saveBtn) {
-      // Some editors save the dropdown the moment it is picked. Close softly
-      // (never Cancel — that could discard) and flag for a spot-check.
       for (const target of [document, document.body])
         target.dispatchEvent(
           new KeyboardEvent("keydown", { key: "Escape", keyCode: 27, bubbles: true })
@@ -2162,15 +2192,15 @@
       };
     }
     clickOnce(saveBtn);
-    let closed = await waitFor(() => !findCommentModalAny() && !findProContainer(), 4000);
+    let closed = await waitFor(() => !findCommentModalAny(), 4000);
     if (!closed) {
       clickOnce(saveBtn);
-      closed = await waitFor(() => !findCommentModalAny() && !findProContainer(), 4000);
+      closed = await waitFor(() => !findCommentModalAny(), 4000);
     }
     if (!closed)
       return {
         ok: false,
-        problem: `${where()}: picked the dropdown and clicked ${trimText(saveBtn)} but the editor stayed open — finish this one by hand`,
+        problem: `${where()}: picked the dropdown and clicked ${trimText(saveBtn) || "Save"} but the editor stayed open — finish this one by hand`,
       };
     await sleep(300);
     return { ok: true };
