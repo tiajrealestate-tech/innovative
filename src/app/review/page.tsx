@@ -1383,14 +1383,14 @@ function buildExtensionPayload(
   const overviewBlock = composed.property_overview?.trim()
     ? `@@SECTION: Inspection Details\n@@ITEM: PROPERTY CONDITION OVERVIEW\n@@SEVERITY: recommendation\n@@HEADING: Overview\n@@BODY\n${composed.property_overview.trim()}\n@@END`
     : "";
-  const groupBlocks = composed.groups
-    // Stand-alone deficiencies matched to a library checkbox are ticked in the
-    // Build-report pass instead — typing them here too would duplicate them.
-    .filter((g) => !g.box_label)
-    .map(
-      (g) =>
-        `@@SECTION: ${g.section}\n@@ITEM: ${g.item || fallbackItem(g.section)}\n@@SEVERITY: ${g.severity || "recommendation"}\n@@PRO: ${proForWriteup(g.body)}\n@@HEADING: ${g.heading}\n@@BODY\n${g.body}\n@@END`
-    );
+  const groupBlocks = composed.groups.map((g) => {
+    // A box-backed stand-alone carries @@BOX: the extension ticks that library
+    // box, REPLACES its stored wording with this fresh body, and sets its
+    // Recommendation dropdown — template language never survives (Trever's
+    // rule, 08/2026). Groups without a box are typed as custom comments.
+    const boxLine = g.box_label ? `\n@@BOX: ${g.box_label}` : "";
+    return `@@SECTION: ${g.section}\n@@ITEM: ${g.item || fallbackItem(g.section)}${boxLine}\n@@SEVERITY: ${g.severity || "recommendation"}\n@@PRO: ${proForWriteup(g.body)}\n@@HEADING: ${g.heading}\n@@BODY\n${g.body}\n@@END`;
+  });
   return [punchLinkBlock, overviewBlock, ...groupBlocks].filter(Boolean).join("\n\n");
 }
 

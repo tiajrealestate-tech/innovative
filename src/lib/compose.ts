@@ -171,7 +171,9 @@ SEVERITY RATING: every write-up carries a "severity" — the Spectora chip it is
 
 - "recommendation" — the default (~70%): genuine defects needing a qualified contractor to evaluate or repair, without immediate danger and short of major-system failure — aging (but working) systems, roof wear with life left, corrosion, moisture EVIDENCE or history without active damage, wood-destroying insect damage, isolated wiring corrections, panel rust, a few fogged window seals, trim rot, drainage and grading corrections.
 
-TEMPLATE WORDING IS NEVER USED ("box_label" is ALWAYS null) — his standing order (08/2026): a report that shows his stored library wording is sloppy. Every deficiency, grouped or stand-alone, gets a FRESH write-up in the format above; no library defect checkbox is ever ticked in his place. Return box_label = null on every group, no exceptions.
+LIBRARY BOXES ARE PLACEMENT TARGETS, NEVER LANGUAGE ("box_label") — his rule (08/2026):
+- When a STAND-ALONE write-up (one condition, no numbered list) matches one of its section's AVAILABLE DEFECT CHECKBOXES, set "box_label" to that label copied EXACTLY and "item" to the item that box belongs to. The tool ticks that box, REPLACES its stored template wording with YOUR body, and sets the box's Recommendation dropdown to the named professional — the template's language never survives into the report. So the body must be complete, fresh, polished language on EVERY group, box-backed or not.
+- box_label is null for GROUPED write-ups (a numbered list is always a custom comment) and when no listed checkbox genuinely matches. Never invent a label and never force a weak match — a custom comment is always safe; a wrong box is not.
 
 PLACEMENT ("item"): every group also carries an "item" — the Spectora item the write-up is filed under, chosen EXACTLY from that section's AVAILABLE ITEMS list given in the input (copy the name verbatim). HIS RULE, in his own words: two or more deficiencies of like kind stay GROUPED together and are filed in the general category; a stand-alone deficiency is the one that gets singled out under its specific defect item.
 - GROUPED write-up (a numbered list of 2+ like-kind conditions): file it in the section's "... General" item when the list has one ("Roofing General", "Plumbing General", "Electrical General", "Structural General", "HVAC General", "Exterior General"). When a section covers distinct areas (Exterior especially), group by area and file each group in that area's item — his real placements: exterior concrete -> "Walkways, Patios & Driveways"; exterior stairs/guardrails -> "Decks, Balconies, Porches & Steps"; drainage/fences/grading -> "Vegetation, Grading, Drainage & Retaining Walls"; windows/doors/trim -> "Windows & Doors".
@@ -225,12 +227,27 @@ export function buildComposeUserPrompt(
     const itemsLine = items.length
       ? `\nAVAILABLE ITEMS: ${items.join(" | ")}`
       : "";
-    // Library defect checkboxes are deliberately NOT offered — template
-    // wording is never used for deficiencies (his 08/2026 ruling), so the
-    // model gets no list to be tempted by.
+    // The section's library defect checkboxes — offered as PLACEMENT TARGETS
+    // for stand-alones (the tool ticks the box and replaces its wording with
+    // the fresh body; the stored language never survives).
+    const boxes = candidateBoxes(g.section, null, {
+      tabs: ["Defects"],
+      sectionFallback: true,
+    });
+    const byItem = new Map<string, string[]>();
+    for (const b of boxes) {
+      if (!byItem.has(b.item)) byItem.set(b.item, []);
+      byItem.get(b.item)!.push(b.label);
+    }
+    const boxLines = byItem.size
+      ? "\nAVAILABLE DEFECT CHECKBOXES:\n" +
+        [...byItem.entries()]
+          .map(([item, labels]) => `  [${item}] ${labels.join(" | ")}`)
+          .join("\n")
+      : "";
     return `SECTION ${i} — ${g.section} (${g.findings.length} finding${
       g.findings.length === 1 ? "" : "s"
-    })${itemsLine}\n${lines}`;
+    })${itemsLine}${boxLines}\n${lines}`;
   });
   const instrBlock = instructions && instructions.trim()
     ? `INSPECTOR INSTRUCTIONS — his raw walkthrough. Read it for DIRECTIONS ONLY; the findings above are the conditions to write up, and nothing here is a new defect.

@@ -1631,6 +1631,7 @@
           body: "",
           severity: "",
           pro: "",
+          box: "",
         };
         inBody = false;
         continue;
@@ -1647,6 +1648,7 @@
         continue;
       }
       if (t.startsWith("@@PRO:")) { cur.pro = t.slice(6).trim(); continue; }
+      if (t.startsWith("@@BOX:")) { cur.box = t.slice(6).trim(); continue; }
       if (t === "@@BODY") { inBody = true; continue; }
       if (t === "@@END") { inBody = false; continue; }
       if (inBody) cur.body += (cur.body ? "\n" : "") + raw;
@@ -1732,7 +1734,10 @@
         };
       }
     }
-    const r = await addCustomComment(b.heading, b.body, b.severity, b.pro);
+    // The Add dialog has NO Recommendation dropdown (proven by screenshot,
+    // 08/17) — the professional is set afterwards by the dropdown pass, so
+    // no pro is attempted here.
+    const r = await addCustomComment(b.heading, b.body, b.severity, "");
     if (!r.ok) {
       return {
         ok: false,
@@ -1744,11 +1749,135 @@
       warning = `${b.section} › ${sel.item || b.item || "?"}: saved, but "${b.heading}" is NOT visible in this item afterwards — it may have landed in the wrong place. Check it in Spectora.`;
     else if (b.severity && b.severity !== "recommendation" && !r.severitySet)
       warning = `${b.section} › ${sel.item || b.item || "?"}: couldn't set the ${b.severity} rating — it saved as the default Recommendation. Change the Category by hand.`;
-    else if (b.pro && !r.proSet)
-      warning =
-        `${b.section} › ${sel.item || b.item || "?"}: couldn't set the Recommendation dropdown to "${b.pro}" — pick it by hand.` +
-        (r.proWhy ? ` [${r.proWhy}]` : "");
     return { ok: true, warning };
+  }
+
+  // A box-backed write-up: tick the library box, then REPLACE its stored
+  // wording with the fresh body, set the Category chip and the Recommendation
+  // dropdown on the expanded card, and save — template language never
+  // survives, and nothing is ever saved to the template ("Save to template"
+  // style controls are explicitly excluded from every click).
+  async function placeBoxComment(b, log, resCache) {
+    const where = () => `${b.section} › ${b.item || "?"}`;
+    if (!(await selectSection(b.section)))
+      return { ok: false, problem: "Section not found: " + b.section };
+    const sel = await selectItemWithFallback(b.section, b.item, log, resCache);
+    if (!sel.ok)
+      return { ok: false, problem: `Item not found: ${b.item} (in ${b.section})` };
+    if (existsByText("Defects")) {
+      const tabOk = (await openTab("Defects")) || (await openTab("Defects"));
+      if (!tabOk)
+        return {
+          ok: false,
+          problem: `${where()}: the Defects tab would not open — refused to work on the wrong tab`,
+        };
+    }
+    await closeAnyDialog();
+
+    let m = findCb(b.box);
+    if (!m) await waitFor(() => !!(m = findCb(b.box)), 2500);
+    if (!m) {
+      log(`  Box "${b.box}" isn't on this item — adding as a custom comment instead.`);
+      return placeOneWriteup({ ...b, box: "" }, log, resCache);
+    }
+    if (!m.cb.checked) {
+      m.cb.click();
+      const ticked = await waitFor(() => {
+        const f = findCb(b.box);
+        return !!(f && f.cb.checked);
+      }, 3500);
+      if (!ticked)
+        return { ok: false, problem: `${where()}: couldn't tick the "${b.box}" box` };
+    }
+
+    // Expand the card so its body editor, chips, and dropdown appear.
+    m = findCb(b.box);
+    const card =
+      (m && m.rec) || (m && m.cb.closest('.card, [class*="comment"]')) || null;
+    if (!card)
+      return {
+        ok: true,
+        warning: `${where()}: ticked "${b.box}" but couldn't find its card — its TEMPLATE WORDING is still in the report; rewrite it by hand`,
+      };
+    if (!editableFieldsIn(card).length) {
+      const header = card.querySelector(".card-header") || card.firstElementChild;
+      if (header) {
+        clickOnce(header);
+        await sleep(600);
+        // The header click must never UNTICK the box we just ticked.
+        const f2 = findCb(b.box);
+        if (f2 && !f2.cb.checked) {
+          f2.cb.click();
+          await sleep(400);
+        }
+      }
+      await waitFor(() => editableFieldsIn(card).length > 0, 3000);
+    }
+
+    const fields = editableFieldsIn(card);
+    const bodyEl = fields.find((el) => el.isContentEditable) || fields[0] || null;
+    let worded = false;
+    if (bodyEl) {
+      worded = bodyEl.isContentEditable
+        ? setRichText(bodyEl, b.body)
+        : setFieldValue(bodyEl, b.body);
+      await sleep(300);
+    }
+    let severitySet = false;
+    if (b.severity && b.severity !== "recommendation") {
+      severitySet = await pickSeverity(card, b.severity);
+    }
+    let proSet = false;
+    let proWhy = "";
+    if (b.pro) {
+      const pr = await setProDropdown(card, b.pro);
+      proSet = !!(pr && pr.ok);
+      proWhy = (pr && pr.why) || "";
+    }
+
+    // Save via the card's own save control — never anything mentioning
+    // "template", and never delete controls.
+    const saveBtn = [...card.querySelectorAll('button,[role="button"],i,svg,a,span,div')].find(
+      (el) => {
+        if (el.offsetParent === null) return false;
+        const words =
+          (el.getAttribute("aria-label") || "") +
+          " " +
+          (el.getAttribute("title") || "") +
+          " " +
+          trimText(el);
+        if (/template|delete|remove|trash/i.test(words)) return false;
+        return (
+          /\bsave\b/i.test(
+            (el.getAttribute("aria-label") || "") + (el.getAttribute("title") || "")
+          ) ||
+          (el.children.length === 0 && /^save$/i.test(trimText(el)))
+        );
+      }
+    );
+    if (saveBtn) clickOnce(saveBtn);
+    await sleep(500);
+    if (expandedRecord()) collapseOpen();
+    await sleep(250);
+
+    const warnings = [];
+    if (!worded)
+      warnings.push(
+        `couldn't replace the wording of "${b.box}" — its TEMPLATE TEXT is still in the report; rewrite it by hand`
+      );
+    if (b.severity && b.severity !== "recommendation" && !severitySet)
+      warnings.push(`couldn't set the ${b.severity} rating on "${b.box}" — set the Category by hand`);
+    if (b.pro && !proSet)
+      warnings.push(
+        `couldn't set the Recommendation dropdown on "${b.box}" to "${b.pro}"` +
+          (proWhy ? ` [${proWhy}]` : "")
+      );
+    if (!saveBtn && worded)
+      warnings.push(`no save control found on the "${b.box}" card — it may auto-save; spot-check it`);
+    return {
+      ok: true,
+      warning: warnings.length ? `${where()}: ${warnings.join("; ")}` : null,
+    };
   }
 
   async function placeWriteups(text, log) {
@@ -1764,10 +1893,12 @@
     // is exactly what destabilised consecutive placements into the same item.
     const resCache = new Map();
     const failed = [];
+    const placeOne = (b) =>
+      b.box ? placeBoxComment(b, log, resCache) : placeOneWriteup(b, log, resCache);
     for (let i = 0; i < blocks.length; i++) {
       const b = blocks[i];
-      log(`(${i + 1}/${blocks.length}) ${b.section} › ${b.item || "?"}…`);
-      const r = await placeOneWriteup(b, log, resCache);
+      log(`(${i + 1}/${blocks.length}) ${b.section} › ${b.item || "?"}${b.box ? ` [box: ${b.box}]` : ""}…`);
+      const r = await placeOne(b);
       if (r.ok) {
         done++;
         if (r.warning) problems.push(r.warning);
@@ -1784,7 +1915,7 @@
       await sleep(1200);
       for (const f of [...failed]) {
         log(`(retry) ${f.b.section} › ${f.b.item || "?"}…`);
-        const r = await placeOneWriteup(f.b, log, resCache);
+        const r = await placeOne(f.b);
         if (r.ok) {
           done++;
           if (r.warning) problems.push(r.warning);
@@ -1813,6 +1944,14 @@
             ? `\n\nNOT FOUND ON THE PAGE — check these in Spectora:\n- ${v.missing.join("\n- ")}`
             : " — every heading is in its item.")
       );
+    }
+    // Custom comments can't take a professional at Add time (the dialog has no
+    // dropdown), so the dropdown pass runs automatically right after placing —
+    // one button, whole report.
+    const proCustoms = blocks.filter((b) => !b.box && b.pro);
+    if (done > 0 && proCustoms.length) {
+      log(`\nDropdown pass — setting the professional on ${proCustoms.length} custom write-up(s)…`);
+      await runFixLoop(proCustoms, log, resCache);
     }
     log(`\nClick "Copy log" below and paste it into the chat.`);
   }
@@ -1937,7 +2076,8 @@
     }
     await closeAnyDialog();
 
-    const frag = (b.heading || "").toLowerCase().slice(0, 40);
+    // A box-backed comment's on-page title is the BOX label, not our heading.
+    const frag = (b.box || b.heading || "").toLowerCase().slice(0, 40);
     if (!frag) return { ok: false, problem: `${where()}: block has no heading` };
     const findLeaf = () =>
       [...document.querySelectorAll("div,span,p,td,h1,h2,h3")].find(
@@ -2218,20 +2358,9 @@
     return { ok: true };
   }
 
-  async function fixProDropdowns(text, log) {
-    const blocks = parseWriteups(text).filter((b) => b.pro);
-    if (!blocks.length) {
-      log(
-        "No write-ups with a professional found. Paste the same payload used to place the report (it carries each comment's professional)."
-      );
-      return;
-    }
-    log(
-      `Setting the Recommendation dropdown on ${blocks.length} already-placed write-up(s) — nothing is re-added.\n`
-    );
+  async function runFixLoop(blocks, log, resCache) {
     let done = 0;
     const problems = [];
-    const resCache = new Map();
     for (let i = 0; i < blocks.length; i++) {
       const b = blocks[i];
       log(`(${i + 1}/${blocks.length}) ${b.section} › ${b.item || "?"} — ${b.pro}…`);
@@ -2251,6 +2380,21 @@
       `\nSet ${done}/${blocks.length} Recommendation dropdowns.` +
         (problems.length ? `\n\nIssues:\n- ${problems.join("\n- ")}` : " All set — spot-check a few in Spectora.")
     );
+    return { done, problems };
+  }
+
+  async function fixProDropdowns(text, log) {
+    const blocks = parseWriteups(text).filter((b) => b.pro);
+    if (!blocks.length) {
+      log(
+        "No write-ups with a professional found. Paste the same payload used to place the report (it carries each comment's professional)."
+      );
+      return;
+    }
+    log(
+      `Setting the Recommendation dropdown on ${blocks.length} already-placed write-up(s) — nothing is re-added.\n`
+    );
+    const { problems } = await runFixLoop(blocks, log, new Map());
     const notFound = problems.filter((p) => /was not found in this section/.test(p)).length;
     if (notFound >= 3)
       log(
@@ -2267,7 +2411,8 @@
       const key = b.section + "||" + (b.item || "");
       if (!groups.has(key))
         groups.set(key, { section: b.section, item: b.item, headings: [] });
-      groups.get(key).headings.push(b.heading);
+      // A box-backed comment's on-page title is the BOX label, not our heading.
+      groups.get(key).headings.push(b.box || b.heading);
     }
     let confirmed = 0;
     let total = 0;
