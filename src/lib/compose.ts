@@ -113,7 +113,7 @@ A finished report for an entire house contains roughly SIX TO TEN recommendation
   Note how related conditions merge into one titled write-up per area, and how a section may carry two write-ups when the conditions are genuinely distinct.
 - SCATTERED LIFE-SAFETY ITEMS. Safety devices and fall protection are scattered around a house and belong to no single system, so they are the findings most often lost when consolidating — loose or missing handrails and guardrails, outdated/missing/inoperable smoke and CO detectors, a garage occupant door that is not self-closing, obstructed or painted fire-sprinkler heads, missing fire separation, double-keyed deadbolts. Under the severity boundary each of these is its OWN stand-alone safety write-up ("Missing Stairway Handrails", "Missing Smoke Detectors"), filed under its natural section and item. Never drop one because it doesn't fit a system section, and never merge them into one combined safety list.
 - COVERAGE IS ABSOLUTE AND IS CHECKED. Every finding is numbered [F0], [F1], … Each write-up must list in "finding_indexes" the numbers of the findings it covers, and EVERY number must appear in exactly one write-up. The tool verifies this and rejects the answer if any number is missing, so a dropped finding costs a full retry. Consolidating means FEWER WRITE-UPS, NEVER FEWER CONDITIONS. If a finding fits nowhere else, put it in the section's General item rather than losing it. NAMING A HAZARDOUS MATERIAL IS THE FINDING. If a finding names polybutylene, asbestos, lead, radon, wood-destroying insects, aluminium wiring, knob-and-tube, a mold-like substance, carbon monoxide or a gas odor, the write-up MUST use that term explicitly — "a mixture of piping materials" in place of "possible polybutylene" destroys the finding even though the condition is technically mentioned. These are checked by name and rate as he rates them.
-ROUTINE SERVICE RECOMMENDATIONS COUNT. "Recommend a chimney sweep before use", "have the system serviced", "recommend cleaning the gutters" are real findings he reports — usually as a stand-alone matched to a library checkbox. Never discard one for being minor.
+ROUTINE SERVICE RECOMMENDATIONS COUNT. "Recommend a chimney sweep before use", "have the system serviced", "recommend cleaning the gutters" are real findings he reports — as a stand-alone write-up or inside the right maintenance group. Never discard one for being minor.
 - MULTI-UNIT BUILDINGS (2–4 units — still residential). His real 4-unit report is the model; its shape:
   * BUILDING-WIDE systems group exactly like a single-family report, one write-up per system in its normal section — the building has one roof, one exterior, one foundation. His: Roof and Roof Drainage; Chimney; Exterior Wall System; Exterior Door and Entrance; Rear Egress System; Vegetation, Driveway and Grounds; Basement General; Basement Moisture and Mold-Like Substance; Structural Movement.
   * EACH UNIT gets ONE consolidated write-up titled "UNIT 1 RECOMMENDATIONS", "UNIT 2 RECOMMENDATIONS", … filed in "Doors, Windows & Interior" › "Interior (General)". Everything specific to that unit — its kitchen, bathrooms, laundry, interior doors, fixtures, appliances — goes in that unit's numbered list (his ran 11 to 19 items per unit). Use the findings' unit tags; never mix two units in one list and never scatter a unit's findings across system sections.
@@ -171,10 +171,7 @@ SEVERITY RATING: every write-up carries a "severity" — the Spectora chip it is
 
 - "recommendation" — the default (~70%): genuine defects needing a qualified contractor to evaluate or repair, without immediate danger and short of major-system failure — aging (but working) systems, roof wear with life left, corrosion, moisture EVIDENCE or history without active damage, wood-destroying insect damage, isolated wiring corrections, panel rust, a few fogged window seals, trim rot, drainage and grading corrections.
 
-STAND-ALONE DEFICIENCIES THAT ALREADY HAVE A CHECKBOX ("box_label") — this is how he really works:
-- His template holds a library of pre-written defect checkboxes. When a STAND-ALONE deficiency (one condition, no numbered list) matches one of the AVAILABLE DEFECT CHECKBOXES listed for its section, he simply ticks that box and lets his own stored wording carry it — he does NOT retype it. Examples of library boxes he ticks this way: "Downspouts Drain Too Close to Property", "Filter Dirty", "Missing Door Stopper", "Bulb Missing", "Loose Connection at Fixture", "Cracked Tiles".
-- So for each STAND-ALONE group, if one of that section's AVAILABLE DEFECT CHECKBOXES genuinely matches the condition, set "box_label" to that label copied EXACTLY, and set "item" to the item that box belongs to. Still write the heading and body (they are shown for review), but the tool will tick the box rather than type the comment.
-- Set box_label to null when: the write-up is GROUPED (a numbered list of 2+ conditions — those are always custom write-ups, never boxes), or no listed checkbox genuinely matches. Never invent a label, and never force a weak match — a wrong box pulls in the wrong recommendation.
+TEMPLATE WORDING IS NEVER USED ("box_label" is ALWAYS null) — his standing order (08/2026): a report that shows his stored library wording is sloppy. Every deficiency, grouped or stand-alone, gets a FRESH write-up in the format above; no library defect checkbox is ever ticked in his place. Return box_label = null on every group, no exceptions.
 
 PLACEMENT ("item"): every group also carries an "item" — the Spectora item the write-up is filed under, chosen EXACTLY from that section's AVAILABLE ITEMS list given in the input (copy the name verbatim). HIS RULE, in his own words: two or more deficiencies of like kind stay GROUPED together and are filed in the general category; a stand-alone deficiency is the one that gets singled out under its specific defect item.
 - GROUPED write-up (a numbered list of 2+ like-kind conditions): file it in the section's "... General" item when the list has one ("Roofing General", "Plumbing General", "Electrical General", "Structural General", "HVAC General", "Exterior General"). When a section covers distinct areas (Exterior especially), group by area and file each group in that area's item — his real placements: exterior concrete -> "Walkways, Patios & Driveways"; exterior stairs/guardrails -> "Decks, Balconies, Porches & Steps"; drainage/fences/grading -> "Vegetation, Grading, Drainage & Retaining Walls"; windows/doors/trim -> "Windows & Doors".
@@ -228,26 +225,12 @@ export function buildComposeUserPrompt(
     const itemsLine = items.length
       ? `\nAVAILABLE ITEMS: ${items.join(" | ")}`
       : "";
-    // The section's library defect checkboxes, so a stand-alone deficiency can
-    // be ticked rather than retyped.
-    const boxes = candidateBoxes(g.section, null, {
-      tabs: ["Defects"],
-      sectionFallback: true,
-    });
-    const byItem = new Map<string, string[]>();
-    for (const b of boxes) {
-      if (!byItem.has(b.item)) byItem.set(b.item, []);
-      byItem.get(b.item)!.push(b.label);
-    }
-    const boxLines = byItem.size
-      ? "\nAVAILABLE DEFECT CHECKBOXES:\n" +
-        [...byItem.entries()]
-          .map(([item, labels]) => `  [${item}] ${labels.join(" | ")}`)
-          .join("\n")
-      : "";
+    // Library defect checkboxes are deliberately NOT offered — template
+    // wording is never used for deficiencies (his 08/2026 ruling), so the
+    // model gets no list to be tempted by.
     return `SECTION ${i} — ${g.section} (${g.findings.length} finding${
       g.findings.length === 1 ? "" : "s"
-    })${itemsLine}${boxLines}\n${lines}`;
+    })${itemsLine}\n${lines}`;
   });
   const instrBlock = instructions && instructions.trim()
     ? `INSPECTOR INSTRUCTIONS — his raw walkthrough. Read it for DIRECTIONS ONLY; the findings above are the conditions to write up, and nothing here is a new defect.

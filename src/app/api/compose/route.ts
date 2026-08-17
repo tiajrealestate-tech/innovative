@@ -184,36 +184,16 @@ export async function POST(req: NextRequest) {
           ? g.severity
           : ("recommendation" as const);
 
-      // A checkbox may only be used for a STAND-ALONE write-up (a grouped one
-      // carries a numbered list and is always custom), and the label must be a
-      // real box in this section — otherwise the tick would pull in the wrong
-      // stored recommendation. Anything unverified falls back to a typed
-      // comment, which is always safe.
-      const grouped = /(^|\n)\s*1\s*-\s/.test(String(g.body || ""));
-      let box_label: string | null = null;
-      let boxItem = "";
-      if (!grouped && g.box_label) {
-        const boxes = candidateBoxes(section, null, {
-          tabs: ["Defects"],
-          sectionFallback: true,
-        });
-        const hit =
-          boxes.find((b) => b.label === g.box_label) ||
-          boxes.find(
-            (b) => b.label.toLowerCase() === String(g.box_label).toLowerCase()
-          );
-        if (hit) {
-          box_label = hit.label;
-          boxItem = hit.item;
-        }
-      }
-
+      // Library defect boxes are NEVER used — Trever's ruling after the 46
+      // Club View rebuild (08/2026): template wording in a report is sloppy;
+      // every deficiency, grouped or stand-alone, is written fresh. box_label
+      // is forced null no matter what the model returned.
       return {
         ...g,
         section,
-        item: box_label && boxItem ? boxItem : item,
+        item,
         severity,
-        box_label,
+        box_label: null,
       };
     });
     const composed: ComposedReport = {
