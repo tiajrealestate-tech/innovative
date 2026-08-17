@@ -2578,7 +2578,7 @@
       "Fills in automatically from the app when your report is ready.\n(You can also paste a build list here.)"
     );
     bodyWrap.appendChild(taReport);
-    // Blue then green: do the blue one first, finish with the green one.
+    // Both steps start blue and turn green as they complete.
     const buildBtn = mkBtn("Build report", "#2a56d4", "#fff");
     buildBtn.style.marginTop = "8px";
     buildBtn.style.width = "100%";
@@ -2602,18 +2602,31 @@
       "Fills in automatically from the app when your report is ready.\n(You can also paste write-ups here.)"
     );
     bodyWrap.appendChild(taWriteups);
-    const placeBtn = mkBtn("Place custom write-ups", "#16a34a", "#fff");
+    const placeBtn = mkBtn("Place custom write-ups", "#2a56d4", "#fff");
     placeBtn.style.marginTop = "8px";
     placeBtn.style.width = "100%";
     bodyWrap.appendChild(placeBtn);
 
-    // Repair path for an already-placed report: edits each existing comment's
-    // Recommendation dropdown from the same payload — nothing is re-added.
+    // Repair path for an already-placed report — lives under Advanced tools
+    // (appended there below); the daily view is just Step 1 and Step 2.
     const fixProBtn = mkBtn("Fix-up: set Recommendation dropdowns (no re-place)", "#f59e0b", "#111827");
     fixProBtn.style.marginTop = "8px";
     fixProBtn.style.width = "100%";
     fixProBtn.style.fontSize = "12px";
-    bodyWrap.appendChild(fixProBtn);
+
+    // Step buttons turn GREEN when their run completes, so it's visible at a
+    // glance which steps are done. A fresh payload from the app resets them.
+    const markStepDone = (btn, label) => {
+      btn.style.background = "#15803d";
+      btn.style.color = "#fff";
+      btn.textContent = "✓ " + label + " (click to run again)";
+    };
+    const resetStepsDone = () => {
+      buildBtn.style.background = "#2a56d4";
+      buildBtn.textContent = "Build report";
+      placeBtn.style.background = "#2a56d4";
+      placeBtn.textContent = "Place custom write-ups";
+    };
 
     // ---- payload handoff from the app (seam removal) ----------------------
     // The bridge script (on the app's site) stores {buildLines, writeups,
@@ -2687,6 +2700,8 @@
       // detached copy of the textareas.
       if (!document.body.contains(taWriteups)) return;
       if (!h || (!h.buildLines && !h.writeups)) return;
+      // A FRESH payload means a fresh run — clear the green done-markers.
+      if (!lastHandoff || lastHandoff.updatedAt !== h.updatedAt) resetStepsDone();
       lastHandoff = h;
       if (h.buildLines) taReport.value = h.buildLines;
       if (h.writeups) taWriteups.value = h.writeups;
@@ -2789,6 +2804,9 @@
     advWrap.appendChild(taItem);
     advWrap.appendChild(row);
 
+    advWrap.appendChild(mkLabel("Repair — set Recommendation dropdowns on a placed report:"));
+    advWrap.appendChild(fixProBtn);
+
     advWrap.appendChild(mkLabel("Scan your template (one-time setup — checks nothing):"));
     const scanAllBtn = mkBtn("Scan template → file", "#111827", "#fff");
     scanAllBtn.style.width = "100%";
@@ -2843,13 +2861,27 @@
       panel.remove();
       showReopenButton();
     };
-    buildBtn.onclick = () => {
+    buildBtn.onclick = async () => {
       resetLog();
       if (!guardHouse(log)) {
         log("Stopped — wrong-house check was not confirmed.");
         return;
       }
-      buildReport(taReport.value, log);
+      const hadLines = parseLines(taReport.value).length > 0;
+      buildBtn.disabled = true;
+      buildBtn.textContent = "Building… (leave this tab open)";
+      try {
+        await buildReport(taReport.value, log);
+        if (hadLines) {
+          buildBtn.disabled = false;
+          markStepDone(buildBtn, "Step 1 done — boxes built");
+          return;
+        }
+      } catch (e) {
+        log("Build error: " + (e && e.message ? e.message : e));
+      }
+      buildBtn.disabled = false;
+      buildBtn.textContent = "Build report";
     };
     previewBtn.onclick = () => {
       resetLog();
@@ -2882,15 +2914,19 @@
         log("Stopped — wrong-house check was not confirmed.");
         return;
       }
+      const hadBlocks = parseWriteups(taWriteups.value).length > 0;
       placeBtn.disabled = true;
       placeBtn.textContent = "Placing… (leave this tab open)";
+      let placedOk = false;
       try {
         await placeWriteups(taWriteups.value, log);
+        placedOk = hadBlocks;
       } catch (e) {
         log("Place error: " + (e && e.message ? e.message : e));
       }
       placeBtn.disabled = false;
-      placeBtn.textContent = "Place custom write-ups";
+      if (placedOk) markStepDone(placeBtn, "Step 2 done — write-ups placed");
+      else placeBtn.textContent = "Place custom write-ups";
     };
     fixProBtn.onclick = async () => {
       resetLog();
