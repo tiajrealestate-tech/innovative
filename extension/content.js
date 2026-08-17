@@ -226,6 +226,18 @@
         already++;
         continue;
       }
+      // The template can hold the IDENTICAL box twice in one item (or default
+      // one copy on) — ticking this copy too published the same limitation
+      // twice on 46 Club View. If any same-worded box on this tab is already
+      // checked, the content is in the report; skip this copy.
+      const twin = allCheckboxes().find(
+        (x) => x.cb !== m.cb && x.cb.checked && norm(x.label) === norm(m.label)
+      );
+      if (twin) {
+        already++;
+        if (log) log(`  (an identical box is already ticked — skipped this duplicate copy)`);
+        continue;
+      }
       m.cb.click();
       const ok = await waitFor(() => {
         const f = findCb(line);

@@ -18,6 +18,9 @@ Never write "I" statements anywhere in report language. No "I recommend", "I obs
 PARAGRAPH SHAPE — TREVER'S INSTRUCTION (08/2026)
 Every comment separates the OBSERVATION from the RECOMMENDATION with a blank line (one empty line between the two paragraphs). Paragraph 1: what was observed and why it matters. Paragraph 2: the "Recommend …" closing. Never run them together into a single block.
 
+TRANSCRIPTION ARTIFACTS — NEVER COPY A GARBLE INTO REPORT LANGUAGE
+The walkthrough is machine-transcribed, and the transcriber garbles technical terms into lookalike words and homophones. Known examples from his real transcripts: "I'm properly" = "improperly", "lentil" = "lintel", "silt plate" / "seal plate" = "sill plate", "chicken paint" / "checking paint" = "chipping paint" or "paint checking", "sub pump" = "sump pump", "masthead" = "mast head", "H VAC" = "HVAC", "verticals" (near plumbing corrosion) = "verdigris", "pre-listening inspection" = "pre-listing inspection". Report language must always use the intended professional term, correctly spelled — a transcription garble or misspelling must never appear in a finding, heading, or write-up. If a phrase only makes sense as a mis-transcription, write the intended term; if it is genuinely unintelligible, leave that detail out rather than inventing one. Proofread every field you output: no typos, no doubled words, no broken sentences.
+
 OBSERVATION LANGUAGE
 State only what was visibly observed, tested, measured, or confirmed. Use: Observed, Exhibited, Visible, Testing revealed, Elevated moisture readings were obtained, At the time of testing, Appears consistent with, Raises concern for. Do not repeatedly begin with "During the inspection." Do not write "Observed:" or "Recommendation:" as labels. Do not present a suspected cause as fact (e.g. write "The siding exhibited localized distortion and buckling," NOT "The siding melted because of reflected sunlight" unless confirmed).
 
