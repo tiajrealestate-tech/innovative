@@ -1016,12 +1016,13 @@
   // POSITION otherwise. If nothing is found the comment still saves at the
   // default — never a reason to fail the whole placement.
   const SEVERITY_INDEX = { maintenance: 0, recommendation: 1, safety: 2 };
-  function severityCells(modal) {
+  // ALL candidate three-cell Category rows, best first. Expanded cards carry
+  // extra 3-child rows (editor toolbar groups), so the caller tries each row
+  // with tint verification instead of trusting the first.
+  function severityCellRows(modal) {
     const catLabel = [...modal.querySelectorAll("label,div,span,p")].find(
       (el) => el.children.length === 0 && /^category$/i.test(trimText(el))
     );
-    // Any container of exactly three icon-bearing cells that sits after the
-    // Category label (or anywhere in the modal when the label isn't found).
     const rows = [...modal.querySelectorAll("div")].filter((d) => {
       if (d.children.length !== 3) return false;
       const kids = [...d.children];
@@ -1031,14 +1032,12 @@
           (c.children.length === 0 && !trimText(c))
       );
     });
-    let row = rows[0] || null;
-    if (catLabel && rows.length > 1) {
-      row =
-        rows.find(
-          (r) => catLabel.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING
-        ) || row;
-    }
-    return row ? [...row.children] : null;
+    if (!catLabel) return rows;
+    const following = rows.filter(
+      (r) => catLabel.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    const rest = rows.filter((r) => !following.includes(r));
+    return [...following, ...rest];
   }
   // The selected segment is tinted (orange); unselected cells are white or
   // transparent. That's our only readable signal of which rating is active.
@@ -1066,25 +1065,29 @@
     }
 
     // 2) The three-cell Category row, by position — and VERIFY the highlight
-    // moved; a click Spectora ignored must not be reported as success. Escalate
-    // through targets and click strengths until the tint moves.
-    const cells = severityCells(modal);
-    if (!cells || !cells[idx]) return false;
-    const cell = cells[idx];
-    const inner = cell.querySelector('button,[role="button"],svg,i') || cell;
-    const attempts = [
-      () => clickOnce(inner),
-      () => clickOnce(cell),
-      () => fireClick(inner),
-      () => fireClick(cell),
-    ];
-    for (const attempt of attempts) {
-      try {
-        if (cell.scrollIntoView) cell.scrollIntoView({ block: "center" });
-      } catch (e) {}
-      attempt();
-      await sleep(400);
-      if (cellSelected(cell)) return true;
+    // moved; a click Spectora ignored must not be reported as success. Every
+    // candidate row is tried (expanded cards carry toolbar rows that look
+    // similar), escalating through targets and click strengths per row.
+    const rows = severityCellRows(modal);
+    for (const rowEl of rows.slice(0, 4)) {
+      const cells = [...rowEl.children];
+      if (!cells[idx]) continue;
+      const cell = cells[idx];
+      const inner = cell.querySelector('button,[role="button"],svg,i') || cell;
+      const attempts = [
+        () => clickOnce(inner),
+        () => clickOnce(cell),
+        () => fireClick(inner),
+        () => fireClick(cell),
+      ];
+      for (const attempt of attempts) {
+        try {
+          if (cell.scrollIntoView) cell.scrollIntoView({ block: "center" });
+        } catch (e) {}
+        attempt();
+        await sleep(400);
+        if (cellSelected(cell)) return true;
+      }
     }
     return false;
   }
@@ -1778,7 +1781,10 @@
     if (!m) await waitFor(() => !!(m = findCb(b.box)), 2500);
     if (!m) {
       log(`  Box "${b.box}" isn't on this item — adding as a custom comment instead.`);
-      return placeOneWriteup({ ...b, box: "" }, log, resCache);
+      // Clear the box ON THE BLOCK so the verification sweep and the dropdown
+      // pass track the custom comment's heading, not the absent box label.
+      b.box = "";
+      return placeOneWriteup(b, log, resCache);
     }
     if (!m.cb.checked) {
       m.cb.click();
@@ -1814,14 +1820,41 @@
       await waitFor(() => editableFieldsIn(card).length > 0, 3000);
     }
 
-    const fields = editableFieldsIn(card);
-    const bodyEl = fields.find((el) => el.isContentEditable) || fields[0] || null;
+    // Froala attaches a moment AFTER the card expands. Writing into the bare
+    // textarea gets silently overwritten by the editor's stored content — the
+    // 9608 Tiberias test run "replaced" every box wording and the PDF still
+    // showed template text. Wait for the real editor surface, write, and READ
+    // IT BACK before claiming success.
+    await waitFor(
+      () =>
+        !!card.querySelector('.fr-element[contenteditable="true"]') ||
+        editableFieldsIn(card).some((el) => el.isContentEditable),
+      5000
+    );
+    await sleep(400);
+    const bodyEl =
+      card.querySelector('.fr-element[contenteditable="true"]') ||
+      editableFieldsIn(card).find((el) => el.isContentEditable) ||
+      editableFieldsIn(card)[0] ||
+      null;
     let worded = false;
     if (bodyEl) {
-      worded = bodyEl.isContentEditable
-        ? setRichText(bodyEl, b.body)
-        : setFieldValue(bodyEl, b.body);
-      await sleep(300);
+      const target = norm(b.body).slice(0, 25);
+      for (let attempt = 0; attempt < 2 && !worded; attempt++) {
+        if (bodyEl.isContentEditable) setRichText(bodyEl, b.body);
+        else setFieldValue(bodyEl, b.body);
+        await sleep(600);
+        const now = norm(
+          (bodyEl.isContentEditable ? bodyEl.textContent : bodyEl.value) || ""
+        );
+        worded = !!target && now.includes(target);
+      }
+      // Nudge the card's autosave: blur the editor.
+      try {
+        bodyEl.dispatchEvent(new Event("blur", { bubbles: true }));
+        if (bodyEl.blur) bodyEl.blur();
+      } catch (e) {}
+      await sleep(400);
     }
     let severitySet = false;
     if (b.severity && b.severity !== "recommendation") {
@@ -1872,8 +1905,8 @@
         `couldn't set the Recommendation dropdown on "${b.box}" to "${b.pro}"` +
           (proWhy ? ` [${proWhy}]` : "")
       );
-    if (!saveBtn && worded)
-      warnings.push(`no save control found on the "${b.box}" card — it may auto-save; spot-check it`);
+    // No save control on a card is NORMAL — cards autosave (confirmed on the
+    // 9608 Tiberias run) — so it is not warned about.
     return {
       ok: true,
       warning: warnings.length ? `${where()}: ${warnings.join("; ")}` : null,
@@ -2257,6 +2290,14 @@
       if (container) break;
     }
     if (!container) {
+      // The editor may be open with simply NO dropdown on it — items without
+      // a Defects tab (HVAC General) don't offer one. That's a fact about the
+      // item, not a failure to open anything.
+      if (editableFieldsIn(card).length)
+        return {
+          ok: false,
+          problem: `${where()}: "${b.heading}" has no Recommendation dropdown — this item doesn't offer one (the write-up already names the professional in its closing)`,
+        };
       let problem = `${where()}: couldn't open the full editor for "${b.heading}" — ${outcomes.join("; ") || "no open path found"}`;
       if (!fixOneProDropdown._dumped) {
         fixOneProDropdown._dumped = true;
@@ -2320,17 +2361,13 @@
           ))
     );
     if (!isDialog) {
-      // Inline expanded card.
+      // Inline expanded card — cards autosave (confirmed on 9608 Tiberias),
+      // so a missing save control is normal, not noteworthy.
       if (saveBtn) clickOnce(saveBtn);
       await sleep(600);
       if (expandedRecord()) collapseOpen();
       await sleep(300);
-      return saveBtn
-        ? { ok: true }
-        : {
-            ok: true,
-            note: `${where()}: dropdown picked on the card but no save control was found — it may auto-save; spot-check "${b.heading}" in Spectora`,
-          };
+      return { ok: true };
     }
     if (!saveBtn) {
       for (const target of [document, document.body])
