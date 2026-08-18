@@ -2709,9 +2709,24 @@
       }
       return t.toLowerCase().replace(/\s+/g, " ");
     }
+    function pageTitle() {
+      let t = document.title || "";
+      try {
+        if (window.top !== window) t += " " + (window.top.document.title || "");
+      } catch (e) {
+        /* cross-origin top */
+      }
+      return t.toLowerCase().replace(/\s+/g, " ").trim();
+    }
     function houseVerified(addr) {
       const needle = addrNeedle(addr || "");
       if (!needle) return null; // can't verify — no usable address
+      // THE TAB TITLE DECIDES. The page body lists OTHER reports (recents,
+      // switchers), which false-passed the 9608 Tiberias tester as 46 Club
+      // View — the title names only the report actually open. Body text is
+      // the fallback only when no address-like title exists.
+      const title = pageTitle();
+      if (/\d/.test(title)) return title.includes(needle);
       return pageText().includes(needle);
     }
     function guardHouse(log) {
@@ -2719,14 +2734,17 @@
       if (!addr) return true; // manual paste / no address on record
       const ok = houseVerified(addr);
       if (ok) {
-        log("House check ✓ — this page matches " + addr);
+        log("House check ✓ — this page's title matches " + addr);
         return true;
       }
       if (ok === null) return true;
+      const seen = pageTitle();
       return window.confirm(
         "WRONG-HOUSE CHECK\n\nThe loaded payload was written for:\n\n    " +
           addr +
-          "\n\nbut that address was NOT found on this Spectora page. If this is a different house, STOP — there is no undo.\n\nOnly continue if you are sure this report is " +
+          "\n\nbut this Spectora page looks like:\n\n    " +
+          (seen || "(no page title)") +
+          "\n\nIf this is a different house, STOP — there is no undo.\n\nOnly continue if you are sure this report is " +
           addr +
           "."
       );
