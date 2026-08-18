@@ -1202,6 +1202,26 @@
         return { ok: true };
       }
 
+      // Read-back check shared by strategies 2 and 3: after a pick, the
+      // control's visible face must SHOW the picked label — a click that
+      // Spectora ignored must never be reported as success (the Tiberias run
+      // counted picks, and some professionals never actually landed).
+      const confirmShown = async (label, exclude) => {
+        await sleep(500);
+        const t = norm(label);
+        return [...modal.querySelectorAll("input,div,span")].some((el) => {
+          if (exclude && exclude.contains(el)) return false;
+          if (el.offsetParent === null) return false;
+          const txt =
+            el.tagName === "INPUT"
+              ? el.value || ""
+              : el.children.length === 0
+              ? trimText(el)
+              : "";
+          return norm(txt) === t;
+        });
+      };
+
       // --- Strategy 2: a pre-rendered option list (custom dropdown widget). -
       // Find the "Qualified Professional"/"No Recommendation" entry anywhere in
       // the dialog, visible or not, and work outward to its trigger.
@@ -1240,9 +1260,17 @@
         // many widgets register handlers on hidden list items.
         if (!opt) opt = bestIn(optionsIn(), (el) => el.textContent);
         if (!opt) return fail("professionals list found but no matching entry");
-        clickOnce(opt);
-        await sleep(300);
-        return { ok: true };
+        const wantShown = trimText(opt);
+        for (let att = 0; att < 2; att++) {
+          clickOnce(opt);
+          if (await confirmShown(wantShown, listBox)) return { ok: true };
+          // Maybe the list needs reopening for the retry.
+          if (trigger && att === 0) {
+            clickOnce(trigger);
+            await sleep(350);
+          }
+        }
+        return fail(`clicked "${wantShown}" but the control never showed it`);
       }
 
       // --- Strategy 3: 'Recommendation' label -> nearby control -> overlay. --
@@ -1314,9 +1342,10 @@
           }
         }
         if (opt) {
+          const wantShown = trimText(opt);
           clickOnce(opt);
-          await sleep(350);
-          return { ok: true };
+          if (await confirmShown(wantShown, null)) return { ok: true };
+          return fail(`clicked "${wantShown}" but the control never showed it`);
         }
       }
       return fail(
@@ -2398,12 +2427,23 @@
   async function runFixLoop(blocks, log, resCache) {
     let done = 0;
     const problems = [];
+    // One slow item must never stall the whole pass — 75s and it's skipped
+    // with a report, and the loop moves on.
+    const withTimeout = (p, ms, msg) =>
+      Promise.race([
+        p,
+        new Promise((resolve) => setTimeout(() => resolve({ ok: false, problem: msg }), ms)),
+      ]);
     for (let i = 0; i < blocks.length; i++) {
       const b = blocks[i];
       log(`(${i + 1}/${blocks.length}) ${b.section} › ${b.item || "?"} — ${b.pro}…`);
       let r;
       try {
-        r = await fixOneProDropdown(b, log, resCache);
+        r = await withTimeout(
+          fixOneProDropdown(b, log, resCache),
+          75000,
+          `${b.section} › ${b.item || "?"}: timed out after 75s — skipped, set "${b.pro}" by hand`
+        );
       } catch (e) {
         r = { ok: false, problem: `${b.section} › ${b.item || "?"}: error — ${e && e.message ? e.message : e}` };
       }
