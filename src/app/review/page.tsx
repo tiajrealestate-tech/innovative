@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Finding,
@@ -901,6 +901,74 @@ function ReviewTab({
   const [addText, setAddText] = useState("");
   const [addBusy, setAddBusy] = useState(false);
   const [addErr, setAddErr] = useState<string | null>(null);
+  // Voice-to-text for the addendum box: record in the browser (or pick an
+  // audio file), push it through the SAME Blob-upload + Deepgram pipeline as
+  // the main walkthrough, and drop the transcript into the box for review.
+  const [recState, setRecState] = useState<"idle" | "recording" | "transcribing">("idle");
+  const [recSecs, setRecSecs] = useState(0);
+  const recRef = useRef<MediaRecorder | null>(null);
+  const recChunks = useRef<Blob[]>([]);
+  const recTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  async function transcribeIntoAddBox(blob: Blob, name: string) {
+    setRecState("transcribing");
+    setAddErr(null);
+    try {
+      const { upload } = await import("@vercel/blob/client");
+      const up = await upload(name, blob, {
+        access: "public",
+        handleUploadUrl: "/api/audio/upload",
+        contentType: blob.type || "audio/webm",
+      });
+      const res = await fetch("/api/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ audioUrl: up.url }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "Transcription failed.");
+      setAddText((t) => (t.trim() ? t.trimEnd() + "\n\n" : "") + data.transcript);
+    } catch (e) {
+      setAddErr((e as Error).message || "Couldn't transcribe that recording.");
+    }
+    setRecState("idle");
+  }
+
+  async function startAddRecording() {
+    setAddErr(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      recChunks.current = [];
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size) recChunks.current.push(e.data);
+      };
+      mr.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        if (recTimer.current) clearInterval(recTimer.current);
+        const blob = new Blob(recChunks.current, { type: mr.mimeType || "audio/webm" });
+        if (blob.size > 0) transcribeIntoAddBox(blob, `addendum-${Date.now()}.webm`);
+        else setRecState("idle");
+      };
+      recRef.current = mr;
+      mr.start();
+      setRecSecs(0);
+      recTimer.current = setInterval(() => setRecSecs((s) => s + 1), 1000);
+      setRecState("recording");
+    } catch {
+      setAddErr(
+        "Microphone access was blocked — allow the mic for this site (the icon in the address bar) and try again."
+      );
+    }
+  }
+
+  function stopAddRecording() {
+    try {
+      recRef.current?.stop();
+    } catch {
+      setRecState("idle");
+    }
+  }
   const [addResult, setAddResult] = useState<{
     removedTitles: string[];
     added: number;
@@ -1124,10 +1192,48 @@ function ReviewTab({
           </div>
           <p className="text-xs text-gray-600 mb-2">
             Recorded something after the walkthrough — the garage, a correction from
-            the truck? Paste that transcript here. New findings are added and marked;
-            if the new recording corrects or withdraws something, the later statement
-            wins and you&apos;ll see exactly what was removed. Your edits stay.
+            the truck? Speak it, upload a recording, or paste the transcript. New
+            findings are added and marked; if the new recording corrects or withdraws
+            something, the later statement wins and you&apos;ll see exactly what was
+            removed. Your edits stay.
           </p>
+          <div className="mb-2 flex items-center gap-2">
+            {recState !== "recording" ? (
+              <button
+                onClick={startAddRecording}
+                disabled={recState === "transcribing" || addBusy}
+                className="text-sm rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-medium px-4 py-2"
+              >
+                {recState === "transcribing" ? "Transcribing…" : "🎙 Record"}
+              </button>
+            ) : (
+              <button
+                onClick={stopAddRecording}
+                className="text-sm rounded-lg bg-red-600 text-white font-medium px-4 py-2 animate-pulse"
+              >
+                ■ Stop recording ({Math.floor(recSecs / 60)}:
+                {String(recSecs % 60).padStart(2, "0")})
+              </button>
+            )}
+            <label className="text-sm rounded-lg border border-gray-300 hover:bg-gray-50 px-4 py-2 cursor-pointer">
+              Upload audio file
+              <input
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) transcribeIntoAddBox(f, f.name);
+                  e.currentTarget.value = "";
+                }}
+              />
+            </label>
+            {recState === "recording" && (
+              <span className="text-xs text-red-600">
+                Recording — press Stop when you&apos;re done and the text appears below.
+              </span>
+            )}
+          </div>
           <textarea
             value={addText}
             onChange={(e) => setAddText(e.target.value)}
