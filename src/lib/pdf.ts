@@ -36,9 +36,9 @@ export function downloadRecommendationsPdf(
   report: InspectionReport
 ) {
   const doc = new jsPDF({ unit: "pt", format: "letter" });
-  const addr = report.details?.property_address || "";
-  const client = report.details?.client_name || "";
-  const date = report.details?.inspection_date || "";
+  const addr = report.inspection?.property_address || "";
+  const client = report.inspection?.client_name || "";
+  const date = report.inspection?.inspection_date || "";
   let y = 0;
 
   const header = () => {
