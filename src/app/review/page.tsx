@@ -25,6 +25,7 @@ import {
   reindex,
 } from "@/lib/grouping";
 import { downloadCsv, downloadJson } from "@/lib/csv";
+import { downloadRecommendationsPdf } from "@/lib/pdf";
 import { placementItemFor, getItem } from "@/lib/catalog";
 import { proForWriteup } from "@/lib/pro";
 import { ConfidenceBadge } from "../confidence-badge";
@@ -1812,6 +1813,13 @@ function EntryTab({
                 className="shrink-0 ml-3 text-sm rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium px-3 py-2"
               >
                 {copied === "payload" ? "Copied ✓" : "Copy for extension"}
+              </button>
+              <button
+                onClick={() => downloadRecommendationsPdf(composed, report)}
+                className="shrink-0 ml-3 text-sm rounded-lg border border-purple-300 text-purple-700 hover:bg-purple-100 font-medium px-3 py-2"
+                title="Download these write-ups as a PDF"
+              >
+                Download PDF
               </button>
             </div>
             <div className="bg-white rounded-2xl border border-gray-200 p-4">
