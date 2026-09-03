@@ -1358,7 +1358,12 @@
     }
   }
 
-  async function addCustomComment(heading, body, severity, pro) {
+  async function addCustomComment(heading, body, severity, pro, opts) {
+    // opts.saveToTemplate: TEMPLATE UPDATER mode only — ticks the dialog's
+    // "Save to template for use in future reports" checkbox so the comment
+    // becomes a stored library entry of the template this report uses.
+    // Normal placement never touches that checkbox.
+    const toTemplate = !!(opts && opts.saveToTemplate);
     await closeAnyDialog();
     if (!clickByTextOnce("Add") && !clickByTextOnce("+ Add")) {
       return { ok: false, reason: "'Add' control not found" };
@@ -1441,6 +1446,30 @@
       await sleep(200);
     }
 
+    let templateTicked = false;
+    if (toTemplate) {
+      const tickLabel = [...modal.querySelectorAll("label,div,span")].find((el) =>
+        /save to template/i.test(trimText(el))
+      );
+      let tcb = null;
+      let scope = tickLabel ? tickLabel.parentElement : null;
+      for (let i = 0; i < 4 && scope && !tcb; i++) {
+        tcb = scope.querySelector('input[type="checkbox"]');
+        scope = scope.parentElement;
+      }
+      if (!tcb)
+        tcb = [...modal.querySelectorAll('input[type="checkbox"]')].find((c) =>
+          /save to template/i.test(
+            trimText(c.closest("label") || c.parentElement || c)
+          )
+        );
+      if (tcb && !tcb.checked) {
+        tcb.click();
+        await sleep(300);
+      }
+      templateTicked = !!(tcb && tcb.checked);
+    }
+
     // Save (inside the modal only — never hit the page's other buttons).
     await sleep(250);
     const saveBtn = [...modal.querySelectorAll('button,[role="button"],span,a,div')].find(
@@ -1485,6 +1514,7 @@
       severitySet,
       proSet,
       proWhy,
+      templateTicked,
       reason: closed ? "" : "clicked Save but the dialog stayed open",
     };
   }
@@ -1741,7 +1771,7 @@
   }
 
   // One attempt at one block. Returns { ok, problem, warning }.
-  async function placeOneWriteup(b, log, resCache) {
+  async function placeOneWriteup(b, log, resCache, opts) {
     if (!(await selectSection(b.section))) {
       return { ok: false, problem: "Section not found: " + b.section };
     }
@@ -1769,7 +1799,7 @@
     // The Add dialog has NO Recommendation dropdown (proven by screenshot,
     // 08/17) — the professional is set afterwards by the dropdown pass, so
     // no pro is attempted here.
-    const r = await addCustomComment(b.heading, b.body, b.severity, "");
+    const r = await addCustomComment(b.heading, b.body, b.severity, "", opts);
     if (!r.ok) {
       return {
         ok: false,
@@ -1781,7 +1811,9 @@
       warning = `${b.section} › ${sel.item || b.item || "?"}: saved, but "${b.heading}" is NOT visible in this item afterwards — it may have landed in the wrong place. Check it in Spectora.`;
     else if (b.severity && b.severity !== "recommendation" && !r.severitySet)
       warning = `${b.section} › ${sel.item || b.item || "?"}: couldn't set the ${b.severity} rating — it saved as the default Recommendation. Change the Category by hand.`;
-    return { ok: true, warning };
+    else if (opts && opts.saveToTemplate && !r.templateTicked)
+      warning = `${b.section} › ${sel.item || b.item || "?"}: "${b.heading}" was added to this report, but the "Save to template" checkbox couldn't be ticked — it is NOT in the template; add it by hand.`;
+    return { ok: true, templateTicked: !!r.templateTicked, warning };
   }
 
   // A box-backed write-up: tick the library box, then REPLACE its stored
@@ -2010,41 +2042,54 @@
   // created from. Meant to run ONLY on a dummy report built from the
   // DUPLICATE template.
   async function updateTemplateWordings(text, log) {
-    const blocks = parseWriteups(text).filter((b) => b.box);
+    const blocks = parseWriteups(text);
     if (!blocks.length) {
-      log("No @@BOX blocks found — paste the template-update payload here first.");
+      log("No blocks found — paste the template-update payload here first.");
       return;
     }
+    const rewrites = blocks.filter((b) => b.box).length;
+    const creations = blocks.length - rewrites;
     log(
-      `TEMPLATE UPDATER — rewriting ${blocks.length} box wording(s) and saving each to the template this report uses.\n`
+      `TEMPLATE UPDATER — ${rewrites} existing box wording(s) to rewrite, ${creations} NEW template comment(s) to create. Everything saves to the template this report uses.\n`
     );
-    let done = 0;
+    let saved = 0;
+    let created = 0;
     const problems = [];
     const resCache = new Map();
     for (let i = 0; i < blocks.length; i++) {
       const b = blocks[i];
-      log(`(${i + 1}/${blocks.length}) ${b.section} › ${b.item || "?"} [${b.box}]…`);
+      log(
+        `(${i + 1}/${blocks.length}) ${b.section} › ${b.item || "?"} ${b.box ? `[rewrite: ${b.box}]` : `[new: ${b.heading}]`}…`
+      );
       let r;
       try {
-        r = await placeBoxComment(b, log, resCache, { saveToTemplate: true });
+        r = b.box
+          ? await placeBoxComment(b, log, resCache, { saveToTemplate: true })
+          : await placeOneWriteup(b, log, resCache, { saveToTemplate: true });
       } catch (e) {
         r = {
           ok: false,
           problem: `${b.section} › ${b.item || "?"}: error — ${e && e.message ? e.message : e}`,
         };
       }
-      if (r.ok && r.templateSaved) {
-        done++;
+      const landed = r.ok && (b.box ? r.templateSaved : r.templateTicked);
+      if (landed) {
+        if (b.box) saved++;
+        else created++;
         if (r.warning) problems.push(r.warning);
       } else {
-        problems.push(r.problem || r.warning || `${b.section} › ${b.item || "?"} [${b.box}]: not saved to the template`);
+        problems.push(
+          r.problem ||
+            r.warning ||
+            `${b.section} › ${b.item || "?"} ${b.box ? `[${b.box}]` : `"${b.heading}"`}: not saved to the template`
+        );
       }
       await sleep(400);
     }
     log(
-      `\nSaved ${done}/${blocks.length} box wordings to the template.` +
+      `\nTemplate updated: ${saved}/${rewrites} wordings rewritten, ${created}/${creations} new comments created.` +
         (problems.length ? `\n\nIssues:\n- ${problems.join("\n- ")}` : " All saved.") +
-        `\n\nSpot-check a few boxes in the TEMPLATE EDITOR to confirm, then build a fresh test report from the template to see the new wording live.`
+        `\n\nSpot-check a few entries in the TEMPLATE EDITOR to confirm, then build a fresh test report from the template to see the new language live.`
     );
     log(`\nClick "Copy log" below and paste it into the chat.`);
   }
