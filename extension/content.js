@@ -1789,7 +1789,14 @@
   // dropdown on the expanded card, and save — template language never
   // survives, and nothing is ever saved to the template ("Save to template"
   // style controls are explicitly excluded from every click).
-  async function placeBoxComment(b, log, resCache) {
+  async function placeBoxComment(b, log, resCache, opts) {
+    // saveToTemplate: TEMPLATE UPDATER mode — after the fresh wording is
+    // written and READ-BACK VERIFIED, the card's own "Save to template"
+    // control is clicked so the wording becomes the template's stored
+    // language. This is the ONLY path in the extension allowed to touch a
+    // template control, it is explicitly invoked from its own button, and it
+    // never fires on unverified wording.
+    const toTemplate = !!(opts && opts.saveToTemplate);
     const where = () => `${b.section} › ${b.item || "?"}`;
     if (!(await selectSection(b.section)))
       return { ok: false, problem: "Section not found: " + b.section };
@@ -1809,6 +1816,14 @@
     let m = findCb(b.box);
     if (!m) await waitFor(() => !!(m = findCb(b.box)), 2500);
     if (!m) {
+      if (toTemplate) {
+        // The updater must never invent boxes — a missing box is a report/
+        // template mismatch to fix by hand, not a custom comment to add.
+        return {
+          ok: false,
+          problem: `${where()}: box "${b.box}" not found — nothing saved to the template`,
+        };
+      }
       log(`  Box "${b.box}" isn't on this item — adding as a custom comment instead.`);
       // Clear the box ON THE BLOCK so the verification sweep and the dropdown
       // pass track the custom comment's heading, not the absent box label.
@@ -1897,8 +1912,49 @@
       proWhy = (pr && pr.why) || "";
     }
 
+    // TEMPLATE UPDATER: push the verified wording into the template via the
+    // card's own "Save to template" control. Fires ONLY in this mode, and
+    // ONLY when the wording read-back verified — unproven text must never
+    // become the template's stored language.
+    let templateSaved = false;
+    if (toTemplate && worded) {
+      const tctl = [...card.querySelectorAll('button,[role="button"],a,span,i,div')].find(
+        (el) => {
+          if (el.offsetParent === null) return false;
+          const words = (
+            (el.getAttribute("aria-label") || "") +
+            " " +
+            (el.getAttribute("title") || "") +
+            " " +
+            trimText(el)
+          ).toLowerCase();
+          if (/delete|remove|trash/.test(words)) return false;
+          return /(save|add)[^]{0,20}template/.test(words);
+        }
+      );
+      if (tctl) {
+        clickOnce(tctl);
+        await sleep(700);
+        // A confirmation dialog may follow — affirm it, scoped to the dialog.
+        const dlg = findCommentModalAny();
+        if (dlg) {
+          const yes = [...dlg.querySelectorAll('button,[role="button"],span,a,div')].find(
+            (el) =>
+              el.children.length === 0 &&
+              el.offsetParent !== null &&
+              /^(save|save changes|confirm|ok|yes|add|update)$/i.test(trimText(el))
+          );
+          if (yes) clickOnce(yes);
+          else await cancelModal(dlg);
+          await sleep(500);
+        }
+        templateSaved = true;
+      }
+    }
+
     // Save via the card's own save control — never anything mentioning
-    // "template", and never delete controls.
+    // "template" (outside the explicit updater click above), and never
+    // delete controls.
     const saveBtn = [...card.querySelectorAll('button,[role="button"],i,svg,a,span,div')].find(
       (el) => {
         if (el.offsetParent === null) return false;
@@ -1934,12 +1990,63 @@
         `couldn't set the Recommendation dropdown on "${b.box}" to "${b.pro}"` +
           (proWhy ? ` [${proWhy}]` : "")
       );
+    if (toTemplate && worded && !templateSaved)
+      warnings.push(
+        `wording verified but no "Save to template" control was found on the "${b.box}" card — save it to the template by hand`
+      );
+    if (toTemplate && !worded)
+      warnings.push(`NOT saved to the template (wording unverified)`);
     // No save control on a card is NORMAL — cards autosave (confirmed on the
     // 9608 Tiberias run) — so it is not warned about.
     return {
       ok: true,
+      templateSaved,
       warning: warnings.length ? `${where()}: ${warnings.join("; ")}` : null,
     };
+  }
+
+  // TEMPLATE UPDATER runner — rewrites each listed box's wording on THIS
+  // report and saves each verified wording into the template this report was
+  // created from. Meant to run ONLY on a dummy report built from the
+  // DUPLICATE template.
+  async function updateTemplateWordings(text, log) {
+    const blocks = parseWriteups(text).filter((b) => b.box);
+    if (!blocks.length) {
+      log("No @@BOX blocks found — paste the template-update payload here first.");
+      return;
+    }
+    log(
+      `TEMPLATE UPDATER — rewriting ${blocks.length} box wording(s) and saving each to the template this report uses.\n`
+    );
+    let done = 0;
+    const problems = [];
+    const resCache = new Map();
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      log(`(${i + 1}/${blocks.length}) ${b.section} › ${b.item || "?"} [${b.box}]…`);
+      let r;
+      try {
+        r = await placeBoxComment(b, log, resCache, { saveToTemplate: true });
+      } catch (e) {
+        r = {
+          ok: false,
+          problem: `${b.section} › ${b.item || "?"}: error — ${e && e.message ? e.message : e}`,
+        };
+      }
+      if (r.ok && r.templateSaved) {
+        done++;
+        if (r.warning) problems.push(r.warning);
+      } else {
+        problems.push(r.problem || r.warning || `${b.section} › ${b.item || "?"} [${b.box}]: not saved to the template`);
+      }
+      await sleep(400);
+    }
+    log(
+      `\nSaved ${done}/${blocks.length} box wordings to the template.` +
+        (problems.length ? `\n\nIssues:\n- ${problems.join("\n- ")}` : " All saved.") +
+        `\n\nSpot-check a few boxes in the TEMPLATE EDITOR to confirm, then build a fresh test report from the template to see the new wording live.`
+    );
+    log(`\nClick "Copy log" below and paste it into the chat.`);
   }
 
   async function placeWriteups(text, log) {
@@ -2919,6 +3026,14 @@
     Object.assign(clickAddBtn.style, { border: "1px solid #e5e7eb", fontSize: "12px", marginTop: "8px" });
     advWrap.appendChild(clickAddBtn);
 
+    advWrap.appendChild(
+      mkLabel("⚠ Template updater — DUMMY report from the DUPLICATE template ONLY:")
+    );
+    const tmplBtn = mkBtn("Rewrite box wordings & save to template", "#7c3aed", "#fff");
+    tmplBtn.style.width = "100%";
+    tmplBtn.style.fontSize = "12px";
+    advWrap.appendChild(tmplBtn);
+
     advWrap.appendChild(mkLabel("Recovery — untick every Defects box:"));
     const clearDefectsBtn = mkBtn("🧹 Clear ALL Defect boxes", "#b91c1c", "#fff");
     clearDefectsBtn.style.width = "100%";
@@ -3022,6 +3137,24 @@
       placeBtn.disabled = false;
       if (placedOk) markStepDone(placeBtn, "Step 2 done — write-ups placed");
       else placeBtn.textContent = "Place custom write-ups";
+    };
+    tmplBtn.onclick = async () => {
+      if (
+        !window.confirm(
+          "TEMPLATE UPDATER\n\nThis PERMANENTLY changes the stored wording of the TEMPLATE this report was created from — every future report built from that template gets the new language.\n\nOnly continue if BOTH are true:\n• this page is the DUMMY test report\n• that report was built from the DUPLICATE template (never the original)\n\nContinue?"
+        )
+      )
+        return;
+      resetLog();
+      tmplBtn.disabled = true;
+      tmplBtn.textContent = "Updating template… (leave this tab open)";
+      try {
+        await updateTemplateWordings(taWriteups.value, log);
+      } catch (e) {
+        log("Template update error: " + (e && e.message ? e.message : e));
+      }
+      tmplBtn.disabled = false;
+      tmplBtn.textContent = "Rewrite box wordings & save to template";
     };
     fixProBtn.onclick = async () => {
       resetLog();
