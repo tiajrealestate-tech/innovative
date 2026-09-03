@@ -2170,6 +2170,226 @@
     log(`\nClick "Copy log" below and paste it into the chat.`);
   }
 
+  // TEMPLATE 2ND PASS — walks every block in the payload, verifies each
+  // card's wording, category, and professional against the payload (fixing
+  // whatever doesn't match), and clicks Save-to-template on EVERY card, new
+  // and rewritten alike. This pass completes new entries (their first
+  // template snapshot was taken in the Add dialog, before a professional
+  // could exist) and catches anything pass 1 missed. Unverified wording is
+  // NEVER pushed to the template.
+  async function verifyTemplateCard(b, log, resCache) {
+    const where = () => `${b.section} › ${b.item || "?"}`;
+    const name = b.box || b.heading || "?";
+    if (!(await selectSection(b.section)))
+      return { ok: false, problem: "Section not found: " + b.section };
+    const sel = await selectItemWithFallback(b.section, b.item, log, resCache);
+    if (!sel.ok) return { ok: false, problem: `Item not found: ${b.item} (in ${b.section})` };
+    if (existsByText("Defects")) {
+      (await openTab("Defects")) || (await openTab("Defects"));
+    }
+    await closeAnyDialog();
+
+    const frag = name.toLowerCase().slice(0, 40);
+    const findLeaf = () =>
+      [...document.querySelectorAll("div,span,p,td,h1,h2,h3,label")].find(
+        (el) =>
+          el.children.length === 0 &&
+          el.offsetParent !== null &&
+          trimText(el).toLowerCase().includes(frag)
+      ) || null;
+    let leaf = findLeaf();
+    if (!leaf) {
+      const entry = REPORT_MAP.find(([s]) => norm(s) === norm(b.section));
+      for (const cand of entry ? entry[1] : []) {
+        if (norm(cand) === norm(sel.item || b.item)) continue;
+        if (!(await selectItem(cand))) continue;
+        if (existsByText("Defects")) await openTab("Defects");
+        await sleep(300);
+        leaf = findLeaf();
+        if (leaf) break;
+      }
+    }
+    if (!leaf) return { ok: false, problem: `${where()}: "${name}" not found in this section` };
+
+    let card = leaf.closest(".comment.record") || leaf.closest(".card");
+    if (!card) {
+      let n = leaf.parentElement;
+      for (let i = 0; i < 8 && n; i++) {
+        if (n.querySelector && n.querySelector(".card-header")) {
+          card = n;
+          break;
+        }
+        n = n.parentElement;
+      }
+    }
+    if (!card) card = leaf.closest('[class*="comment"]') || leaf.parentElement;
+
+    if (!editableFieldsIn(card).length) {
+      const header = card.querySelector(".card-header") || card.firstElementChild;
+      const cb = card.querySelector('input[type="checkbox"]');
+      const was = cb ? cb.checked : null;
+      if (header) {
+        clickOnce(header);
+        await sleep(600);
+      }
+      const cbNow = card.querySelector('input[type="checkbox"]');
+      if (cbNow && was !== null && cbNow.checked !== was) {
+        cbNow.click();
+        await waitFor(() => {
+          const f = card.querySelector('input[type="checkbox"]');
+          return !!f && f.checked === was;
+        }, 2500);
+        return {
+          ok: false,
+          problem: `${where()}: expanding "${name}" ticked its checkbox — undone and skipped; open it by hand`,
+        };
+      }
+      await waitFor(() => editableFieldsIn(card).length > 0, 3000);
+    }
+    if (!editableFieldsIn(card).length)
+      return { ok: false, problem: `${where()}: couldn't open the editor for "${name}"` };
+
+    const fixes = [];
+    await waitFor(
+      () =>
+        !!card.querySelector('.fr-element[contenteditable="true"]') ||
+        editableFieldsIn(card).some((el) => el.isContentEditable),
+      4000
+    );
+    await sleep(300);
+    const bodyEl =
+      card.querySelector('.fr-element[contenteditable="true"]') ||
+      editableFieldsIn(card).find((el) => el.isContentEditable) ||
+      editableFieldsIn(card)[0] ||
+      null;
+    const target = norm(b.body || "").slice(0, 25);
+    let worded = !target; // no body in the block => nothing to verify
+    if (bodyEl && target) {
+      const now = norm(
+        (bodyEl.isContentEditable ? bodyEl.textContent : bodyEl.value) || ""
+      );
+      worded = now.includes(target);
+      if (!worded) {
+        for (let att = 0; att < 2 && !worded; att++) {
+          if (bodyEl.isContentEditable) setRichText(bodyEl, b.body);
+          else setFieldValue(bodyEl, b.body);
+          await sleep(600);
+          const chk = norm(
+            (bodyEl.isContentEditable ? bodyEl.textContent : bodyEl.value) || ""
+          );
+          worded = chk.includes(target);
+        }
+        fixes.push(worded ? "wording corrected" : "wording still wrong");
+        try {
+          bodyEl.dispatchEvent(new Event("blur", { bubbles: true }));
+          if (bodyEl.blur) bodyEl.blur();
+        } catch (e) {}
+        await sleep(300);
+      }
+    }
+    if (!worded) {
+      if (expandedRecord()) collapseOpen();
+      return {
+        ok: false,
+        problem: `${where()}: "${name}" wording could not be verified — NOT re-saved to the template`,
+      };
+    }
+    if (b.severity && b.severity !== "recommendation") {
+      const s = await pickSeverity(card, b.severity);
+      if (!s) fixes.push(`couldn't confirm the ${b.severity} rating`);
+    }
+    if (b.pro) {
+      const pr = await setProDropdown(card, b.pro);
+      if (!pr.ok) fixes.push(`couldn't set professional "${b.pro}"${pr.why ? " [" + pr.why + "]" : ""}`);
+    }
+
+    const tctl = [...card.querySelectorAll('button,[role="button"],a,span,i,div')].find(
+      (el) => {
+        if (el.offsetParent === null) return false;
+        const words = (
+          (el.getAttribute("aria-label") || "") +
+          " " +
+          (el.getAttribute("title") || "") +
+          " " +
+          trimText(el)
+        ).toLowerCase();
+        if (/delete|remove|trash/.test(words)) return false;
+        return /(save|add)[^]{0,20}template/.test(words);
+      }
+    );
+    let templateSaved = false;
+    if (tctl) {
+      clickOnce(tctl);
+      await sleep(700);
+      const dlg = findCommentModalAny();
+      if (dlg) {
+        const yes = [...dlg.querySelectorAll('button,[role="button"],span,a,div')].find(
+          (el) =>
+            el.children.length === 0 &&
+            el.offsetParent !== null &&
+            /^(save|save changes|confirm|ok|yes|add|update)$/i.test(trimText(el))
+        );
+        if (yes) clickOnce(yes);
+        else await cancelModal(dlg);
+        await sleep(500);
+      }
+      templateSaved = true;
+    }
+    if (expandedRecord()) collapseOpen();
+    await sleep(250);
+    if (!templateSaved)
+      return {
+        ok: false,
+        problem: `${where()}: no Save-to-template control found on "${name}" — save it by hand`,
+      };
+    return {
+      ok: true,
+      templateSaved,
+      note: fixes.length ? `fixed: ${fixes.join("; ")}` : "all matched — re-saved",
+    };
+  }
+
+  async function templateSecondPass(text, log) {
+    const blocks = parseWriteups(text);
+    if (!blocks.length) {
+      log("No blocks found — paste the template payload here first.");
+      return;
+    }
+    log(
+      `TEMPLATE 2ND PASS — verifying ${blocks.length} entr${blocks.length === 1 ? "y" : "ies"} (wording, category, professional) and re-saving each to the template.\n`
+    );
+    let saved = 0;
+    const problems = [];
+    const resCache = new Map();
+    for (let i = 0; i < blocks.length; i++) {
+      const b = blocks[i];
+      log(`(${i + 1}/${blocks.length}) ${b.section} › ${b.item || "?"} — ${b.box || b.heading}…`);
+      let r;
+      try {
+        r = await verifyTemplateCard(b, log, resCache);
+      } catch (e) {
+        r = {
+          ok: false,
+          problem: `${b.section} › ${b.item || "?"}: error — ${e && e.message ? e.message : e}`,
+        };
+      }
+      if (r.ok && r.templateSaved) {
+        saved++;
+        if (r.note) log(`  ${r.note}`);
+      } else {
+        problems.push(r.problem || `${b.section} › ${b.item || "?"}: not re-saved`);
+      }
+      await sleep(400);
+    }
+    log(
+      `\nRe-saved ${saved}/${blocks.length} entries to the template.` +
+        (problems.length
+          ? `\n\nIssues:\n- ${problems.join("\n- ")}`
+          : " Every entry verified and saved — the template is complete.")
+    );
+    log(`\nClick "Copy log" below and paste it into the chat.`);
+  }
+
   // ---- fix-up sweep: set Recommendation dropdowns on ALREADY-PLACED
   // write-ups, in place, without re-adding anything. Built for the 46 Club
   // View run, where all 83 comments saved fine but every dropdown attempt
@@ -3079,6 +3299,12 @@
     tmplBtn.style.fontSize = "12px";
     advWrap.appendChild(tmplBtn);
 
+    const tmpl2Btn = mkBtn("2nd pass — verify ALL & re-save to template", "#a855f7", "#fff");
+    tmpl2Btn.style.width = "100%";
+    tmpl2Btn.style.fontSize = "12px";
+    tmpl2Btn.style.marginTop = "6px";
+    advWrap.appendChild(tmpl2Btn);
+
     advWrap.appendChild(mkLabel("Recovery — untick every Defects box:"));
     const clearDefectsBtn = mkBtn("🧹 Clear ALL Defect boxes", "#b91c1c", "#fff");
     clearDefectsBtn.style.width = "100%";
@@ -3200,6 +3426,24 @@
       }
       tmplBtn.disabled = false;
       tmplBtn.textContent = "Rewrite box wordings & save to template";
+    };
+    tmpl2Btn.onclick = async () => {
+      if (
+        !window.confirm(
+          "TEMPLATE 2ND PASS\n\nThis re-checks EVERY entry in the payload — wording, category, and professional — fixes anything that doesn't match, and clicks Save-to-template on every card. It PERMANENTLY updates the template this report was created from.\n\nOnly continue on the DUMMY report built from the DUPLICATE template.\n\nContinue?"
+        )
+      )
+        return;
+      resetLog();
+      tmpl2Btn.disabled = true;
+      tmpl2Btn.textContent = "2nd pass running… (leave this tab open)";
+      try {
+        await templateSecondPass(taWriteups.value, log);
+      } catch (e) {
+        log("2nd pass error: " + (e && e.message ? e.message : e));
+      }
+      tmpl2Btn.disabled = false;
+      tmpl2Btn.textContent = "2nd pass — verify ALL & re-save to template";
     };
     fixProBtn.onclick = async () => {
       resetLog();
