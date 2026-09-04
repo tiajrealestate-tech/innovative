@@ -450,12 +450,10 @@
   // button, so walk upward from "+ ITEM" until a section name is met.
   function currentSectionItems() {
     const sectionNames = new Set(REPORT_MAP.map(([s]) => norm(s)));
-    const plus = [...document.querySelectorAll("span,div,li,a,button")].find(
-      (el) =>
-        el.children.length === 0 &&
-        el.offsetParent !== null &&
-        /^\+?\s*item$/.test(norm(el.textContent))
+    const cands = [...document.querySelectorAll("span,div,li,a,button")].filter(
+      (el) => el.offsetParent !== null && norm(el.textContent) === "item" && trimText(el).length <= 8
     );
+    const plus = cands.find((el) => !cands.some((o) => o !== el && el.contains(o))) || null;
     if (!plus) return [];
     // Climb to the sidebar row that holds "+ ITEM" (first ancestor that has
     // siblings — the row list itself).
@@ -863,14 +861,26 @@
   // dummy report before the scan reads it. Cancels cleanly when the optional
   // list is empty. Returns how many boxes were ticked.
   async function addOptionalItemsHere(log, section) {
-    const plus = [...document.querySelectorAll("span,div,li,a,button")].find(
-      (el) => el.children.length === 0 && el.offsetParent !== null && /^\+\s*item$/i.test(trimText(el))
+    // The sidebar renders "+" and "ITEM" as separate pieces, so match on the
+    // row's COMBINED text (norm strips the plus) and click the smallest such
+    // element — never require the plus to share a text node with "ITEM".
+    const candidates = [...document.querySelectorAll("span,div,li,a,button")].filter(
+      (el) => el.offsetParent !== null && norm(el.textContent) === "item" && trimText(el).length <= 8
     );
-    if (!plus) return 0;
+    // Innermost match = the actual button, not a wrapper around half the page.
+    const plus = candidates.find((el) => !candidates.some((o) => o !== el && el.contains(o))) || null;
+    if (!plus) {
+      log(`   ${section}: + ITEM button not found — optional items NOT added here`);
+      return 0;
+    }
+    try { plus.scrollIntoView({ block: "center" }); } catch (e) {}
     fireClick(plus);
     const clk = plus.closest("li,a,button,[role='button']");
     if (clk && clk !== plus) fireClick(clk);
-    if (!(await waitFor(() => existsByText("ADD AN OPTIONAL ITEM"), 5000))) return 0;
+    if (!(await waitFor(() => existsByText("ADD AN OPTIONAL ITEM"), 5000))) {
+      log(`   ${section}: + ITEM clicked but the New Item dialog never opened — optional items NOT added here`);
+      return 0;
+    }
     await sleep(600);
     const hdr = [...document.querySelectorAll("span,div,h2,h3")].find(
       (el) => el.children.length === 0 && norm(el.textContent) === "add an optional item"
@@ -879,6 +889,7 @@
       (el) => el.children.length === 0 && norm(el.textContent) === "add optional items"
     );
     if (!hdr || !addBtn) {
+      log(`   ${section}: New Item dialog opened but its parts weren't recognized — cancelled, nothing added`);
       clickByText("CANCEL");
       await sleep(500);
       return 0;
@@ -908,6 +919,7 @@
       await sleep(1800); // let the new items land in the sidebar
       log(`   ${section}: added ${ticked} optional item(s)`);
     } else {
+      log(`   ${section}: no optional items left to add`);
       clickByText("CANCEL");
       await sleep(500);
     }
@@ -3579,6 +3591,7 @@
       );
       scanAllBtn.disabled = true;
       scanAllBtn.textContent = "Scanning… (leave this tab open)";
+      log(addOptional ? "Optional-item add: ON — each section's + ITEM dialog will be filled first." : "Optional-item add: OFF — scanning what's already there.");
       try {
         await scanAll(log, { addOptional });
       } catch (e) {
