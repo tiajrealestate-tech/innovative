@@ -861,67 +861,60 @@
   // dummy report before the scan reads it. Cancels cleanly when the optional
   // list is empty. Returns how many boxes were ticked.
   async function addOptionalItemsHere(log, section) {
-    // The sidebar renders "+" and "ITEM" as separate pieces, so match on the
-    // row's COMBINED text (norm strips the plus) and click the smallest such
-    // element — never require the plus to share a text node with "ITEM".
-    const candidates = [...document.querySelectorAll("span,div,li,a,button")].filter(
-      (el) => el.offsetParent !== null && norm(el.textContent) === "item" && trimText(el).length <= 8
-    );
-    // Innermost match = the actual button, not a wrapper around half the page.
-    const plus = candidates.find((el) => !candidates.some((o) => o !== el && el.contains(o))) || null;
+    // Built on the SAME primitives as addOptionalItem() below — the path that
+    // has added optional items successfully in real runs — rather than a
+    // separate click recipe.
+    await closeAnyDialog();
+    const plus = deepestByText((t) => /^\+?\s*item$/i.test(t));
     if (!plus) {
       log(`   ${section}: + ITEM button not found — optional items NOT added here`);
       return 0;
     }
-    try { plus.scrollIntoView({ block: "center" }); } catch (e) {}
-    fireClick(plus);
-    const clk = plus.closest("li,a,button,[role='button']");
-    if (clk && clk !== plus) fireClick(clk);
-    if (!(await waitFor(() => existsByText("ADD AN OPTIONAL ITEM"), 5000))) {
+    clickOnce(plus);
+    const isDlg = (t) => /^add an optional item$/i.test(t);
+    if (!(await waitFor(() => !!deepestByText(isDlg), 6000))) {
       log(`   ${section}: + ITEM clicked but the New Item dialog never opened — optional items NOT added here`);
+      await closeAnyDialog();
       return 0;
     }
-    await sleep(600);
-    const hdr = [...document.querySelectorAll("span,div,h2,h3")].find(
-      (el) => el.children.length === 0 && norm(el.textContent) === "add an optional item"
-    );
-    const addBtn = [...document.querySelectorAll("span,button,div")].find(
-      (el) => el.children.length === 0 && norm(el.textContent) === "add optional items"
-    );
-    if (!hdr || !addBtn) {
-      log(`   ${section}: New Item dialog opened but its parts weren't recognized — cancelled, nothing added`);
-      clickByText("CANCEL");
+    await sleep(500);
+    const hdr = deepestByText(isDlg);
+    let addBtn = deepestByText((t) => /^add optional items?$/i.test(t));
+    const optionInputs = () =>
+      [...document.querySelectorAll('input[type="checkbox"]')].filter(
+        (i) =>
+          !i.disabled &&
+          !i.checked &&
+          hdr.compareDocumentPosition(i) & Node.DOCUMENT_POSITION_FOLLOWING &&
+          (!addBtn || addBtn.compareDocumentPosition(i) & Node.DOCUMENT_POSITION_PRECEDING)
+      );
+    let inputs = optionInputs();
+    if (!inputs.length) {
+      // The optional panel may start collapsed — its header expands it.
+      clickOnce(hdr);
       await sleep(500);
-      return 0;
+      addBtn = deepestByText((t) => /^add optional items?$/i.test(t)) || addBtn;
+      inputs = optionInputs();
     }
-    // Option checkboxes live between the panel header and its ADD button in
-    // document order — this skips the panel-header toggles and the "blank
-    // item" panel below.
-    const inputs = [...document.querySelectorAll('input[type="checkbox"]')].filter(
-      (i) =>
-        !i.disabled &&
-        !i.checked &&
-        hdr.compareDocumentPosition(i) & Node.DOCUMENT_POSITION_FOLLOWING &&
-        addBtn.compareDocumentPosition(i) & Node.DOCUMENT_POSITION_PRECEDING
-    );
     let ticked = 0;
     for (const input of inputs) {
-      fireClick(input.closest("label") || input);
-      await sleep(150);
+      clickOnce(input);
+      await sleep(200);
       if (!input.checked) {
-        try { input.click(); } catch (e) {}
-        await sleep(150);
+        clickOnce(input.closest("label") || input);
+        await sleep(200);
       }
       if (input.checked) ticked++;
     }
-    if (ticked) {
-      fireClick(addBtn.closest("button") || addBtn);
-      await sleep(1800); // let the new items land in the sidebar
+    if (ticked && addBtn) {
+      clickOnce(addBtn);
+      await waitFor(() => !dialogOpen(), 6000);
+      await closeAnyDialog();
+      await sleep(1200); // let the new items land in the sidebar
       log(`   ${section}: added ${ticked} optional item(s)`);
     } else {
       log(`   ${section}: no optional items left to add`);
-      clickByText("CANCEL");
-      await sleep(500);
+      await closeAnyDialog();
     }
     return ticked;
   }
