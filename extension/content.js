@@ -444,6 +444,39 @@
     }
     return out;
   }
+  // The items ACTUALLY in the open section's sidebar right now — read live so
+  // optional items added after this map was written still get scanned. The
+  // open section's item rows sit between the section header and its "+ ITEM"
+  // button, so walk upward from "+ ITEM" until a section name is met.
+  function currentSectionItems() {
+    const sectionNames = new Set(REPORT_MAP.map(([s]) => norm(s)));
+    const plus = [...document.querySelectorAll("span,div,li,a,button")].find(
+      (el) =>
+        el.children.length === 0 &&
+        el.offsetParent !== null &&
+        /^\+?\s*item$/.test(norm(el.textContent))
+    );
+    if (!plus) return [];
+    // Climb to the sidebar row that holds "+ ITEM" (first ancestor that has
+    // siblings — the row list itself).
+    let row = plus;
+    while (row.parentElement && !row.previousElementSibling) row = row.parentElement;
+    const names = [];
+    for (let n = row.previousElementSibling; n; n = n.previousElementSibling) {
+      // A row's name is its longest visible leaf text (skips icon glyphs).
+      let best = "";
+      for (const el of n.querySelectorAll("span,div,a")) {
+        if (el.children.length !== 0) continue;
+        const t = trimText(el);
+        if (t.length > best.length && t.length <= 80) best = t;
+      }
+      if (!best && n.children.length === 0) best = trimText(n);
+      if (!best || best.length < 3) continue;
+      if (sectionNames.has(norm(best))) break; // reached the section header
+      names.unshift(best);
+    }
+    return names;
+  }
   function tabActive(name) {
     const leaf = [...document.querySelectorAll("span")].find(
       (el) => el.children.length === 0 && norm(el.textContent) === norm(name)
@@ -825,9 +858,65 @@
     return tabs.map((t) => t.tab + ":" + t.checkboxes.join("|")).join("§");
   }
 
+  // Open the current section's "+ ITEM" dialog, tick every checkbox under
+  // "ADD AN OPTIONAL ITEM", and confirm — so every optional item exists in the
+  // dummy report before the scan reads it. Cancels cleanly when the optional
+  // list is empty. Returns how many boxes were ticked.
+  async function addOptionalItemsHere(log, section) {
+    const plus = [...document.querySelectorAll("span,div,li,a,button")].find(
+      (el) => el.children.length === 0 && el.offsetParent !== null && /^\+\s*item$/i.test(trimText(el))
+    );
+    if (!plus) return 0;
+    fireClick(plus);
+    const clk = plus.closest("li,a,button,[role='button']");
+    if (clk && clk !== plus) fireClick(clk);
+    if (!(await waitFor(() => existsByText("ADD AN OPTIONAL ITEM"), 5000))) return 0;
+    await sleep(600);
+    const hdr = [...document.querySelectorAll("span,div,h2,h3")].find(
+      (el) => el.children.length === 0 && norm(el.textContent) === "add an optional item"
+    );
+    const addBtn = [...document.querySelectorAll("span,button,div")].find(
+      (el) => el.children.length === 0 && norm(el.textContent) === "add optional items"
+    );
+    if (!hdr || !addBtn) {
+      clickByText("CANCEL");
+      await sleep(500);
+      return 0;
+    }
+    // Option checkboxes live between the panel header and its ADD button in
+    // document order — this skips the panel-header toggles and the "blank
+    // item" panel below.
+    const inputs = [...document.querySelectorAll('input[type="checkbox"]')].filter(
+      (i) =>
+        !i.disabled &&
+        !i.checked &&
+        hdr.compareDocumentPosition(i) & Node.DOCUMENT_POSITION_FOLLOWING &&
+        addBtn.compareDocumentPosition(i) & Node.DOCUMENT_POSITION_PRECEDING
+    );
+    let ticked = 0;
+    for (const input of inputs) {
+      fireClick(input.closest("label") || input);
+      await sleep(150);
+      if (!input.checked) {
+        try { input.click(); } catch (e) {}
+        await sleep(150);
+      }
+      if (input.checked) ticked++;
+    }
+    if (ticked) {
+      fireClick(addBtn.closest("button") || addBtn);
+      await sleep(1800); // let the new items land in the sidebar
+      log(`   ${section}: added ${ticked} optional item(s)`);
+    } else {
+      clickByText("CANCEL");
+      await sleep(500);
+    }
+    return ticked;
+  }
+
   // Walk the entire report (every section -> its own page -> every item -> tab)
   // and record the exact checkbox wording found at each stop.
-  async function scanAll(log) {
+  async function scanAll(log, opts = {}) {
     const started = Date.now();
     const result = { version: VERSION, url: location.href, generatedAt: new Date().toISOString(), sections: [] };
     let itemsFound = 0;
@@ -849,6 +938,17 @@
       }
       sectionRec.found = true;
 
+      // First, pull in any optional items the template offers for this
+      // section so they exist to be scanned (dummy report only — gated by
+      // the confirm on the scan button).
+      if (opts.addOptional) {
+        try {
+          await addOptionalItemsHere(log, section);
+        } catch (e) {
+          log(`   ${section}: optional-item add failed (${e.message}) — scanning what's there`);
+        }
+      }
+
       // The section's OWN Information/Limitations page — where Inspection
       // Method, Roof Type/Style, water source etc. live. Read before opening
       // any item, recorded under the "(Section)" pseudo-item.
@@ -867,7 +967,13 @@
         }
       }
 
-      for (const item of items) {
+      // Scan the mapped items PLUS anything actually in the sidebar that the
+      // map doesn't know about (optional items added after the map was
+      // written) — so nothing in the open section is ever skipped again.
+      const known = new Set(items.map(norm));
+      const liveExtras = currentSectionItems().filter((t) => !known.has(norm(t)));
+      if (liveExtras.length) log(`   ${section}: +${liveExtras.length} live sidebar item(s): ${liveExtras.join(", ")}`);
+      for (const item of [...items, ...liveExtras]) {
         const itemRec = { item, tabs: [] };
         sectionRec.items.push(itemRec);
         if (!(await selectItem(item))) {
@@ -3463,10 +3569,18 @@
     };
     scanAllBtn.onclick = async () => {
       resetLog();
+      // Adding optional items changes the open report, so it only belongs on
+      // the DUMMY report from the DUPLICATE template — never a client report.
+      const addOptional = window.confirm(
+        "Also ADD every optional item to each section before scanning?\n\n" +
+          "OK = click + ITEM in every section, tick all optional items, add them, then scan " +
+          "(use ONLY on the DUMMY report from the DUPLICATE template).\n\n" +
+          "Cancel = scan what's already there without adding anything."
+      );
       scanAllBtn.disabled = true;
       scanAllBtn.textContent = "Scanning… (leave this tab open)";
       try {
-        await scanAll(log);
+        await scanAll(log, { addOptional });
       } catch (e) {
         log("Scan error: " + (e && e.message ? e.message : e));
       }
