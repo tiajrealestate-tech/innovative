@@ -92,7 +92,11 @@
 
   // ---- generic helpers ----------------------------------------------------
 
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  // Every wait in the extension flows through here. PACE_FACTOR is raised
+  // during template scans (slow mode) so navigation and dialogs never race
+  // the page — the cause of the missed "hidden" items on cluttered reports.
+  let PACE_FACTOR = 1;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms * PACE_FACTOR));
   async function waitFor(pred, timeout = 3000, step = 120) {
     const t0 = Date.now();
     while (Date.now() - t0 < timeout) {
@@ -857,6 +861,76 @@
   // "ADD AN OPTIONAL ITEM", and confirm — so every optional item exists in the
   // dummy report before the scan reads it. Cancels cleanly when the optional
   // list is empty. Returns how many boxes were ticked.
+  // An option row's name is the longest text near its checkbox — used to skip
+  // options that already exist and to report what was added.
+  function optionRowName(input) {
+    let node = input;
+    for (let i = 0; i < 4 && node; i++, node = node.parentElement) {
+      let best = "";
+      for (const el of node.querySelectorAll ? node.querySelectorAll("span,div,label") : []) {
+        if (el.children.length !== 0) continue;
+        const t = trimText(el);
+        if (t.length > best.length && t.length <= 80) best = t;
+      }
+      if (best) return best;
+    }
+    return "";
+  }
+
+  // The template can also hide whole SECTIONS behind "+ SECTION". Open that
+  // dialog, tick every optional section not already in the report, and add
+  // them — returning the added names so the scan can walk them too.
+  async function addOptionalSections(log) {
+    await closeAnyDialog();
+    const plus = deepestByText((t) => /^\+?\s*section$/i.test(t));
+    if (!plus) {
+      log("+ SECTION button not found — no hidden sections added");
+      return [];
+    }
+    clickOnce(plus);
+    const isDlg = (t) => /^add an optional section/i.test(t) || /^new section$/i.test(t);
+    if (!(await waitFor(() => !!deepestByText(isDlg) || !!deepestByText((t) => /^add optional sections?$/i.test(t)), 6000))) {
+      log("+ SECTION clicked but its dialog never opened — no hidden sections added");
+      await closeAnyDialog();
+      return [];
+    }
+    await sleep(600);
+    const hdr = deepestByText(isDlg) || deepestByText((t) => /^add an optional/i.test(t));
+    const addBtn = deepestByText((t) => /^add optional sections?$/i.test(t));
+    const existing = new Set(REPORT_MAP.map(([s]) => norm(s)));
+    for (const t of visibleNavTexts()) existing.add(norm(t));
+    const inputs = [...document.querySelectorAll('input[type="checkbox"]')].filter(
+      (i) =>
+        !i.disabled &&
+        !i.checked &&
+        (!hdr || hdr.compareDocumentPosition(i) & Node.DOCUMENT_POSITION_FOLLOWING) &&
+        (!addBtn || addBtn.compareDocumentPosition(i) & Node.DOCUMENT_POSITION_PRECEDING)
+    );
+    const added = [];
+    for (const input of inputs) {
+      const name = optionRowName(input);
+      if (name && existing.has(norm(name))) continue;
+      clickOnce(input);
+      await sleep(250);
+      if (!input.checked) {
+        clickOnce(input.closest("label") || input);
+        await sleep(250);
+      }
+      if (input.checked && name) added.push(name);
+    }
+    if (added.length && addBtn) {
+      clickOnce(addBtn);
+      await waitFor(() => !dialogOpen(), 6000);
+      await closeAnyDialog();
+      await sleep(1500);
+      log(`Added ${added.length} hidden section(s): ${added.join(", ")}`);
+    } else {
+      log("No hidden sections left to add");
+      await closeAnyDialog();
+    }
+    return added;
+  }
+
   async function addOptionalItemsHere(log, section) {
     // Built on the SAME primitives as addOptionalItem() below — the path that
     // has added optional items successfully in real runs — rather than a
@@ -897,21 +971,7 @@
       addBtn = deepestByText((t) => /^add optional items?$/i.test(t)) || addBtn;
       inputs = optionInputs();
     }
-    // Each option row's name is the longest text near its checkbox — used to
-    // skip options whose item already exists in the sidebar.
-    const rowName = (input) => {
-      let node = input;
-      for (let i = 0; i < 4 && node; i++, node = node.parentElement) {
-        let best = "";
-        for (const el of node.querySelectorAll ? node.querySelectorAll("span,div,label") : []) {
-          if (el.children.length !== 0) continue;
-          const t = trimText(el);
-          if (t.length > best.length && t.length <= 80) best = t;
-        }
-        if (best) return best;
-      }
-      return "";
-    };
+    const rowName = optionRowName;
     let ticked = 0;
     let skipped = 0;
     for (const input of inputs) {
@@ -953,11 +1013,27 @@
     const missingList = [];
     let prevFp = null;
 
-    for (let s = 0; s < REPORT_MAP.length; s++) {
-      const [section, items] = REPORT_MAP[s];
+    // Slow mode: every wait doubles for the whole scan so navigation and
+    // dialogs never race the page. Restored in the finally below.
+    PACE_FACTOR = 2;
+    try {
+
+    // Hidden sections first — anything "+ SECTION" offers gets added and
+    // appended to the walk.
+    const scanList = REPORT_MAP.map((e) => e);
+    if (opts.addOptional) {
+      try {
+        for (const name of await addOptionalSections(log)) scanList.push([name, []]);
+      } catch (e) {
+        log(`Hidden-section add failed (${e.message}) — scanning existing sections`);
+      }
+    }
+
+    for (let s = 0; s < scanList.length; s++) {
+      const [section, items] = scanList[s];
       const sectionRec = { section, items: [] };
       result.sections.push(sectionRec);
-      log(`Scanning ${s + 1}/${REPORT_MAP.length}: ${section}…`);
+      log(`Scanning ${s + 1}/${scanList.length}: ${section}…`);
       const gotSection = await selectSection(section);
       if (!gotSection) {
         sectionRec.found = false;
@@ -1051,6 +1127,9 @@
         (missingList.length ? `\n\n${itemsMissing} items not found (see file):\n- ${missingList.slice(0, 8).join("\n- ")}${missingList.length > 8 ? "\n- …" : ""}` : "")
     );
     return result;
+    } finally {
+      PACE_FACTOR = 1;
+    }
   }
 
   // ---- placing 2026 write-ups (text) into the report ---------------------
