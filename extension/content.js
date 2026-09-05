@@ -448,27 +448,27 @@
   // optional items added after this map was written still get scanned. The
   // open section's item rows sit between the section header and its "+ ITEM"
   // button, so walk upward from "+ ITEM" until a section name is met.
-  function currentSectionItems() {
+  function currentSectionItems(section) {
+    // The open section's item rows sit BETWEEN its header and the "+ ITEM"
+    // button. Sibling-walking gets fooled by Spectora's nesting, so collect
+    // every visible text leaf in DOCUMENT ORDER between those two anchors —
+    // tree shape stops mattering.
     const sectionNames = new Set(REPORT_MAP.map(([s]) => norm(s)));
     const plus = deepestByText((t) => /^\+?\s*item$/i.test(t));
     if (!plus) return [];
-    // Climb to the sidebar row that holds "+ ITEM" (first ancestor that has
-    // siblings — the row list itself).
-    let row = plus;
-    while (row.parentElement && !row.previousElementSibling) row = row.parentElement;
+    const secEl = section ? deepestByText((t) => norm(t) === norm(section)) : null;
     const names = [];
-    for (let n = row.previousElementSibling; n; n = n.previousElementSibling) {
-      // A row's name is its longest visible leaf text (skips icon glyphs).
-      let best = "";
-      for (const el of n.querySelectorAll("span,div,a")) {
-        if (el.children.length !== 0) continue;
-        const t = trimText(el);
-        if (t.length > best.length && t.length <= 80) best = t;
-      }
-      if (!best && n.children.length === 0) best = trimText(n);
-      if (!best || best.length < 3) continue;
-      if (sectionNames.has(norm(best))) break; // reached the section header
-      names.unshift(best);
+    const seen = new Set();
+    for (const el of document.querySelectorAll("span,div,a,li")) {
+      if (el.children.length !== 0 || el.offsetParent === null) continue;
+      if (!(plus.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING)) continue;
+      if (secEl && !(secEl.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING)) continue;
+      const t = trimText(el);
+      if (!t || t.length < 3 || t.length > 60) continue;
+      const n = norm(t);
+      if (seen.has(n) || sectionNames.has(n)) continue;
+      seen.add(n);
+      names.push(t);
     }
     return names;
   }
@@ -862,6 +862,10 @@
     // has added optional items successfully in real runs — rather than a
     // separate click recipe.
     await closeAnyDialog();
+    // What the sidebar already holds — Spectora keeps offering optional items
+    // forever (adding again creates "Item 2", "Item 3", …), so anything
+    // already present must be skipped, not re-added.
+    const existing = new Set(currentSectionItems(section).map(norm));
     const plus = deepestByText((t) => /^\+?\s*item$/i.test(t));
     if (!plus) {
       log(`   ${section}: + ITEM button not found — optional items NOT added here`);
@@ -893,8 +897,29 @@
       addBtn = deepestByText((t) => /^add optional items?$/i.test(t)) || addBtn;
       inputs = optionInputs();
     }
+    // Each option row's name is the longest text near its checkbox — used to
+    // skip options whose item already exists in the sidebar.
+    const rowName = (input) => {
+      let node = input;
+      for (let i = 0; i < 4 && node; i++, node = node.parentElement) {
+        let best = "";
+        for (const el of node.querySelectorAll ? node.querySelectorAll("span,div,label") : []) {
+          if (el.children.length !== 0) continue;
+          const t = trimText(el);
+          if (t.length > best.length && t.length <= 80) best = t;
+        }
+        if (best) return best;
+      }
+      return "";
+    };
     let ticked = 0;
+    let skipped = 0;
     for (const input of inputs) {
+      const name = rowName(input);
+      if (name && existing.has(norm(name))) {
+        skipped++;
+        continue;
+      }
       clickOnce(input);
       await sleep(200);
       if (!input.checked) {
@@ -903,6 +928,7 @@
       }
       if (input.checked) ticked++;
     }
+    if (skipped) log(`   ${section}: ${skipped} optional item(s) already in the report — skipped`);
     if (ticked && addBtn) {
       clickOnce(addBtn);
       await waitFor(() => !dialogOpen(), 6000);
@@ -976,7 +1002,7 @@
       // map doesn't know about (optional items added after the map was
       // written) — so nothing in the open section is ever skipped again.
       const known = new Set(items.map(norm));
-      const liveExtras = currentSectionItems().filter((t) => !known.has(norm(t)));
+      const liveExtras = currentSectionItems(section).filter((t) => !known.has(norm(t)) && norm(t) !== "item");
       if (liveExtras.length) log(`   ${section}: +${liveExtras.length} live sidebar item(s): ${liveExtras.join(", ")}`);
       for (const item of [...items, ...liveExtras]) {
         const itemRec = { item, tabs: [] };
