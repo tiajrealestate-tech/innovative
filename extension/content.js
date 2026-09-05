@@ -450,10 +450,7 @@
   // button, so walk upward from "+ ITEM" until a section name is met.
   function currentSectionItems() {
     const sectionNames = new Set(REPORT_MAP.map(([s]) => norm(s)));
-    const cands = [...document.querySelectorAll("span,div,li,a,button")].filter(
-      (el) => el.offsetParent !== null && norm(el.textContent) === "item" && trimText(el).length <= 8
-    );
-    const plus = cands.find((el) => !cands.some((o) => o !== el && el.contains(o))) || null;
+    const plus = deepestByText((t) => /^\+?\s*item$/i.test(t));
     if (!plus) return [];
     // Climb to the sidebar row that holds "+ ITEM" (first ancestor that has
     // siblings — the row list itself).
@@ -948,7 +945,10 @@
       // the confirm on the scan button).
       if (opts.addOptional) {
         try {
-          await addOptionalItemsHere(log, section);
+          const added = await addOptionalItemsHere(log, section);
+          // Adding items can leave the page on the newly created item — go
+          // back to the section page so the "(Section)" read is really it.
+          if (added) await selectSection(section);
         } catch (e) {
           log(`   ${section}: optional-item add failed (${e.message}) — scanning what's there`);
         }
