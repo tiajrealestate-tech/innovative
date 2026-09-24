@@ -116,7 +116,7 @@ export const CURRENCY_SCREENS: Partial<Record<FormScreen, CurrencyScreen>> = {
         path: "assets.lifeInsuranceNet",
         label: "Life insurance cash value",
         helper:
-          "Typically only whole life and universal life policies have a cash value. Term life, including most policies through work, has none, so enter 0. If yours has cash value, enter what you would get if you cashed it in, minus any loan against it.",
+          "Whole life and universal life policies (including variable and indexed universal life) usually build cash value. Term life, including most policies through work, does not, so enter 0. If yours has cash value, enter what you would get if you cashed it in, minus any loan against it.",
       },
       {
         path: "assets.miscellaneous",
@@ -206,7 +206,7 @@ export const CURRENCY_SCREENS: Partial<Record<FormScreen, CurrencyScreen>> = {
       {
         path: "expenses.lifeInsurance",
         label: "Life insurance premiums",
-        helper: "Premiums for term life insurance on your own life. Whole life premiums usually are not counted.",
+        helper: "What you pay each month for life insurance on your own life.",
       },
     ],
   },
