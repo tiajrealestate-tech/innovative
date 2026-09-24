@@ -27,22 +27,22 @@ export const CURRENCY_SCREENS: Partial<Record<FormScreen, CurrencyScreen>> = {
       {
         path: "assets.cashAndBank",
         label: "Total bank balances",
-        helper: "Checking, savings, and cash on hand, with all accounts added together.",
+        helper: "Checking, savings, money market accounts, and cash on hand, all added together.",
       },
       {
         path: "assets.investmentsNet",
         label: "Stocks, bonds, crypto, and other investments",
-        helper: "What they are worth today, minus any loan against them.",
+        helper: "Brokerage accounts, stocks, bonds, mutual funds, and cryptocurrency. What they are worth today, minus any loan against them. Do not include retirement accounts.",
       },
       {
         path: "assets.retirementMarket",
         label: "Retirement accounts: current value",
-        helper: "401(k), IRA, and similar accounts. Use the balance before taxes or penalties.",
+        helper: "401(k), 403(b), TSP, traditional or Roth IRA, and similar accounts. Use the full balance before taxes or early-withdrawal penalties.",
       },
       {
         path: "assets.retirementLoans",
         label: "Retirement accounts: loan balance",
-        helper: "Any loan you have taken out against these accounts.",
+        helper: "Any loan you have taken out against these accounts, like a 401(k) loan. Enter 0 if none.",
       },
     ],
   },
@@ -105,7 +105,7 @@ export const CURRENCY_SCREENS: Partial<Record<FormScreen, CurrencyScreen>> = {
       {
         path: "assets.otherAssetsMarket",
         label: "Other assets: market value",
-        helper: "Boat, motorcycle, RV, airplane, jewelry, or collectibles, added together.",
+        helper: "Boats, motorcycles, RVs, campers, airplanes, jewelry, art, or collectibles, all added together.",
       },
       {
         path: "assets.otherAssetsLoan",
@@ -116,13 +116,13 @@ export const CURRENCY_SCREENS: Partial<Record<FormScreen, CurrencyScreen>> = {
         path: "assets.lifeInsuranceNet",
         label: "Life insurance cash value",
         helper:
-          "What you would get if you cashed in the policy, minus any loan against it. Term life has no cash value, so enter 0.",
+          "Typically only whole life and universal life policies have a cash value. Term life, including most policies through work, has none, so enter 0. If yours has cash value, enter what you would get if you cashed it in, minus any loan against it.",
       },
       {
         path: "assets.miscellaneous",
         label: "Miscellaneous",
         helper:
-          "Business equity or anything else of value you own personally that is not listed above. Do not count anything twice.",
+          "Equity in a business you own, money someone owes you, or anything else of value that is yours and not listed above. Do not count anything twice.",
       },
     ],
   },
@@ -130,53 +130,127 @@ export const CURRENCY_SCREENS: Partial<Record<FormScreen, CurrencyScreen>> = {
     title: "Monthly household income",
     helper: `Enter current average monthly amounts. ${INCOME_HELPER}`,
     fields: [
-      { path: "income.wagesBenefits", label: "Gross wages, Social Security, pensions, and unemployment" },
-      { path: "income.interestDividendsRoyalties", label: "Interest, dividends, and royalties" },
-      { path: "income.businessDistributions", label: "Partnership or S corporation distributions" },
-      { path: "income.netRental", label: "Net rental income" },
+      {
+        path: "income.wagesBenefits",
+        label: "Gross wages, Social Security, pensions, and unemployment",
+        helper:
+          "Pay before taxes and deductions come out. Paid every two weeks? Multiply one paycheck by 26, then divide by 12.",
+      },
+      {
+        path: "income.interestDividendsRoyalties",
+        label: "Interest, dividends, and royalties",
+        helper: "Money your savings or investments pay you, plus royalties from things like books, music, or oil and gas rights.",
+      },
+      {
+        path: "income.businessDistributions",
+        label: "Partnership or S corporation distributions",
+        helper: "Money you take out of a partnership or S corporation you own part of. Most people enter 0.",
+      },
+      {
+        path: "income.netRental",
+        label: "Net rental income",
+        helper: "Rent you collect minus what the property costs you each month, like its mortgage, repairs, taxes, and insurance.",
+      },
     ],
   },
   incomeOther: {
     title: "More monthly household income",
     helper: INCOME_HELPER,
     fields: [
-      { path: "income.netBusiness", label: "Net business income" },
-      { path: "income.childSupport", label: "Child support received" },
-      { path: "income.alimony", label: "Alimony received" },
-      { path: "income.other", label: "Other recurring household income or contributions" },
+      {
+        path: "income.netBusiness",
+        label: "Net business income",
+        helper: "For self-employed people: what your business brings in each month minus its business expenses.",
+      },
+      { path: "income.childSupport", label: "Child support received", helper: "Payments you receive, not payments you make." },
+      { path: "income.alimony", label: "Alimony received", helper: "Payments you receive, not payments you make." },
+      {
+        path: "income.other",
+        label: "Other recurring household income or contributions",
+        helper: "Money someone else in your home regularly puts toward bills, plus side jobs or other steady income not listed above.",
+      },
     ],
   },
   expensesHousing: {
     title: "Housing and utilities",
     helper:
       "Enter current monthly amounts. Food, clothing, and out-of-pocket health care are added for you using IRS standards.",
-    fields: [{ path: "expenses.housingUtilities", label: "Monthly housing and utilities" }],
+    fields: [
+      {
+        path: "expenses.housingUtilities",
+        label: "Monthly housing and utilities",
+        helper:
+          "Rent or mortgage, property taxes, homeowners or renters insurance, HOA dues, electric, gas, water, trash, phone, internet, and cable, all added together.",
+      },
+    ],
   },
   expensesInsurance: {
     title: "Insurance, court orders, and care",
     helper: "Enter current monthly amounts. Use 0 for anything that does not apply.",
     fields: [
-      { path: "expenses.healthInsurance", label: "Health insurance premiums" },
-      { path: "expenses.courtOrdered", label: "Court-ordered payments" },
-      { path: "expenses.dependentCare", label: "Child/dependent care" },
-      { path: "expenses.lifeInsurance", label: "Life insurance premiums" },
+      {
+        path: "expenses.healthInsurance",
+        label: "Health insurance premiums",
+        helper: "What you pay each month for health insurance, including anything taken out of your paycheck.",
+      },
+      {
+        path: "expenses.courtOrdered",
+        label: "Court-ordered payments",
+        helper: "Child support or alimony you pay, and any other payment a court ordered.",
+      },
+      {
+        path: "expenses.dependentCare",
+        label: "Child/dependent care",
+        helper: "Daycare, babysitting, or care for an elderly or disabled family member so you can work.",
+      },
+      {
+        path: "expenses.lifeInsurance",
+        label: "Life insurance premiums",
+        helper: "Premiums for term life insurance on your own life. Whole life premiums usually are not counted.",
+      },
     ],
   },
   expensesTaxes: {
     title: "Taxes and other necessary expenses",
     helper: "Enter current monthly amounts. Use 0 for anything that does not apply.",
     fields: [
-      { path: "expenses.currentTaxes", label: "Current federal, state, and local taxes" },
-      { path: "expenses.delinquentStateLocalTaxes", label: "Delinquent state/local tax payments" },
-      { path: "expenses.securedDebtOther", label: "Secured debts and other necessary expenses" },
+      {
+        path: "expenses.currentTaxes",
+        label: "Current federal, state, and local taxes",
+        helper:
+          "Income taxes plus Social Security and Medicare taken out of your pay each month. Self-employed: your monthly estimated tax payments.",
+      },
+      {
+        path: "expenses.delinquentStateLocalTaxes",
+        label: "Delinquent state/local tax payments",
+        helper: "Your monthly payment on a payment plan for past-due state or local taxes.",
+      },
+      {
+        path: "expenses.securedDebtOther",
+        label: "Secured debts and other necessary expenses",
+        helper:
+          "Payments on other loans backed by property you own, federal student loans, and other required costs like union dues.",
+      },
     ],
   },
 };
 
-export const TRANSPORT_FIELDS = {
-  vehicleLoansLeases: "Total vehicle loan/lease payments",
-  vehicleOperating: "Vehicle operating costs",
-  publicTransportation: "Public transportation",
+export const TRANSPORT_FIELDS: Record<"vehicleLoansLeases" | "vehicleOperating" | "publicTransportation", FieldDef> = {
+  vehicleLoansLeases: {
+    path: "expenses.vehicleLoansLeases",
+    label: "Total vehicle loan/lease payments",
+    helper: "Your monthly car loan or lease payments for all vehicles combined.",
+  },
+  vehicleOperating: {
+    path: "expenses.vehicleOperating",
+    label: "Vehicle operating costs",
+    helper: "Gas, car insurance, maintenance, repairs, registration, parking, and tolls.",
+  },
+  publicTransportation: {
+    path: "expenses.publicTransportation",
+    label: "Public transportation",
+    helper: "Bus, train, subway, ferry, or taxi fares.",
+  },
 };
 
 // ---- Path helpers --------------------------------------------------------

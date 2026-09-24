@@ -145,7 +145,11 @@ export function FormStep({ screen, stage, title, answers, errors, set, onBack, o
       return shell(
         "Your IRS debt",
         <div className="field-stack">
-          {money("household.totalIrsDebt", "Total federal IRS debt, including estimated penalties and interest")}
+          {money(
+            "household.totalIrsDebt",
+            "Total federal IRS debt, including estimated penalties and interest",
+            "Your latest IRS notice or your IRS online account shows your current balance.",
+          )}
           {whole("household.latestDebtTaxYear", "Most recent tax year included in that debt", "year")}
         </div>,
       );
@@ -167,11 +171,16 @@ export function FormStep({ screen, stage, title, answers, errors, set, onBack, o
           />
           {(e.vehicleCount ?? 0) > 0 && (
             <>
-              {money("expenses.vehicleLoansLeases", TRANSPORT_FIELDS.vehicleLoansLeases)}
-              {money("expenses.vehicleOperating", TRANSPORT_FIELDS.vehicleOperating)}
+              {[TRANSPORT_FIELDS.vehicleLoansLeases, TRANSPORT_FIELDS.vehicleOperating].map((f) =>
+                money(f.path, f.label, f.helper),
+              )}
             </>
           )}
-          {money("expenses.publicTransportation", TRANSPORT_FIELDS.publicTransportation)}
+          {money(
+            TRANSPORT_FIELDS.publicTransportation.path,
+            TRANSPORT_FIELDS.publicTransportation.label,
+            TRANSPORT_FIELDS.publicTransportation.helper,
+          )}
         </div>,
         "Enter current monthly amounts. Use 0 for anything that does not apply.",
       );
