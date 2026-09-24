@@ -108,7 +108,7 @@ describe("qualifier flow", () => {
 
   it("shows the approved start screen copy", () => {
     render(<App />);
-    expect(heading()).toHaveTextContent("Could an Offer in Compromise work for you?");
+    expect(heading()).toHaveTextContent("Could an Offer in Compromise (tax settlement) work for you?");
     expect(
       screen.getByText("Your financial answers stay in this browser and are not submitted or saved."),
     ).toBeInTheDocument();
@@ -145,7 +145,7 @@ describe("qualifier flow", () => {
     expect(screen.getByRole("link", { name: "Schedule my free consultation" })).toBeInTheDocument();
 
     await cont(user, "Start over");
-    expect(heading()).toHaveTextContent("Could an Offer in Compromise work for you?");
+    expect(heading()).toHaveTextContent("Could an Offer in Compromise (tax settlement) work for you?");
   });
 
   it("routes an offer at or above the debt through special circumstances", async () => {

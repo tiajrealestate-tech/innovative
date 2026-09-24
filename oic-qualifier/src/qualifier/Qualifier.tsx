@@ -304,7 +304,7 @@ export function Qualifier() {
               width={1891}
               height={644}
             />
-            <h1 className="start-title">Could an Offer in Compromise work for you?</h1>
+            <h1 className="start-title">Could an Offer in Compromise (tax settlement) work for you?</h1>
             <p className="lead">
               Answer a few questions to get a preliminary estimate based on the information you enter. The IRS
               makes the final decision on every Offer in Compromise.
