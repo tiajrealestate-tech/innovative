@@ -116,7 +116,7 @@ describe("qualifier flow", () => {
     expect(screen.getByRole("img", { name: "HERtaxpro" })).toBeInTheDocument();
   });
 
-  it("walks a may-qualify case to its recommendation", async () => {
+  it("walks a may-qualify case to the booking link", async () => {
     const user = userEvent.setup();
     render(<App />);
     await throughStatus(user);
@@ -131,14 +131,19 @@ describe("qualifier flow", () => {
 
     await answer(user, "Yes"); // can afford the payment
     await cont(user, "I understand");
-    expect(heading()).toHaveTextContent("Will you be able to file and pay your taxes on time for the next five years?");
-    await answer(user, "Yes");
+    await answer(user, "Yes"); // five-year compliance
 
-    expect(heading()).toHaveTextContent("You may qualify for an Offer in Compromise.");
-    expect(
-      screen.getByText("Professional help or the official IRS OIC forms may be appropriate."),
-    ).toBeInTheDocument();
-    expect(screen.queryAllByRole("link")).toHaveLength(0);
+    expect(heading()).toHaveTextContent("How would you like to move forward?");
+    expect(screen.getByRole("link", { name: /Use the official IRS forms myself/ })).toHaveAttribute(
+      "href",
+      "https://www.irs.gov/pub/irs-pdf/f656b.pdf",
+    );
+    await user.click(screen.getByRole("button", { name: "Get professional help" }));
+    await answer(user, "Yes"); // can afford professional help
+    await answer(user, "Yes"); // ready now
+
+    expect(heading()).toHaveTextContent("Talk through your next step.");
+    expect(screen.getByRole("link", { name: "Schedule my free consultation" })).toBeInTheDocument();
 
     await cont(user, "Start over");
     expect(heading()).toHaveTextContent("Could an Offer in Compromise work for you?");
@@ -152,24 +157,44 @@ describe("qualifier flow", () => {
 
     expect(heading()).toHaveTextContent("An Offer in Compromise may not be your best option.");
     expect(screen.getByText(/equal to or more than your IRS debt of \$5,000/)).toBeInTheDocument();
+    await answer(user, "Yes"); // special circumstances
+    expect(heading()).toHaveTextContent("Can you afford professional help?");
     await answer(user, "Yes");
-    expect(screen.getByText("A professional case review may be appropriate.")).toBeInTheDocument();
+    await answer(user, "Not yet");
+    expect(heading()).toHaveTextContent("Come back when you are ready");
   });
 
-  it("sends a user who cannot afford the payment to other options, then exits cleanly", async () => {
+  it("offers the Stan course when OIC is not the best route", async () => {
     const user = userEvent.setup();
     render(<App />);
     await throughStatus(user);
     await throughFinancials(user, { wages: "2657", debt: "50000" });
 
-    await answer(user, "No");
+    await answer(user, "No"); // cannot afford the payment
     expect(heading()).toHaveTextContent("An Offer in Compromise may not be your best option.");
     expect(screen.getByText("You told us you cannot afford the required Offer in Compromise payment.")).toBeInTheDocument();
-    await answer(user, "No");
-    expect(heading()).toHaveTextContent("No problem.");
+    await answer(user, "Yes"); // explore options
+    expect(screen.getByRole("link", { name: /Show me the DIY option/ })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "I want professional help" }));
+    await answer(user, "No"); // cannot afford professional help
+    expect(heading()).toHaveTextContent("Your DIY option");
+    expect(screen.getByRole("link", { name: "Show me the DIY option" })).toBeInTheDocument();
   });
 
-  it("ends out-of-scope debt without any outbound link", async () => {
+  it("exits cleanly when the user does not want to explore options", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await throughStatus(user);
+    await throughFinancials(user, { wages: "2657", debt: "50000" });
+    await answer(user, "No");
+    await answer(user, "No");
+    expect(heading()).toHaveTextContent("No problem.");
+    expect(
+      screen.getByText("This tool is available anytime if your situation changes or you are ready to take the next step."),
+    ).toBeInTheDocument();
+  });
+
+  it("offers professional help for out-of-scope debt", async () => {
     const user = userEvent.setup();
     render(<App />);
     await cont(user, "Check my options");
@@ -178,8 +203,9 @@ describe("qualifier flow", () => {
 
     expect(heading()).toHaveTextContent("This qualifier does not cover your type of tax issue.");
     expect(screen.getByText("This qualifier does not cover state tax debt.")).toBeInTheDocument();
-    expect(screen.getByText("A tax professional can review this issue with you.")).toBeInTheDocument();
-    expect(screen.queryAllByRole("link")).toHaveLength(0);
+    await cont(user, "See my next step");
+    await answer(user, "No");
+    expect(heading()).toHaveTextContent("No problem.");
   });
 
   it("asks the filing-help question for missing returns", async () => {
@@ -199,9 +225,9 @@ describe("qualifier flow", () => {
         "You may not be eligible at this time because all required federal tax returns have not been filed.",
       ),
     ).toBeInTheDocument();
-    await choose(user, "Yes", "Would you like help getting current on your tax filings?");
+    await choose(user, "No", "Would you like help getting current on your tax filings?");
     await cont(user);
-    expect(screen.getByText(/Get help filing your required federal tax returns/)).toBeInTheDocument();
+    expect(screen.getByText("You can return to this tool after your required returns are filed.")).toBeInTheDocument();
   });
 
   it("keeps the user on the screen and names the missing field", async () => {

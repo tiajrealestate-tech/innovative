@@ -1,12 +1,23 @@
 # HERtaxpro Offer in Compromise Qualifier
 
 A standalone, mobile-first qualifier that gives an individual with federal IRS debt a
-preliminary Offer in Compromise estimate and a recommended direction. It is a static site:
-there is no backend, no database, no forms that submit anywhere, and no outbound links.
+preliminary Offer in Compromise estimate, then routes them to one of three endings:
+the free-consultation booking link, the Stan store DIY course, or a "come back anytime"
+notice. It is a static site with no backend, database, contact capture, or webhooks.
 Every answer lives only in React memory and is gone when the page is refreshed or closed.
 
-The surrounding funnel (link page, contact capture, calendar, course) lives in GoHighLevel
-and is intentionally not part of this project.
+Contact capture and the link page live in GoHighLevel and are not part of this project.
+
+## Booking and Stan links
+
+Set these in Vercel under **Settings → Environment Variables**, then redeploy:
+
+| Variable | Used for |
+| --- | --- |
+| `VITE_BOOKING_URL` | "Schedule my free consultation" |
+| `VITE_STAN_COURSE_URL` | "Show me the DIY option" |
+
+Until they are set, those buttons are placeholders that go nowhere.
 
 ## Run it locally
 
@@ -33,7 +44,7 @@ as its **own** Vercel project:
 1. In Vercel: **Add New → Project** and import `tiajrealestate-tech/innovative`.
 2. Set **Root Directory** to `oic-qualifier`.
 3. Framework preset: **Vite**. Build command `npm run build`. Output directory `dist`.
-4. No environment variables. Deploy.
+4. Add the two link variables above (or leave them blank for now). Deploy.
 5. Optional: add a custom domain (for example `oic.hertaxpro.com`) under **Settings → Domains**.
 
 The qualifier is served at `/`, so no rewrites are needed.

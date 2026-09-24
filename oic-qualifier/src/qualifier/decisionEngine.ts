@@ -1,5 +1,5 @@
 import type { OfferCalculation } from "./calculator";
-import type { QualifierState } from "./types";
+import type { QualifierState, ReadinessOrigin } from "./types";
 
 // Pure routing for the whole qualifier (brief sections 9-19). Components ask
 // this module where to go next; they never decide a branch themselves.
@@ -53,9 +53,9 @@ export function getNotEligibleReason(status: QualifierState["status"]): NotEligi
 }
 
 /**
- * May qualify when an estimated offer is above zero and below the debt. The
- * spec does not cover a $0 estimate; it is sent to "may not be your best
- * option" because the other paths listed there include hardship status.
+ * May qualify when an estimated offer is above zero and below the debt. A $0
+ * estimate goes to "may not be your best option", whose paths include
+ * hardship status and professional help applying for it.
  */
 export function getFinancialResult(
   calc: Pick<OfferCalculation, "estimatedLumpSumOffer" | "estimatedPeriodicOffer">,
@@ -65,16 +65,17 @@ export function getFinancialResult(
   return offers.some((offer) => offer > 0 && offer < totalIrsDebt) ? "mayQualify" : "notBest";
 }
 
-// Recommended directions shown on final screens (spec wording).
-export const DIRECTIONS = {
-  mayQualify: "Professional help or the official IRS OIC forms may be appropriate.",
-  exploreOptions:
-    "Explore other IRS resolution options through professional help or guided DIY education.",
-  specialCircumstances: "A professional case review may be appropriate.",
-} as const;
-
 export const OTHER_RESOLUTION_BODY =
   "Other IRS resolution paths may include a payment plan, hardship status, penalty relief, or timing considerations.";
+
+export type DiyRoute = "form656" | "stanCourse" | null;
+
+/** Which DIY option, if any, fits the result that led to the professional-help questions. */
+export function diyRouteFor(origin: ReadinessOrigin | undefined): DiyRoute {
+  if (origin === "mayQualify") return "form656";
+  if (origin === "otherOptions" || origin === "specialCircumstances") return "stanCourse";
+  return null;
+}
 
 // ---- Screens -------------------------------------------------------------
 
@@ -109,25 +110,30 @@ export type ScreenId =
   | "statusEstimated"
   | "statusDeposits"
   | FormScreen
-  // Results. Screens ending in "Final" are the end of a path.
-  | "scopeFinal"
+  // Results and the questions that follow them
+  | "scopeResult"
   | "notEligibleResult"
-  | "notEligibleFinal"
   | "mayQualifyResult"
   | "fiveYearAck"
   | "fiveYearQuestion"
-  | "mayQualifyFinal"
+  | "mayQualifyChoice"
   | "notBestResult"
-  | "specialCircumstancesFinal"
-  | "otherResolution"
-  | "exploreOptionsFinal"
+  | "otherOptions"
+  | "otherOptionsChoice"
+  | "readinessAfford"
+  | "readinessReady"
+  // Endings
+  | "calendarCta"
+  | "returnWhenReady"
+  | "diyOffer"
+  | "filingsExit"
   | "cleanExit";
 
 export const STAGES = ["Status", "Basic Info", "Assets", "Income", "Expenses", "Results"] as const;
 
 export function stageOf(screen: ScreenId): number {
   if (screen === "start" || screen === "scopeAck") return 0;
-  if (screen.startsWith("scope") && screen !== "scopeFinal") return 0;
+  if (screen.startsWith("scope") && screen !== "scopeResult") return 0;
   if (screen.startsWith("status")) return 0;
   if (screen.startsWith("basic")) return 1;
   if (screen.startsWith("assets")) return 2;
@@ -136,55 +142,75 @@ export function stageOf(screen: ScreenId): number {
   return 5;
 }
 
-export function isFinal(screen: ScreenId): boolean {
-  return screen.endsWith("Final") || screen === "cleanExit";
+export function isEnding(screen: ScreenId): boolean {
+  return ["calendarCta", "returnWhenReady", "diyOffer", "filingsExit", "cleanExit"].includes(screen);
 }
+
+/** Where an answer sends the user, plus which result led to the professional-help questions. */
+export type Transition = { to: ScreenId; readinessFrom?: ReadinessOrigin };
 
 export function nextScreen(
   screen: ScreenId,
   state: QualifierState,
   financial?: () => FinancialResult,
-): ScreenId {
+): Transition {
   const f = state.followUp;
+  const to = (next: ScreenId): Transition => ({ to: next });
+  const readiness = (from: ReadinessOrigin): Transition => ({ to: "readinessAfford", readinessFrom: from });
 
   switch (screen) {
     case "start":
-      return "scopeAck";
+      return to("scopeAck");
     case "scopeAck":
-      return "scopeFederal";
+      return to("scopeFederal");
     case "scopeFederal":
-      return state.scope.debtJurisdiction === "federal" ? "scopePersonal" : "scopeFinal";
+      return to(state.scope.debtJurisdiction === "federal" ? "scopePersonal" : "scopeResult");
     case "scopePersonal":
-      return state.scope.liabilityType === "personal" ? "scopeDispute" : "scopeFinal";
+      return to(state.scope.liabilityType === "personal" ? "scopeDispute" : "scopeResult");
     case "scopeDispute":
-      return state.scope.disputesLiability ? "scopeFinal" : "statusBankruptcy";
+      return to(state.scope.disputesLiability ? "scopeResult" : "statusBankruptcy");
     case "statusBankruptcy":
-      return state.status.openBankruptcy ? "notEligibleFinal" : "statusReturns";
+      return to(state.status.openBankruptcy ? "notEligibleResult" : "statusReturns");
     case "statusReturns":
-      // Missing returns asks one follow-up question before the final screen.
-      return state.status.returnsFiled ? "statusEstimated" : "notEligibleResult";
+      return to(state.status.returnsFiled ? "statusEstimated" : "notEligibleResult");
     case "statusEstimated":
-      return state.status.estimatedPayments === "no" ? "notEligibleFinal" : "statusDeposits";
+      return to(state.status.estimatedPayments === "no" ? "notEligibleResult" : "statusDeposits");
     case "statusDeposits":
-      return state.status.federalTaxDeposits === "no" ? "notEligibleFinal" : "basicLocation";
+      return to(state.status.federalTaxDeposits === "no" ? "notEligibleResult" : "basicLocation");
     case "expensesTaxes":
       if (!financial) throw new Error("A financial result is required after the expenses step.");
-      return financial() === "mayQualify" ? "mayQualifyResult" : "notBestResult";
+      return to(financial() === "mayQualify" ? "mayQualifyResult" : "notBestResult");
+    case "scopeResult":
+      return readiness("scope");
     case "notEligibleResult":
-      return "notEligibleFinal";
+      if (getNotEligibleReason(state.status) === "returns") {
+        return f.wantsFilingHelp ? readiness("notEligible") : to("filingsExit");
+      }
+      return readiness("notEligible");
     case "mayQualifyResult":
-      return f.canAffordPayment ? "fiveYearAck" : "otherResolution";
+      return to(f.canAffordPayment ? "fiveYearAck" : "otherOptions");
     case "fiveYearAck":
-      return "fiveYearQuestion";
+      return to("fiveYearQuestion");
     case "fiveYearQuestion":
-      return f.fiveYearCompliance ? "mayQualifyFinal" : "otherResolution";
+      return to(f.fiveYearCompliance ? "mayQualifyChoice" : "otherOptions");
+    case "mayQualifyChoice":
+      // The DIY choice on that screen is a direct Form 656-B link.
+      return readiness("mayQualify");
     case "notBestResult":
-      return f.specialCircumstances ? "specialCircumstancesFinal" : "otherResolution";
-    case "otherResolution":
-      return f.exploreOptions ? "exploreOptionsFinal" : "cleanExit";
+      return f.specialCircumstances ? readiness("specialCircumstances") : to("otherOptions");
+    case "otherOptions":
+      return to(f.exploreOptions ? "otherOptionsChoice" : "cleanExit");
+    case "otherOptionsChoice":
+      // The DIY choice on that screen is a direct Stan course link.
+      return readiness("otherOptions");
+    case "readinessAfford":
+      if (f.canAffordProfessional) return to("readinessReady");
+      return to(diyRouteFor(f.readinessFrom) ? "diyOffer" : "cleanExit");
+    case "readinessReady":
+      return to(f.readyNow ? "calendarCta" : "returnWhenReady");
     default: {
       const index = FORM_SCREENS.indexOf(screen as FormScreen);
-      if (index >= 0 && index < FORM_SCREENS.length - 1) return FORM_SCREENS[index + 1];
+      if (index >= 0 && index < FORM_SCREENS.length - 1) return to(FORM_SCREENS[index + 1]);
       throw new Error(`No next screen from ${screen}`);
     }
   }

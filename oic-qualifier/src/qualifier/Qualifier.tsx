@@ -1,11 +1,11 @@
-import { useCallback, useMemo, useReducer, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useReducer, useState } from "react";
+import { links } from "../config/links";
 import { standardsFooter } from "../data/standards";
 import { StepShell } from "../components/StepShell";
 import { ChoiceGroup, type Choice } from "../components/ChoiceCard";
 import { ResultCard } from "../components/ResultCard";
 import { calculateOffer, type OfferCalculation } from "./calculator";
 import {
-  DIRECTIONS,
   FORM_SCREENS,
   NOT_ELIGIBLE_MESSAGES,
   OTHER_RESOLUTION_BODY,
@@ -14,13 +14,14 @@ import {
   getFinancialResult,
   getNotEligibleReason,
   getScopeIssue,
-  isFinal,
+  diyRouteFor,
   nextScreen,
   stageOf,
   type FormScreen,
   type NotEligibleReason,
   type ScopeIssue,
   type ScreenId,
+  type Transition,
 } from "./decisionEngine";
 import { CURRENCY_SCREENS, getPath, setPath, validateScreen, type Errors } from "./schema";
 import { emptyState, type QualifierState } from "./types";
@@ -33,7 +34,7 @@ type Model = { answers: QualifierState; history: ScreenId[] };
 
 type Action =
   | { type: "set"; path: string; value: unknown }
-  | { type: "go"; to: ScreenId }
+  | { type: "go"; transition: Transition }
   | { type: "back" }
   | { type: "reset" };
 
@@ -43,8 +44,13 @@ function reducer(model: Model, action: Action): Model {
   switch (action.type) {
     case "set":
       return { ...model, answers: setPath(model.answers, action.path, action.value) };
-    case "go":
-      return { ...model, history: [...model.history, action.to] };
+    case "go": {
+      const { to, readinessFrom } = action.transition;
+      const answers = readinessFrom
+        ? { ...model.answers, followUp: { ...model.answers.followUp, readinessFrom } }
+        : model.answers;
+      return { answers, history: [...model.history, to] };
+    }
     case "back":
       return model.history.length > 1 ? { ...model, history: model.history.slice(0, -1) } : model;
     case "reset":
@@ -123,6 +129,21 @@ const CHOICE_SCREENS: Partial<Record<ScreenId, ChoiceScreen>> = {
     options: YES_NO,
     boolean: true,
   },
+  readinessAfford: {
+    question: "Can you afford professional help?",
+    path: "followUp.canAffordProfessional",
+    options: YES_NO,
+    boolean: true,
+  },
+  readinessReady: {
+    question: "Are you ready to move forward now?",
+    path: "followUp.readyNow",
+    options: [
+      { value: "yes", label: "Yes" },
+      { value: "no", label: "Not yet" },
+    ],
+    boolean: true,
+  },
 };
 
 const SCOPE_WHY: Record<ScopeIssue, string> = {
@@ -144,21 +165,6 @@ const NOT_ELIGIBLE_WHY: Record<NotEligibleReason, string> = {
   deposits:
     "The IRS only considers an Offer in Compromise when required federal tax deposits are current.",
 };
-
-function notEligibleDirection(reason: NotEligibleReason, wantsFilingHelp?: boolean): string {
-  switch (reason) {
-    case "returns":
-      return wantsFilingHelp
-        ? "Get help filing your required federal tax returns. Once they are filed, you can come back to this tool."
-        : "File your required federal tax returns, then come back to this tool.";
-    case "bankruptcy":
-      return "Come back to this tool after your bankruptcy proceeding is closed. A tax professional can review your situation in the meantime.";
-    case "estimatedPayments":
-      return "Bring your required estimated tax payments current, then come back to this tool.";
-    case "deposits":
-      return "Bring your required federal tax deposits current, then come back to this tool.";
-  }
-}
 
 const toOption = (stored: unknown, boolean?: boolean) =>
   stored === undefined ? undefined : boolean ? (stored ? "yes" : "no") : String(stored);
@@ -205,10 +211,10 @@ export function Qualifier() {
 
   const go = (from: ScreenId) => {
     setErrors({});
-    const to = nextScreen(from, answers, () =>
+    const transition = nextScreen(from, answers, () =>
       getFinancialResult(calculateOffer(answers), answers.household.totalIrsDebt ?? 0),
     );
-    dispatch({ type: "go", to });
+    dispatch({ type: "go", transition });
   };
 
   const back = () => {
@@ -242,7 +248,11 @@ export function Qualifier() {
   };
 
   const onBack = history.length > 1 ? back : undefined;
-  const finalActions = isFinal(screen) ? { label: "Start over", onClick: startOver } : undefined;
+  const startOverButton = (
+    <button type="button" className="btn btn-secondary btn-block" onClick={startOver}>
+      Start over
+    </button>
+  );
   const standardsNote = <p className="standards-note">{standardsFooter()}</p>;
 
   const content = (() => {
@@ -289,7 +299,7 @@ export function Qualifier() {
           <section className="start">
             <img
               className="start-mark"
-              src="/brand/hertaxpro-wordmark-plum.png"
+              src={`${import.meta.env.BASE_URL}brand/hertaxpro-wordmark-plum.png`}
               alt="HERtaxpro"
               width={1891}
               height={644}
@@ -323,51 +333,51 @@ export function Qualifier() {
           </StepShell>
         );
 
-      case "scopeFinal": {
+      case "scopeResult": {
         const issue = getScopeIssue(answers.scope) ?? "unsure";
         return (
-          <StepShell stage={stage} title={RESULT_TITLES.outOfScope} onBack={onBack} primary={finalActions}>
+          <StepShell
+            stage={stage}
+            title={RESULT_TITLES.outOfScope}
+            onBack={onBack}
+            primary={{ label: "See my next step", onClick: () => go(screen) }}
+          >
             <ResultCard tone="scope" label="Outside this tool">
               <p className="result-strong">{SCOPE_MESSAGES[issue]}</p>
               <p>{SCOPE_WHY[issue]}</p>
-              <Direction>A tax professional can review this issue with you.</Direction>
+              <p>Next step: a tax professional can review this issue with you.</p>
             </ResultCard>
           </StepShell>
         );
       }
 
-      case "notEligibleResult":
-        // Only reached for missing returns, which asks one follow-up question.
+      case "notEligibleResult": {
+        const reason = getNotEligibleReason(answers.status) ?? "returns";
+        const isReturns = reason === "returns";
         return (
           <StepShell
             stage={stage}
             title={RESULT_TITLES.notEligible}
             onBack={onBack}
-            primary={{ label: "Continue", onClick: () => requireAnswer("followUp.wantsFilingHelp", screen) }}
+            primary={{
+              label: isReturns ? "Continue" : "See my next step",
+              onClick: () => (isReturns ? requireAnswer("followUp.wantsFilingHelp", screen) : go(screen)),
+            }}
           >
-            <ResultCard tone="caution" label="Not eligible right now">
-              <p className="result-strong">{NOT_ELIGIBLE_MESSAGES.returns}</p>
-              <p>{NOT_ELIGIBLE_WHY.returns}</p>
-            </ResultCard>
-            <ChoiceGroup
-              legend="Would you like help getting current on your tax filings?"
-              options={YES_NO}
-              value={toOption(answers.followUp.wantsFilingHelp, true)}
-              onChange={(v) => set("followUp.wantsFilingHelp", v === "yes")}
-              error={errors["followUp.wantsFilingHelp"]}
-            />
-          </StepShell>
-        );
-
-      case "notEligibleFinal": {
-        const reason = getNotEligibleReason(answers.status) ?? "returns";
-        return (
-          <StepShell stage={stage} title={RESULT_TITLES.notEligible} onBack={onBack} primary={finalActions}>
             <ResultCard tone="caution" label="Not eligible right now">
               <p className="result-strong">{NOT_ELIGIBLE_MESSAGES[reason]}</p>
               <p>{NOT_ELIGIBLE_WHY[reason]}</p>
-              <Direction>{notEligibleDirection(reason, answers.followUp.wantsFilingHelp)}</Direction>
+              {!isReturns && <p>Next step: see whether professional help getting current is right for you.</p>}
             </ResultCard>
+            {isReturns && (
+              <ChoiceGroup
+                legend="Would you like help getting current on your tax filings?"
+                options={YES_NO}
+                value={toOption(answers.followUp.wantsFilingHelp, true)}
+                onChange={(v) => set("followUp.wantsFilingHelp", v === "yes")}
+                error={errors["followUp.wantsFilingHelp"]}
+              />
+            )}
           </StepShell>
         );
       }
@@ -426,28 +436,18 @@ export function Qualifier() {
           </StepShell>
         );
 
-      case "mayQualifyFinal":
-        if (!calculation) return <Missing onBack={back} />;
+      case "mayQualifyChoice":
         return (
-          <StepShell
-            stage={stage}
-            title={RESULT_TITLES.mayQualify}
-            onBack={onBack}
-            primary={finalActions}
-            footer={standardsNote}
-          >
-            <ResultCard tone="positive" label="Preliminary estimate">
-              <p>
-                Based on the information you entered, you may be eligible to submit an Offer in Compromise. This is
-                a preliminary estimate, not an IRS decision.
-              </p>
-              <OfferFigures calculation={calculation} />
-              <p>
-                You told us you can afford the required payment and can file and pay your taxes on time for the
-                next five years.
-              </p>
-              <Direction>{DIRECTIONS.mayQualify}</Direction>
-            </ResultCard>
+          <StepShell stage={stage} title="How would you like to move forward?" onBack={onBack}>
+            <div className="route-list">
+              <a className="route-card" href={links.form656BookletUrl} target="_blank" rel="noreferrer">
+                <span className="route-title">Use the official IRS forms myself</span>
+                <span className="route-sub">Opens the official IRS Form 656-B booklet and forms.</span>
+              </a>
+              <button type="button" className="route-card" onClick={() => go(screen)}>
+                <span className="route-title">Get professional help</span>
+              </button>
+            </div>
           </StepShell>
         );
 
@@ -477,27 +477,7 @@ export function Qualifier() {
         );
       }
 
-      case "specialCircumstancesFinal":
-        return (
-          <StepShell
-            stage={stage}
-            title={RESULT_TITLES.notBest}
-            onBack={onBack}
-            primary={finalActions}
-            footer={standardsNote}
-          >
-            <ResultCard tone="neutral" label="Special circumstances">
-              {calculation && <p>{notBestReason(calculation, answers.household.totalIrsDebt ?? 0)}</p>}
-              <p>
-                You told us you have special circumstances this qualifier did not fully account for, so this
-                estimate may not reflect your full situation.
-              </p>
-              <Direction>{DIRECTIONS.specialCircumstances}</Direction>
-            </ResultCard>
-          </StepShell>
-        );
-
-      case "otherResolution":
+      case "otherOptions":
         return (
           <StepShell
             stage={stage}
@@ -507,7 +487,7 @@ export function Qualifier() {
             footer={standardsNote}
           >
             <ResultCard tone="neutral" label="Other options">
-              <p>{otherResolutionReason(answers, calculation)}</p>
+              <p>{otherOptionsReason(answers, calculation)}</p>
               <p>{OTHER_RESOLUTION_BODY}</p>
             </ResultCard>
             <ChoiceGroup
@@ -520,29 +500,89 @@ export function Qualifier() {
           </StepShell>
         );
 
-      case "exploreOptionsFinal":
+      case "otherOptionsChoice":
         return (
-          <StepShell
-            stage={stage}
-            title={RESULT_TITLES.notBest}
-            onBack={onBack}
-            primary={finalActions}
-            footer={standardsNote}
-          >
-            <ResultCard tone="neutral" label="Other options">
-              <p>{otherResolutionReason(answers, calculation)}</p>
-              <p>{OTHER_RESOLUTION_BODY}</p>
-              <Direction>{DIRECTIONS.exploreOptions}</Direction>
-            </ResultCard>
+          <StepShell stage={stage} title="How would you like to move forward?" onBack={onBack}>
+            <div className="route-list">
+              <a className="route-card" href={links.stanCourseUrl}>
+                <span className="route-title">Show me the DIY option</span>
+                <span className="route-sub">Handle your IRS debt with a clear plan.</span>
+              </a>
+              <button type="button" className="route-card" onClick={() => go(screen)}>
+                <span className="route-title">I want professional help</span>
+              </button>
+            </div>
+          </StepShell>
+        );
+
+      case "calendarCta":
+        return (
+          <StepShell stage={stage} title="Talk through your next step." onBack={onBack}>
+            <p className="lead">
+              Schedule a free tax consultation so we can review your case and discuss the next step.
+            </p>
+            <div className="end-actions">
+              <a className="btn btn-primary btn-block" href={links.bookingUrl}>
+                Schedule my free consultation
+              </a>
+              {startOverButton}
+            </div>
+          </StepShell>
+        );
+
+      case "returnWhenReady":
+        return (
+          <StepShell stage={stage} title="Come back when you are ready" onBack={onBack}>
+            <p className="lead">When you are ready to move forward, come back and schedule your free consultation.</p>
+            <div className="end-actions">{startOverButton}</div>
+          </StepShell>
+        );
+
+      case "diyOffer": {
+        const form656 = diyRouteFor(answers.followUp.readinessFrom) === "form656";
+        return (
+          <StepShell stage={stage} title="Your DIY option" onBack={onBack}>
+            <p className="lead">
+              {form656
+                ? "The official IRS Form 656-B booklet has the forms and instructions to submit an Offer in Compromise yourself."
+                : "Handle your IRS debt with a clear plan."}
+            </p>
+            <div className="end-actions">
+              {form656 ? (
+                <a
+                  className="btn btn-primary btn-block"
+                  href={links.form656BookletUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Use the official IRS forms myself
+                </a>
+              ) : (
+                <a className="btn btn-primary btn-block" href={links.stanCourseUrl}>
+                  Show me the DIY option
+                </a>
+              )}
+              {startOverButton}
+            </div>
+          </StepShell>
+        );
+      }
+
+      case "filingsExit":
+        return (
+          <StepShell stage={stage} title="Come back after you file" onBack={onBack}>
+            <p className="lead">You can return to this tool after your required returns are filed.</p>
+            <div className="end-actions">{startOverButton}</div>
           </StepShell>
         );
 
       case "cleanExit":
         return (
-          <StepShell stage={stage} title="No problem." onBack={onBack} primary={finalActions}>
+          <StepShell stage={stage} title="No problem." onBack={onBack}>
             <p className="lead">
               This tool is available anytime if your situation changes or you are ready to take the next step.
             </p>
+            <div className="end-actions">{startOverButton}</div>
           </StepShell>
         );
 
@@ -557,7 +597,7 @@ export function Qualifier() {
         <header className="page-header">
           <img
             className="header-mark"
-            src="/brand/hertaxpro-wordmark-plum.png"
+            src={`${import.meta.env.BASE_URL}brand/hertaxpro-wordmark-plum.png`}
             alt="HERtaxpro"
             width={1891}
             height={644}
@@ -589,7 +629,7 @@ function notBestReason(calculation: OfferCalculation, debt: number): string {
   )} is equal to or more than your IRS debt of ${money(debt)}.`;
 }
 
-function otherResolutionReason(answers: QualifierState, calculation: OfferCalculation | null): string {
+function otherOptionsReason(answers: QualifierState, calculation: OfferCalculation | null): string {
   const f = answers.followUp;
   if (f.canAffordPayment === false) return "You told us you cannot afford the required Offer in Compromise payment.";
   if (f.fiveYearCompliance === false) {
@@ -612,15 +652,6 @@ function OfferFigures({ calculation }: { calculation: OfferCalculation }) {
         <dd>{money(calculation.estimatedPeriodicOffer)}</dd>
       </div>
     </dl>
-  );
-}
-
-function Direction({ children }: { children: ReactNode }) {
-  return (
-    <div className="direction">
-      <p className="direction-label">Recommended direction</p>
-      <p>{children}</p>
-    </div>
   );
 }
 

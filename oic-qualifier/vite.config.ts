@@ -4,6 +4,8 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  // Relative asset paths, so the build also works when opened from a subfolder or preview host.
+  base: "./",
   // Stay independent of the inspection app's PostCSS/Tailwind config in the
   // parent folder; this project uses plain CSS.
   css: { postcss: {} },

@@ -574,3 +574,43 @@ select:disabled {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---- Routes and endings -------------------------------------------- */
+
+.route-list,
+.end-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.end-actions {
+  margin-top: 28px;
+}
+
+.route-card {
+  font: inherit;
+  text-align: left;
+  display: grid;
+  gap: 4px;
+  min-height: 64px;
+  padding: 16px 18px;
+  background: var(--white);
+  border: 1px solid var(--sand);
+  border-radius: var(--radius);
+  color: var(--deep-plum);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.route-card:hover {
+  border-color: var(--deep-plum);
+}
+
+.route-title {
+  font-weight: 500;
+}
+
+.route-sub {
+  font-size: 15px;
+  color: var(--mauve);
+}

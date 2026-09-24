@@ -75,8 +75,19 @@ export type QualifierState = {
     fiveYearCompliance?: boolean;
     specialCircumstances?: boolean;
     exploreOptions?: boolean;
+    canAffordProfessional?: boolean;
+    readyNow?: boolean;
+    /** Which result led to the professional-help questions; decides the DIY fallback. */
+    readinessFrom?: ReadinessOrigin;
   };
 };
+
+export type ReadinessOrigin =
+  | "scope"
+  | "notEligible"
+  | "mayQualify"
+  | "otherOptions"
+  | "specialCircumstances";
 
 export const emptyState = (): QualifierState => ({
   scope: {},

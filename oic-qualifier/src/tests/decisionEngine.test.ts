@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
+  diyRouteFor,
   getFinancialResult,
   getNotEligibleReason,
   getScopeIssue,
   nextScreen,
+  type FinancialResult,
   type ScreenId,
 } from "../qualifier/decisionEngine";
 import { calculateOffer } from "../qualifier/calculator";
 import { baseState } from "./fixtures";
+
+type State = ReturnType<typeof baseState>;
+const next = (screen: ScreenId, state: State, financial?: () => FinancialResult) =>
+  nextScreen(screen, state, financial).to;
 
 const notUsed = () => {
   throw new Error("financial result should not be needed");
@@ -16,66 +22,68 @@ const notUsed = () => {
 describe("scope branches", () => {
   it("1. state debt ends at the out-of-scope result", () => {
     const state = baseState({ scope: { debtJurisdiction: "state" } });
-    expect(nextScreen("scopeFederal", state)).toBe("scopeFinal");
+    expect(next("scopeFederal", state)).toBe("scopeResult");
     expect(getScopeIssue(state.scope)).toBe("state");
   });
 
   it("2. entity debt ends at the out-of-scope result", () => {
     const state = baseState({ scope: { liabilityType: "entity" } });
-    expect(nextScreen("scopePersonal", state)).toBe("scopeFinal");
+    expect(next("scopePersonal", state)).toBe("scopeResult");
     expect(getScopeIssue(state.scope)).toBe("entity");
   });
 
   it("3. disputed liability ends at the out-of-scope result", () => {
     const state = baseState({ scope: { disputesLiability: true } });
-    expect(nextScreen("scopeDispute", state)).toBe("scopeFinal");
+    expect(next("scopeDispute", state)).toBe("scopeResult");
     expect(getScopeIssue(state.scope)).toBe("dispute");
   });
 
   it("unsure answers end at the out-of-scope result", () => {
-    expect(nextScreen("scopeFederal", baseState({ scope: { debtJurisdiction: "unsure" } }))).toBe("scopeFinal");
-    expect(nextScreen("scopePersonal", baseState({ scope: { liabilityType: "unsure" } }))).toBe("scopeFinal");
+    expect(next("scopeFederal", baseState({ scope: { debtJurisdiction: "unsure" } }))).toBe("scopeResult");
+    expect(next("scopePersonal", baseState({ scope: { liabilityType: "unsure" } }))).toBe("scopeResult");
     expect(getScopeIssue({ debtJurisdiction: "unsure" })).toBe("unsure");
   });
 
   it("in-scope answers continue to status", () => {
     const state = baseState();
-    expect(nextScreen("scopeFederal", state)).toBe("scopePersonal");
-    expect(nextScreen("scopePersonal", state)).toBe("scopeDispute");
-    expect(nextScreen("scopeDispute", state)).toBe("statusBankruptcy");
+    expect(next("scopeFederal", state)).toBe("scopePersonal");
+    expect(next("scopePersonal", state)).toBe("scopeDispute");
+    expect(next("scopeDispute", state)).toBe("statusBankruptcy");
   });
 });
 
 describe("status branches", () => {
   it("4. open bankruptcy is not eligible at this time", () => {
     const state = baseState({ status: { openBankruptcy: true } });
-    expect(nextScreen("statusBankruptcy", state)).toBe("notEligibleFinal");
+    expect(next("statusBankruptcy", state)).toBe("notEligibleResult");
     expect(getNotEligibleReason(state.status)).toBe("bankruptcy");
   });
 
-  it("5. missing returns asks the filing-help question, then ends", () => {
-    const state = baseState({ status: { returnsFiled: false }, followUp: { wantsFilingHelp: true } });
-    expect(nextScreen("statusReturns", state)).toBe("notEligibleResult");
-    expect(nextScreen("notEligibleResult", state)).toBe("notEligibleFinal");
-    expect(getNotEligibleReason(state.status)).toBe("returns");
+  it("5. missing returns asks the filing-help question", () => {
+    const wantsHelp = baseState({ status: { returnsFiled: false }, followUp: { wantsFilingHelp: true } });
+    expect(next("statusReturns", wantsHelp)).toBe("notEligibleResult");
+    expect(getNotEligibleReason(wantsHelp.status)).toBe("returns");
+    expect(nextScreen("notEligibleResult", wantsHelp)).toEqual({ to: "readinessAfford", readinessFrom: "notEligible" });
+    const noHelp = baseState({ status: { returnsFiled: false }, followUp: { wantsFilingHelp: false } });
+    expect(next("notEligibleResult", noHelp)).toBe("filingsExit");
   });
 
   it("6. missing estimated payments is not eligible at this time", () => {
     const state = baseState({ status: { estimatedPayments: "no" } });
-    expect(nextScreen("statusEstimated", state)).toBe("notEligibleFinal");
+    expect(next("statusEstimated", state)).toBe("notEligibleResult");
     expect(getNotEligibleReason(state.status)).toBe("estimatedPayments");
   });
 
   it("7. missing federal deposits is not eligible at this time", () => {
     const state = baseState({ status: { federalTaxDeposits: "no" } });
-    expect(nextScreen("statusDeposits", state)).toBe("notEligibleFinal");
+    expect(next("statusDeposits", state)).toBe("notEligibleResult");
     expect(getNotEligibleReason(state.status)).toBe("deposits");
   });
 
   it("not applicable answers continue to the financial questions", () => {
     const state = baseState({ status: { estimatedPayments: "na", federalTaxDeposits: "na" } });
-    expect(nextScreen("statusEstimated", state)).toBe("statusDeposits");
-    expect(nextScreen("statusDeposits", state)).toBe("basicLocation");
+    expect(next("statusEstimated", state)).toBe("statusDeposits");
+    expect(next("statusDeposits", state)).toBe("basicLocation");
   });
 });
 
@@ -84,7 +92,7 @@ describe("financial result", () => {
     expect(getFinancialResult({ estimatedLumpSumOffer: 8000, estimatedPeriodicOffer: 14000 }, 50000)).toBe(
       "mayQualify",
     );
-    expect(nextScreen("expensesTaxes", baseState(), () => "mayQualify")).toBe("mayQualifyResult");
+    expect(next("expensesTaxes", baseState(), () => "mayQualify")).toBe("mayQualifyResult");
   });
 
   it("9. an estimated offer at or above the debt may not be the best option", () => {
@@ -94,7 +102,7 @@ describe("financial result", () => {
     expect(getFinancialResult({ estimatedLumpSumOffer: 90000, estimatedPeriodicOffer: 95000 }, 50000)).toBe(
       "notBest",
     );
-    expect(nextScreen("expensesTaxes", baseState(), () => "notBest")).toBe("notBestResult");
+    expect(next("expensesTaxes", baseState(), () => "notBest")).toBe("notBestResult");
   });
 
   it("the periodic offer alone below the debt still may qualify", () => {
@@ -122,38 +130,80 @@ describe("financial result", () => {
 describe("may-qualify follow-up", () => {
   it("10. cannot afford the required payment goes to other resolution options", () => {
     const state = baseState({ followUp: { canAffordPayment: false } });
-    expect(nextScreen("mayQualifyResult", state)).toBe("otherResolution");
+    expect(next("mayQualifyResult", state)).toBe("otherOptions");
   });
 
   it("11. cannot commit to five-year compliance goes to other resolution options", () => {
     const state = baseState({ followUp: { canAffordPayment: true, fiveYearCompliance: false } });
-    expect(nextScreen("mayQualifyResult", state)).toBe("fiveYearAck");
-    expect(nextScreen("fiveYearAck", state)).toBe("fiveYearQuestion");
-    expect(nextScreen("fiveYearQuestion", state)).toBe("otherResolution");
+    expect(next("mayQualifyResult", state)).toBe("fiveYearAck");
+    expect(next("fiveYearAck", state)).toBe("fiveYearQuestion");
+    expect(next("fiveYearQuestion", state)).toBe("otherOptions");
   });
 
-  it("can pay and comply ends with the may-qualify recommendation", () => {
+  it("12. can pay and comply chooses DIY (Form 656-B) or professional help", () => {
     const state = baseState({ followUp: { canAffordPayment: true, fiveYearCompliance: true } });
-    expect(nextScreen("fiveYearQuestion", state)).toBe("mayQualifyFinal");
+    expect(next("fiveYearQuestion", state)).toBe("mayQualifyChoice");
+    expect(nextScreen("mayQualifyChoice", state)).toEqual({ to: "readinessAfford", readinessFrom: "mayQualify" });
+    expect(diyRouteFor("mayQualify")).toBe("form656");
   });
 });
 
 describe("not-best follow-up", () => {
-  it("12. special circumstances ends with a professional case review recommendation", () => {
+  it("special circumstances goes to the professional-help questions", () => {
     const state = baseState({ followUp: { specialCircumstances: true } });
-    expect(nextScreen("notBestResult", state)).toBe("specialCircumstancesFinal");
+    expect(nextScreen("notBestResult", state)).toEqual({
+      to: "readinessAfford",
+      readinessFrom: "specialCircumstances",
+    });
   });
 
   it("no special circumstances goes to other resolution options", () => {
     const state = baseState({ followUp: { specialCircumstances: false } });
-    expect(nextScreen("notBestResult", state)).toBe("otherResolution");
+    expect(next("notBestResult", state)).toBe("otherOptions");
   });
 
-  it("exploring options ends with a recommendation; declining exits cleanly", () => {
-    expect(nextScreen("otherResolution", baseState({ followUp: { exploreOptions: true } }))).toBe(
-      "exploreOptionsFinal",
+  it("exploring options offers DIY or professional help; declining exits cleanly", () => {
+    expect(next("otherOptions", baseState({ followUp: { exploreOptions: true } }))).toBe(
+      "otherOptionsChoice",
     );
-    expect(nextScreen("otherResolution", baseState({ followUp: { exploreOptions: false } }))).toBe("cleanExit");
+    expect(next("otherOptions", baseState({ followUp: { exploreOptions: false } }))).toBe("cleanExit");
+  });
+});
+
+describe("professional-help path", () => {
+  const withOrigin = (origin: State["followUp"]["readinessFrom"], answers: Partial<State["followUp"]>) =>
+    baseState({ followUp: { readinessFrom: origin, ...answers } });
+
+  it("13. professional + can afford + ready goes to the booking link", () => {
+    const state = withOrigin("mayQualify", { canAffordProfessional: true, readyNow: true });
+    expect(next("readinessAfford", state)).toBe("readinessReady");
+    expect(next("readinessReady", state)).toBe("calendarCta");
+  });
+
+  it("can afford but not ready yet is told to come back", () => {
+    const state = withOrigin("mayQualify", { canAffordProfessional: true, readyNow: false });
+    expect(next("readinessReady", state)).toBe("returnWhenReady");
+  });
+
+  it("14. professional + cannot afford falls back to the matching DIY option, or exits", () => {
+    const cannot = { canAffordProfessional: false };
+    expect(next("readinessAfford", withOrigin("mayQualify", cannot))).toBe("diyOffer");
+    expect(next("readinessAfford", withOrigin("otherOptions", cannot))).toBe("diyOffer");
+    expect(diyRouteFor("otherOptions")).toBe("stanCourse");
+    expect(next("readinessAfford", withOrigin("scope", cannot))).toBe("cleanExit");
+    expect(next("readinessAfford", withOrigin("notEligible", cannot))).toBe("cleanExit");
+  });
+
+  it("15. special circumstances + can afford + ready goes to the booking link", () => {
+    let state = baseState({ followUp: { specialCircumstances: true } });
+    const t = nextScreen("notBestResult", state);
+    state = withOrigin(t.readinessFrom, { canAffordProfessional: true, readyNow: true });
+    expect(next(t.to, state)).toBe("readinessReady");
+    expect(next("readinessReady", state)).toBe("calendarCta");
+  });
+
+  it("scope results offer professional help", () => {
+    expect(nextScreen("scopeResult", baseState())).toEqual({ to: "readinessAfford", readinessFrom: "scope" });
   });
 });
 
@@ -162,7 +212,7 @@ describe("form order", () => {
     const order: ScreenId[] = ["basicLocation"];
     let screen: ScreenId = "basicLocation";
     while (screen !== "expensesTaxes") {
-      screen = nextScreen(screen, baseState(), notUsed);
+      screen = next(screen, baseState(), notUsed);
       order.push(screen);
     }
     expect(order).toEqual([
