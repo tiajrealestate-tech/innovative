@@ -14,40 +14,115 @@ export type CurrencyScreen = {
   fields: FieldDef[];
 };
 
+const ASSET_HELPER = "Enter whole dollars. Use 0 for anything you do not have.";
+
 const INCOME_HELPER =
   "Include income for you, your spouse, and anyone else who regularly contributes to the household.";
 
 export const CURRENCY_SCREENS: Partial<Record<FormScreen, CurrencyScreen>> = {
-  assetsCash: {
-    title: "Cash, investments, and digital assets",
-    helper: "Enter current values. Use 0 for anything you do not have.",
+  assetsBank: {
+    title: "Bank accounts and investments",
+    helper: ASSET_HELPER,
     fields: [
-      { path: "assets.cashAndBank", label: "Total cash and bank balances" },
-      { path: "assets.investmentMarket", label: "Investments: current market value" },
-      { path: "assets.investmentLoans", label: "Investments: loan balance" },
-      { path: "assets.digitalAssets", label: "Digital assets: current U.S. dollar value" },
+      {
+        path: "assets.cashAndBank",
+        label: "Total bank balances",
+        helper: "Checking, savings, and cash on hand, with all accounts added together.",
+      },
+      {
+        path: "assets.investmentsNet",
+        label: "Stocks, bonds, crypto, and other investments",
+        helper: "What they are worth today, minus any loan against them.",
+      },
+      {
+        path: "assets.retirementMarket",
+        label: "Retirement accounts: current value",
+        helper: "401(k), IRA, and similar accounts. Use the balance before taxes or penalties.",
+      },
+      {
+        path: "assets.retirementLoans",
+        label: "Retirement accounts: loan balance",
+        helper: "Any loan you have taken out against these accounts.",
+      },
     ],
   },
-  assetsRetirement: {
-    title: "Retirement and life insurance",
-    helper: "Enter current values. Use 0 for anything you do not have.",
+  assetsRealEstate: {
+    title: "Your home and other real estate",
+    helper: ASSET_HELPER,
     fields: [
-      { path: "assets.retirementMarket", label: "Retirement accounts: current market value" },
-      { path: "assets.retirementLoans", label: "Retirement accounts: loan balance" },
-      { path: "assets.lifeInsuranceCash", label: "Life insurance: cash value" },
-      { path: "assets.lifeInsuranceLoans", label: "Life insurance: loan balance" },
+      {
+        path: "assets.homeMarket",
+        label: "Home: market value",
+        helper: "What your home would sell for today. Enter 0 if you rent.",
+      },
+      {
+        path: "assets.homeLoan",
+        label: "Home: loan balance",
+        helper: "What you still owe on your mortgage and any home equity loan.",
+      },
+      {
+        path: "assets.otherRealEstateMarket",
+        label: "Other real estate: market value",
+        helper: "Rental property, land, or a second home. If you own more than one, add them together.",
+      },
+      {
+        path: "assets.otherRealEstateLoan",
+        label: "Other real estate: loan balance",
+        helper: "What you still owe on that property.",
+      },
+    ],
+  },
+  assetsVehicles: {
+    title: "Vehicles",
+    helper: ASSET_HELPER,
+    fields: [
+      {
+        path: "assets.vehicle1Market",
+        label: "Vehicle 1: market value",
+        helper: "What you could sell it for today. Enter 0 if it is leased or you do not have one.",
+      },
+      {
+        path: "assets.vehicle1Loan",
+        label: "Vehicle 1: loan balance",
+        helper: "What you still owe on the car loan. Enter 0 if it is paid off.",
+      },
+      {
+        path: "assets.vehicle2Market",
+        label: "Vehicle 2: market value",
+        helper: "What you could sell it for today. Enter 0 if it is leased or you do not have one.",
+      },
+      {
+        path: "assets.vehicle2Loan",
+        label: "Vehicle 2: loan balance",
+        helper: "What you still owe on the car loan. Enter 0 if it is paid off.",
+      },
     ],
   },
   assetsOther: {
-    title: "Other valuable property",
+    title: "Other things you own",
+    helper: ASSET_HELPER,
     fields: [
-      { path: "assets.otherPropertyMarket", label: "Other valuable property: market value" },
-      { path: "assets.otherPropertyLoans", label: "Other valuable property: loan balance" },
       {
-        path: "assets.additionalEquity",
-        label: "Any additional asset equity not already included",
+        path: "assets.otherAssetsMarket",
+        label: "Other assets: market value",
+        helper: "Boat, motorcycle, RV, airplane, jewelry, or collectibles, added together.",
+      },
+      {
+        path: "assets.otherAssetsLoan",
+        label: "Other assets: loan balance",
+        helper: "What you still owe on those items.",
+      },
+      {
+        path: "assets.lifeInsuranceNet",
+        label: "Life insurance cash value",
         helper:
-          "Include business or other asset equity that belongs to you personally and was not entered above. Do not count the same asset twice.",
+          "What you would get if you cashed in the policy, minus any loan against it. Term life has no cash value, so enter 0.",
+      },
+      {
+        path: "assets.miscellaneous",
+        label: "Miscellaneous",
+        helper:
+          "Business equity or anything else of value you own personally that is not listed above. Do not count anything twice.",
       },
     ],
   },
@@ -179,7 +254,6 @@ export function validateScreen(screen: FormScreen, state: QualifierState): Error
   if (currency) return validateCurrencyFields(state, currency.fields.map((f) => f.path));
 
   const h = state.household;
-  const a = state.assets;
   const e = state.expenses;
 
   switch (screen) {
@@ -239,36 +313,6 @@ export function validateScreen(screen: FormScreen, state: QualifierState): Error
           .max(year, `Enter a tax year of ${year} or earlier.`),
       });
       return collect(schema.safeParse(h), "household");
-    }
-    case "assetsProperty": {
-      if (a.ownsRealProperty === undefined) {
-        return { "assets.ownsRealProperty": "Choose an answer to continue." };
-      }
-      if (!a.ownsRealProperty) return {};
-      const properties = a.properties ?? [];
-      if (properties.length === 0) return { "assets.properties": "Add at least one property." };
-      return validateCurrencyFields(
-        state,
-        properties.flatMap((_, i) => [`assets.properties.${i}.market`, `assets.properties.${i}.loan`]),
-      );
-    }
-    case "assetsVehicles": {
-      if (a.vehicleCount === undefined) {
-        return { "assets.vehicleCount": "Choose how many vehicles you own or lease." };
-      }
-      const errors: Errors = {};
-      for (let i = 0; i < a.vehicleCount; i++) {
-        const vehicle = a.vehicles?.[i];
-        if (vehicle?.leased === undefined) {
-          errors[`assets.vehicles.${i}.leased`] = "Choose owned or leased.";
-        } else if (!vehicle.leased) {
-          Object.assign(
-            errors,
-            validateCurrencyFields(state, [`assets.vehicles.${i}.market`, `assets.vehicles.${i}.loan`]),
-          );
-        }
-      }
-      return errors;
     }
     case "expensesTransport": {
       if (e.vehicleCount === undefined) {

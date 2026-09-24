@@ -64,19 +64,22 @@ export function transportationAllowances(
   };
 }
 
-/** Equity per vehicle. The exclusion goes to the first owned vehicle, and to a second only on a joint estimate. */
+/**
+ * Equity per vehicle. A vehicle entered at $0 (leased or none) has no equity.
+ * The exclusion goes to the first vehicle with value, and to a second only on
+ * a joint estimate.
+ */
 export function vehicleEquities(
   vehicles: Vehicle[],
   jointEstimate: boolean,
   s: IrsStandards = defaultStandards,
 ) {
   const a = s.assetAdjustments;
+  const allowedExclusions = jointEstimate ? 2 : 1;
   let exclusionsUsed = 0;
   return vehicles.map((vehicle) => {
-    if (vehicle.leased) return 0;
-    const allowedExclusions = jointEstimate ? 2 : 1;
-    const exclusion =
-      exclusionsUsed < allowedExclusions ? a.vehicleExclusionPerEligibleVehicle : 0;
+    if (n(vehicle.market) <= 0) return 0;
+    const exclusion = exclusionsUsed < allowedExclusions ? a.vehicleExclusionPerEligibleVehicle : 0;
     exclusionsUsed += 1;
     return whole(floor0(n(vehicle.market) * a.quickSaleMultiplier - n(vehicle.loan) - exclusion));
   });
@@ -86,28 +89,31 @@ export function calculateAssets(state: QualifierState, s: IrsStandards = default
   const a = state.assets;
   const adj = s.assetAdjustments;
   const q = adj.quickSaleMultiplier;
-  const properties = a.ownsRealProperty ? (a.properties ?? []) : [];
-  const vehicles = (a.vehicles ?? []).slice(0, a.vehicleCount ?? 0);
+  const quickSaleEquity = (market?: number, loan?: number) => whole(floor0(n(market) * q - n(loan)));
 
   const cash = whole(floor0(n(a.cashAndBank) - adj.cashExclusion));
-  const investments = whole(floor0(n(a.investmentMarket) - n(a.investmentLoans)));
-  const digitalAssets = whole(floor0(n(a.digitalAssets)));
-  const retirement = whole(floor0(n(a.retirementMarket) * q - n(a.retirementLoans)));
-  const lifeInsurance = whole(floor0(n(a.lifeInsuranceCash) - n(a.lifeInsuranceLoans)));
-  const realProperty = properties.reduce(
-    (sum, p) => sum + whole(floor0(n(p.market) * q - n(p.loan))),
-    0,
+  const investments = whole(floor0(n(a.investmentsNet)));
+  const retirement = quickSaleEquity(a.retirementMarket, a.retirementLoans);
+  const lifeInsurance = whole(floor0(n(a.lifeInsuranceNet)));
+  const realProperty =
+    quickSaleEquity(a.homeMarket, a.homeLoan) +
+    quickSaleEquity(a.otherRealEstateMarket, a.otherRealEstateLoan);
+  const vehicleEquity = vehicleEquities(
+    [
+      { market: a.vehicle1Market, loan: a.vehicle1Loan },
+      { market: a.vehicle2Market, loan: a.vehicle2Loan },
+    ],
+    Boolean(state.household.jointEstimate),
+    s,
   );
-  const vehicleEquity = vehicleEquities(vehicles, Boolean(state.household.jointEstimate), s);
   const otherProperty = whole(
-    floor0(n(a.otherPropertyMarket) * q - n(a.otherPropertyLoans) - adj.personalEffectsExclusion),
+    floor0(n(a.otherAssetsMarket) * q - n(a.otherAssetsLoan) - adj.personalEffectsExclusion),
   );
-  const additional = whole(floor0(n(a.additionalEquity)));
+  const additional = whole(floor0(n(a.miscellaneous)));
 
   const availableAssetEquity =
     cash +
     investments +
-    digitalAssets +
     retirement +
     lifeInsurance +
     realProperty +
@@ -118,7 +124,6 @@ export function calculateAssets(state: QualifierState, s: IrsStandards = default
   return {
     cash,
     investments,
-    digitalAssets,
     retirement,
     lifeInsurance,
     realProperty,

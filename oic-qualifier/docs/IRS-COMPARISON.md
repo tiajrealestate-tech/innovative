@@ -19,11 +19,11 @@ Enter the same answers at https://www.irs.gov/oictool, fill in the IRS columns, 
 | 10 | Single, two owned cars | $50,000 | $18,866 | $21,182 | May qualify |  |  |  |
 | 11 | Joint, two owned cars | $50,000 | $25,244 | $37,388 | May qualify |  |  |  |
 | 12 | Single, leased car + transit | $50,000 | $7,116 | $14,232 | May qualify |  |  |  |
-| 13 | Single, other valuable property | $50,000 | $14,136 | $18,252 | May qualify |  |  |  |
+| 13 | Single, other assets (boat/RV) | $50,000 | $14,136 | $18,252 | May qualify |  |  |  |
 | 14 | Single, investments + crypto | $50,000 | $20,316 | $25,632 | May qualify |  |  |  |
 | 15 | Single, life insurance cash value | $50,000 | $11,116 | $15,232 | May qualify |  |  |  |
 | 16 | Self-employed, CA Los Angeles | $95,000 | $14,316 | $28,632 | May qualify |  |  |  |
 | 17 | Offer above debt (small debt) | $6,000 | $8,000 | $14,000 | May not be best |  |  |  |
 | 18 | Couple, NY Kings, child support + court order | $55,000 | $39,036 | $78,072 | May qualify |  |  |  |
 | 19 | Retiree, AZ Maricopa, pension | $25,000 | $4,680 | $9,360 | May qualify |  |  |  |
-| 20 | Single, additional equity only | $50,000 | $7,000 | $7,000 | May qualify |  |  |  |
+| 20 | Single, miscellaneous equity only | $50,000 | $7,000 | $7,000 | May qualify |  |  |  |

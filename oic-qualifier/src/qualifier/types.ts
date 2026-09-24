@@ -1,7 +1,6 @@
 export type YesNoNa = "yes" | "no" | "na";
 
-export type Vehicle = { leased?: boolean; market?: number; loan?: number };
-export type Property = { market?: number; loan?: number };
+export type Vehicle = { market?: number; loan?: number };
 
 export type QualifierState = {
   scope: {
@@ -27,22 +26,25 @@ export type QualifierState = {
     latestDebtTaxYear?: number;
     transportationArea?: string;
   };
+  // Laid out like the IRS pre-qualifier. Items the IRS values at 80% of
+  // market value ask for value and loan separately; the rest ask for one net amount.
   assets: {
     cashAndBank?: number;
-    investmentMarket?: number;
-    investmentLoans?: number;
-    digitalAssets?: number;
+    investmentsNet?: number;
     retirementMarket?: number;
     retirementLoans?: number;
-    lifeInsuranceCash?: number;
-    lifeInsuranceLoans?: number;
-    ownsRealProperty?: boolean;
-    properties?: Property[];
-    vehicleCount?: 0 | 1 | 2;
-    vehicles?: Vehicle[];
-    otherPropertyMarket?: number;
-    otherPropertyLoans?: number;
-    additionalEquity?: number;
+    homeMarket?: number;
+    homeLoan?: number;
+    otherRealEstateMarket?: number;
+    otherRealEstateLoan?: number;
+    vehicle1Market?: number;
+    vehicle1Loan?: number;
+    vehicle2Market?: number;
+    vehicle2Loan?: number;
+    otherAssetsMarket?: number;
+    otherAssetsLoan?: number;
+    lifeInsuranceNet?: number;
+    miscellaneous?: number;
   };
   income: {
     wagesBenefits?: number;

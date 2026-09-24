@@ -6,8 +6,8 @@ import { baseState } from "./fixtures";
 describe("validation", () => {
   it("treats blank as missing but accepts zero", () => {
     const blank = baseState({ assets: { cashAndBank: undefined } });
-    expect(validateScreen("assetsCash", blank)["assets.cashAndBank"]).toMatch(/Use 0 if none/);
-    expect(validateScreen("assetsCash", baseState())).toEqual({});
+    expect(validateScreen("assetsBank", blank)["assets.cashAndBank"]).toMatch(/Use 0 if none/);
+    expect(validateScreen("assetsBank", baseState())).toEqual({});
   });
 
   it("requires household counts to add up", () => {
@@ -29,16 +29,6 @@ describe("validation", () => {
     );
     expect(errors["household.totalIrsDebt"]).toBeDefined();
     expect(errors["household.latestDebtTaxYear"]).toBeDefined();
-  });
-
-  it("only asks for value and loan on owned vehicles", () => {
-    const leased = baseState({ assets: { vehicleCount: 1, vehicles: [{ leased: true }] } });
-    expect(validateScreen("assetsVehicles", leased)).toEqual({});
-    const owned = baseState({ assets: { vehicleCount: 1, vehicles: [{ leased: false }] } });
-    expect(Object.keys(validateScreen("assetsVehicles", owned))).toEqual([
-      "assets.vehicles.0.market",
-      "assets.vehicles.0.loan",
-    ]);
   });
 
   it("skips vehicle expense amounts when there are no vehicles", () => {

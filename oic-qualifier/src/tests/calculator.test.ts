@@ -103,69 +103,61 @@ describe("assets", () => {
     expect(calculateAssets(baseState({ assets: { cashAndBank: 600 } })).cash).toBe(0);
   });
 
-  it("counts investments at full value less loans", () => {
-    const a = calculateAssets(baseState({ assets: { investmentMarket: 10000, investmentLoans: 2500 } }));
+  it("counts investments and life insurance at their full net value", () => {
+    const a = calculateAssets(baseState({ assets: { investmentsNet: 7500, lifeInsuranceNet: 7000 } }));
     expect(a.investments).toBe(7500);
+    expect(a.lifeInsurance).toBe(7000);
   });
 
-  it("applies 80% to retirement, real property, vehicles, and other property", () => {
+  it("applies 80% to retirement, real estate, vehicles, and other assets", () => {
     const a = calculateAssets(
       baseState({
-        household: { jointEstimate: false },
         assets: {
           retirementMarket: 10000,
           retirementLoans: 1000,
-          ownsRealProperty: true,
-          properties: [
-            { market: 200000, loan: 100000 },
-            { market: 50000, loan: 0 },
-          ],
-          vehicleCount: 1,
-          vehicles: [{ leased: false, market: 20000, loan: 5000 }],
-          otherPropertyMarket: 30000,
-          otherPropertyLoans: 0,
+          homeMarket: 200000,
+          homeLoan: 100000,
+          otherRealEstateMarket: 50000,
+          otherRealEstateLoan: 0,
+          vehicle1Market: 20000,
+          vehicle1Loan: 5000,
+          otherAssetsMarket: 30000,
+          otherAssetsLoan: 0,
         },
       }),
     );
     expect(a.retirement).toBe(7000);
     expect(a.realProperty).toBe(60000 + 40000);
-    expect(a.vehicles).toEqual([16000 - 5000 - 3450]);
+    expect(a.vehicles).toEqual([16000 - 5000 - 3450, 0]);
     expect(a.otherProperty).toBe(24000 - 11980);
   });
 
-  it("does not count real property when the user owns none", () => {
-    const a = calculateAssets(
-      baseState({ assets: { ownsRealProperty: false, properties: [{ market: 100000, loan: 0 }] } }),
-    );
-    expect(a.realProperty).toBe(0);
-  });
-
-  it("gives the $3,450 exclusion to only the first owned vehicle on an individual estimate", () => {
+  it("gives the $3,450 exclusion to only the first vehicle on an individual estimate", () => {
     const vehicles = [
-      { leased: false, market: 20000, loan: 0 },
-      { leased: false, market: 20000, loan: 0 },
+      { market: 20000, loan: 0 },
+      { market: 20000, loan: 0 },
     ];
     expect(vehicleEquities(vehicles, false)).toEqual([16000 - 3450, 16000]);
   });
 
   it("gives the second $3,450 exclusion only on a joint estimate", () => {
     const vehicles = [
-      { leased: false, market: 20000, loan: 0 },
-      { leased: false, market: 20000, loan: 0 },
+      { market: 20000, loan: 0 },
+      { market: 20000, loan: 0 },
     ];
     expect(vehicleEquities(vehicles, true)).toEqual([16000 - 3450, 16000 - 3450]);
   });
 
-  it("gives leased vehicles zero equity and passes the exclusion to the first owned vehicle", () => {
+  it("treats a $0 vehicle (leased or none) as no equity and passes the exclusion on", () => {
     const vehicles = [
-      { leased: true, market: 40000, loan: 0 },
-      { leased: false, market: 20000, loan: 0 },
+      { market: 0, loan: 0 },
+      { market: 20000, loan: 0 },
     ];
     expect(vehicleEquities(vehicles, false)).toEqual([0, 16000 - 3450]);
   });
 
-  it("excludes $11,980 of other valuable property", () => {
-    const a = calculateAssets(baseState({ assets: { otherPropertyMarket: 20000, otherPropertyLoans: 0 } }));
+  it("excludes $11,980 of other assets", () => {
+    const a = calculateAssets(baseState({ assets: { otherAssetsMarket: 20000, otherAssetsLoan: 0 } }));
     expect(a.otherProperty).toBe(16000 - 11980);
   });
 
@@ -173,35 +165,28 @@ describe("assets", () => {
     const a = calculateAssets(
       baseState({
         assets: {
-          investmentMarket: 1000,
-          investmentLoans: 5000,
           retirementMarket: 1000,
           retirementLoans: 5000,
-          lifeInsuranceCash: 100,
-          lifeInsuranceLoans: 900,
-          ownsRealProperty: true,
-          properties: [
-            { market: 100000, loan: 150000 },
-            { market: 100000, loan: 0 },
-          ],
-          vehicleCount: 1,
-          vehicles: [{ leased: false, market: 5000, loan: 9000 }],
-          otherPropertyMarket: 5000,
+          homeMarket: 100000,
+          homeLoan: 150000,
+          otherRealEstateMarket: 100000,
+          otherRealEstateLoan: 0,
+          vehicle1Market: 5000,
+          vehicle1Loan: 9000,
+          otherAssetsMarket: 5000,
         },
       }),
     );
-    expect(a.investments).toBe(0);
     expect(a.retirement).toBe(0);
-    expect(a.lifeInsurance).toBe(0);
-    // An underwater property does not reduce equity in another property.
+    // An underwater home does not reduce equity in other real estate.
     expect(a.realProperty).toBe(80000);
-    expect(a.vehicles).toEqual([0]);
+    expect(a.vehicles).toEqual([0, 0]);
     expect(a.otherProperty).toBe(0);
     expect(a.availableAssetEquity).toBe(80000);
   });
 
-  it("adds digital assets and additional equity", () => {
-    const a = calculateAssets(baseState({ assets: { digitalAssets: 1500, additionalEquity: 2500 } }));
+  it("adds miscellaneous equity", () => {
+    const a = calculateAssets(baseState({ assets: { investmentsNet: 1500, miscellaneous: 2500 } }));
     expect(a.availableAssetEquity).toBe(4000);
   });
 });

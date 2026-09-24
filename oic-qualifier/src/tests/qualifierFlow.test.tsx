@@ -64,14 +64,12 @@ async function throughFinancials(user: User, { wages, debt }: { wages: string; d
   await fill(user, "Most recent tax year included in that debt", "2024");
   await cont(user);
 
-  await fillAll(user, "0"); // cash and investments
-  await cont(user);
-  await fillAll(user, "0"); // retirement and life insurance
-  await cont(user);
-  await answer(user, "No"); // no real estate
-  await answer(user, "None"); // no vehicles
-  await fillAll(user, "0"); // other property
-  await cont(user);
+  expect(heading()).toHaveTextContent("Bank accounts and investments");
+  for (let slide = 0; slide < 4; slide++) {
+    expect(screen.getAllByRole("textbox")).toHaveLength(4);
+    await fillAll(user, "0");
+    await cont(user);
+  }
 
   await fillAll(user, "0");
   await fill(user, "Gross wages, Social Security, pensions, and unemployment", wages);
@@ -81,7 +79,8 @@ async function throughFinancials(user: User, { wages, debt }: { wages: string; d
 
   await fill(user, "Monthly housing and utilities", "1200");
   await cont(user);
-  await fillAll(user, "0"); // public transportation (vehicle count pre-filled to 0)
+  await choose(user, "0"); // no vehicles
+  await fillAll(user, "0"); // public transportation
   await cont(user);
   await fillAll(user, "0");
   await cont(user);

@@ -1,4 +1,3 @@
-import { Plus, Trash2 } from "lucide-react";
 import { StepShell } from "../../components/StepShell";
 import { ChoiceGroup } from "../../components/ChoiceCard";
 import { CurrencyField } from "../../components/CurrencyField";
@@ -19,8 +18,6 @@ type Props = {
   onBack: () => void;
   onContinue: () => void;
 };
-
-const MAX_PROPERTIES = 10;
 
 export function FormStep({ screen, stage, title, answers, errors, set, onBack, onContinue }: Props) {
   const shell = (heading: string, children: React.ReactNode, helper?: string) => (
@@ -69,7 +66,6 @@ export function FormStep({ screen, stage, title, answers, errors, set, onBack, o
   }
 
   const h = answers.household;
-  const a = answers.assets;
   const e = answers.expenses;
 
   switch (screen) {
@@ -153,109 +149,6 @@ export function FormStep({ screen, stage, title, answers, errors, set, onBack, o
           {whole("household.latestDebtTaxYear", "Most recent tax year included in that debt", "year")}
         </div>,
       );
-
-    case "assetsProperty": {
-      const properties = a.properties ?? [];
-      return shell(
-        "Real estate",
-        <div className="field-stack">
-          <ChoiceGroup
-            legend="Do you own any real estate, including your home?"
-            options={[
-              { value: "yes", label: "Yes" },
-              { value: "no", label: "No" },
-            ]}
-            value={a.ownsRealProperty === undefined ? undefined : a.ownsRealProperty ? "yes" : "no"}
-            onChange={(value) => {
-              const owns = value === "yes";
-              set("assets.ownsRealProperty", owns);
-              if (owns && properties.length === 0) set("assets.properties", [{}]);
-            }}
-            error={errors["assets.ownsRealProperty"]}
-          />
-          {a.ownsRealProperty &&
-            properties.map((_, i) => (
-              <fieldset key={i} className="group-card">
-                <legend className="group-title">Property {i + 1}</legend>
-                {money(`assets.properties.${i}.market`, "Market value")}
-                {money(`assets.properties.${i}.loan`, "Loan balance")}
-                {properties.length > 1 && (
-                  <button
-                    type="button"
-                    className="btn btn-quiet btn-small"
-                    onClick={() => set("assets.properties", properties.filter((_, j) => j !== i))}
-                  >
-                    <Trash2 aria-hidden="true" size={16} /> Remove property {i + 1}
-                  </button>
-                )}
-              </fieldset>
-            ))}
-          {a.ownsRealProperty && properties.length < MAX_PROPERTIES && (
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => set("assets.properties", [...properties, {}])}
-            >
-              <Plus aria-hidden="true" size={18} /> Add another property
-            </button>
-          )}
-          {errors["assets.properties"] && (
-            <p className="field-error" role="alert">
-              {errors["assets.properties"]}
-            </p>
-          )}
-        </div>,
-      );
-    }
-
-    case "assetsVehicles": {
-      const count = a.vehicleCount;
-      return shell(
-        "Vehicles",
-        <div className="field-stack">
-          <ChoiceGroup
-            legend="How many vehicles do you own or lease? (up to two)"
-            options={[
-              { value: "0", label: "None" },
-              { value: "1", label: "One" },
-              { value: "2", label: "Two" },
-            ]}
-            value={count === undefined ? undefined : String(count)}
-            onChange={(value) => {
-              const next = Number(value) as 0 | 1 | 2;
-              set("assets.vehicleCount", next);
-              // Pre-fill the expense question; the user can still change it there.
-              if (e.vehicleCount === undefined) set("expenses.vehicleCount", next);
-            }}
-            error={errors["assets.vehicleCount"]}
-          />
-          {Array.from({ length: count ?? 0 }, (_, i) => {
-            const vehicle = a.vehicles?.[i];
-            return (
-              <fieldset key={i} className="group-card">
-                <legend className="group-title">Vehicle {i + 1}</legend>
-                <ChoiceGroup
-                  legend="Is this vehicle owned or leased?"
-                  options={[
-                    { value: "owned", label: "Owned" },
-                    { value: "leased", label: "Leased" },
-                  ]}
-                  value={vehicle?.leased === undefined ? undefined : vehicle.leased ? "leased" : "owned"}
-                  onChange={(value) => set(`assets.vehicles.${i}.leased`, value === "leased")}
-                  error={errors[`assets.vehicles.${i}.leased`]}
-                />
-                {vehicle?.leased === false && (
-                  <>
-                    {money(`assets.vehicles.${i}.market`, "Market value")}
-                    {money(`assets.vehicles.${i}.loan`, "Loan balance")}
-                  </>
-                )}
-              </fieldset>
-            );
-          })}
-        </div>,
-      );
-    }
 
     case "expensesTransport":
       return shell(
